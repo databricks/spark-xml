@@ -19,7 +19,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.{DataFrame, SaveMode, SQLContext}
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.xml.util.{ParserLibs, TextFile, TypeCast}
+import org.apache.spark.xml.util.TextFile
 
 /**
  * Provides access to XML data from pure SQL statements (i.e. for users of the
@@ -34,7 +34,7 @@ class DefaultSource
 
   /**
    * Creates a new relation for data store in XML given parameters.
-   * Parameters have to include 'path' and optionally 'delimiter', 'quote', and 'header'
+   * Parameters have to include 'path'.
    */
   override def createRelation(
       sqlContext: SQLContext,
@@ -44,112 +44,44 @@ class DefaultSource
 
   /**
    * Creates a new relation for data store in XML given parameters and user supported schema.
-   * Parameters have to include 'path' and optionally 'delimiter', 'quote', and 'header'
+   * Parameters have to include 'path'.
    */
   override def createRelation(
       sqlContext: SQLContext,
       parameters: Map[String, String],
       schema: StructType): XmlRelation = {
     val path = checkPath(parameters)
-    val delimiter = TypeCast.toChar(parameters.getOrElse("delimiter", ","))
-
-    val quote = parameters.getOrElse("quote", "\"")
-    val quoteChar: Character = if (quote == null) {
-      null
-    } else if (quote.length == 1) {
-      quote.charAt(0)
-    } else {
-      throw new Exception("Quotation cannot be more than one character.")
-    }
-
-    val escape = parameters.getOrElse("escape", null)
-    val escapeChar: Character = if (escape == null) {
-      null
-    } else if (escape.length == 1) {
-      escape.charAt(0)
-    } else {
-      throw new Exception("Escape character cannot be more than one character.")
-    }
-
-    val comment = parameters.getOrElse("comment", "#")
-    val commentChar: Character = if (comment == null) {
-      null
-    } else if (comment.length == 1) {
-      comment.charAt(0)
-    } else {
-      throw new Exception("Comment marker cannot be more than one character.")
-    }
+    val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
 
     val parseMode = parameters.getOrElse("mode", "PERMISSIVE")
 
-    val useHeader = parameters.getOrElse("header", "false")
-    val headerFlag = if (useHeader == "true") {
-      true
-    } else if (useHeader == "false") {
+    val comment = parameters.getOrElse("comment", "false")
+    val commentFlag = if (comment == "false") {
       false
-    } else {
-      throw new Exception("Header flag can be true or false")
-    }
-
-    val parserLib = parameters.getOrElse("parserLib", ParserLibs.DEFAULT)
-    val ignoreLeadingWhiteSpace = parameters.getOrElse("ignoreLeadingWhiteSpace", "false")
-    val ignoreLeadingWhiteSpaceFlag = if (ignoreLeadingWhiteSpace == "false") {
-      false
-    } else if (ignoreLeadingWhiteSpace == "true") {
-      if (!ParserLibs.isUnivocityLib(parserLib)) {
-        throw new Exception("Ignore whitesspace supported for Univocity parser only")
-      }
+    } else if (comment == "true") {
       true
     } else {
-      throw new Exception("Ignore white space flag can be true or false")
+      throw new Exception("Ignore comment flag can be true or false")
     }
-    val ignoreTrailingWhiteSpace = parameters.getOrElse("ignoreTrailingWhiteSpace", "false")
-    val ignoreTrailingWhiteSpaceFlag = if (ignoreTrailingWhiteSpace == "false") {
+    val ignoreAttribute = parameters.getOrElse("ignoreAttribute", "false")
+    val ignoreAttributeFlag = if (comment == "false") {
       false
-    } else if (ignoreTrailingWhiteSpace == "true") {
-      if (!ParserLibs.isUnivocityLib(parserLib)) {
-        throw new Exception("Ignore whitespace supported for the Univocity parser only")
-      }
+    } else if (comment == "true") {
       true
     } else {
-      throw new Exception("Ignore white space flag can be true or false")
+      throw new Exception("Ignore attribute flag can be true or false")
     }
-    val treatEmptyValuesAsNulls = parameters.getOrElse("treatEmptyValuesAsNulls", "false")
-    val treatEmptyValuesAsNullsFlag = if (treatEmptyValuesAsNulls == "false") {
-      false
-    } else if (treatEmptyValuesAsNulls == "true") {
-      true
-    } else {
-      throw new Exception("Treat empty values as null flag can be true or false")
-    }
-
     val charset = parameters.getOrElse("charset", TextFile.DEFAULT_CHARSET.name())
     // TODO validate charset?
-
-    val inferSchema = parameters.getOrElse("inferSchema", "false")
-    val inferSchemaFlag = if (inferSchema == "false") {
-      false
-    } else if (inferSchema == "true") {
-      true
-    } else {
-      throw new Exception("Infer schema flag can be true or false")
-    }
 
     XmlRelation(
       () => TextFile.withCharset(sqlContext.sparkContext, path, charset),
       Some(path),
-      headerFlag,
-      delimiter,
-      quoteChar,
-      escapeChar,
-      commentChar,
       parseMode,
-      parserLib,
-      ignoreLeadingWhiteSpaceFlag,
-      ignoreTrailingWhiteSpaceFlag,
-      treatEmptyValuesAsNullsFlag,
-      schema,
-      inferSchemaFlag)(sqlContext)
+      samplingRatio,
+      commentFlag,
+      ignoreAttributeFlag,
+      schema)(sqlContext)
   }
 
   override def createRelation(
