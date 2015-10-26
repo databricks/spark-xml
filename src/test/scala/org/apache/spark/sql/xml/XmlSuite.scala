@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.xml
+package org.apache.spark.sql.xml
 
 import java.io.File
 import java.nio.charset.UnsupportedCharsetException
@@ -144,7 +144,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test for DROPMALFORMED parsing mode") {
-    val results = new XmlParser()
+    val results = new XmlReader()
       .withParseMode(ParseModes.DROP_MALFORMED_MODE)
       .withUseHeader(true)
       .withParserLib(parserLib)
@@ -156,7 +156,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test for FAILFAST parsing mode") {
-    val parser = new XmlParser()
+    val parser = new XmlReader()
       .withParseMode(ParseModes.FAIL_FAST_MODE)
       .withUseHeader(true)
       .withParserLib(parserLib)
@@ -184,7 +184,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
     agesDf.saveAsXmlFile(copyFilePath, Map("header" -> "true", "nullValue" -> ""))
 
-    val agesCopy = new XmlParser()
+    val agesCopy = new XmlReader()
       .withSchema(agesSchema)
       .withUseHeader(true)
       .withTreatEmptyValuesAsNulls(true)
@@ -196,7 +196,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test with alternative delimiter and quote") {
-    val results = new XmlParser()
+    val results = new XmlReader()
       .withDelimiter('|')
       .withQuoteChar('\'')
       .withUseHeader(true)
@@ -209,7 +209,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test with null quote character") {
-    val results = new XmlParser()
+    val results = new XmlReader()
       .withDelimiter(',')
       .withQuoteChar(null)
       .withUseHeader(true)
@@ -277,7 +277,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
 
   test("DSL test with empty file and known schema") {
-    val results = new XmlParser()
+    val results = new XmlReader()
       .withSchema(StructType(List(StructField("column", StringType, false))))
       .withUseHeader(false)
       .withParserLib(parserLib)
@@ -296,7 +296,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
       )
     )
 
-    val results = new XmlParser()
+    val results = new XmlReader()
       .withSchema(stringSchema)
       .withUseHeader(true)
       .withParserLib(parserLib)
@@ -315,7 +315,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
       )
     )
 
-    val results = new XmlParser()
+    val results = new XmlReader()
       .withSchema(strictSchema)
       .withUseHeader(true)
       .withParserLib(parserLib)
@@ -351,7 +351,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL column names test") {
-    val cars = new XmlParser()
+    val cars = new XmlReader()
       .withUseHeader(false)
       .withParserLib(parserLib)
       .xmlFile(sqlContext, carsFile)
@@ -504,7 +504,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test nullable fields") {
-    val results = new XmlParser()
+    val results = new XmlReader()
       .withSchema(StructType(List(StructField("name", StringType, false),
                                   StructField("age", IntegerType, true))))
       .withUseHeader(true)
@@ -518,7 +518,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("Commented lines in XML data") {
-    val results: Array[Row] = new XmlParser()
+    val results: Array[Row] = new XmlReader()
       .withDelimiter(',')
       .withComment('~')
       .withParserLib(parserLib)
@@ -534,7 +534,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("Inferring schema") {
-    val results: Array[Row] = new XmlParser()
+    val results: Array[Row] = new XmlReader()
       .withDelimiter(',')
       .withComment('~')
       .withParserLib(parserLib)
@@ -552,7 +552,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
 
   test("Setting comment to null disables comment support") {
-    val results: Array[Row] = new XmlParser()
+    val results: Array[Row] = new XmlReader()
       .withDelimiter(',')
       .withComment(null)
       .withParserLib(parserLib)
@@ -569,7 +569,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL load xml from rdd") {
     val xmlRdd = sqlContext.sparkContext.parallelize(Seq("age,height", "20,1.8", "16,1.7"))
-    val df = new XmlParser()
+    val df = new XmlReader()
       .withUseHeader(true)
       .withParserLib(parserLib)
       .xmlRdd(sqlContext, xmlRdd)
@@ -583,11 +583,11 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     val xmlRdd = sqlContext.sparkContext.parallelize(Seq("age,height", "20,1.8", "16,1.7"))
     val sampleData = sqlContext.sparkContext.parallelize(Seq("age,height", "20,1.8", "16,1.7"))
 
-    val df = new XmlParser()
+    val df = new XmlReader()
       .withUseHeader(true)
       .withParserLib(parserLib)
       .xmlRdd(sqlContext, xmlRdd)
-    val sampleDf = new XmlParser()
+    val sampleDf = new XmlReader()
       .withUseHeader(true)
       .withParserLib(parserLib)
       .xmlRdd(sqlContext, sampleData)

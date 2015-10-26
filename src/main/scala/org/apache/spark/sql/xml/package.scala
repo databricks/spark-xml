@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark
+package org.apache.spark.sql
 
 import org.apache.commons.xml.XMLFormat
 import org.apache.hadoop.io.compress.CompressionCodec
+import org.apache.spark.sql.xml.util.TextFile
 
 import org.apache.spark.sql.{DataFrame, SQLContext}
-import org.apache.spark.xml.util.TextFile
+import TextFile
 
 package object xml {
 
@@ -60,7 +61,7 @@ package object xml {
       sqlContext.baseRelationToDataFrame(xmlRelation)
     }
 
-    def tsvFile(
+    def xmlFile(
         filePath: String,
         useHeader: Boolean = true,
         parserLib: String = "COMMONS",

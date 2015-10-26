@@ -14,7 +14,7 @@
 * limitations under the License.
 */
 
-package org.apache.spark.xml.readers
+package org.apache.spark.sql.xml.parsers
 
 import org.scalatest.FunSuite
 

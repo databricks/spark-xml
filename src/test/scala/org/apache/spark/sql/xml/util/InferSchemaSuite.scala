@@ -1,4 +1,4 @@
-package org.apache.spark.xml.util
+package org.apache.spark.sql.xml.util
 
 import org.apache.spark.sql.types._
 import org.scalatest.FunSuite

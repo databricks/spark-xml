@@ -1,4 +1,4 @@
-package org.apache.spark.xml;
+package org.apache.spark.sql.xml;
 
 import java.io.File;
 import java.util.HashMap;
@@ -32,7 +32,7 @@ public class JavaXmlSuite {
 
   @Test
   public void testXmlParser() {
-    DataFrame df = (new XmlParser()).withUseHeader(true).xmlFile(sqlContext, carsFile);
+    DataFrame df = (new XmlReader()).withUseHeader(true).xmlFile(sqlContext, carsFile);
     int result = df.select("model").collect().length;
     Assert.assertEquals(result, numCars);
   }
@@ -50,11 +50,11 @@ public class JavaXmlSuite {
 
   @Test
   public void testSave() {
-    DataFrame df = (new XmlParser()).withUseHeader(true).xmlFile(sqlContext, carsFile);
+    DataFrame df = (new XmlReader()).withUseHeader(true).xmlFile(sqlContext, carsFile);
     TestUtils.deleteRecursively(new File(tempDir));
     df.select("year", "model").save(tempDir, "org.apache.spark.xml");
 
-    DataFrame newDf = (new XmlParser()).xmlFile(sqlContext, tempDir);
+    DataFrame newDf = (new XmlReader()).xmlFile(sqlContext, tempDir);
     int result = newDf.select("C1").collect().length;
     Assert.assertEquals(result, numCars);
 

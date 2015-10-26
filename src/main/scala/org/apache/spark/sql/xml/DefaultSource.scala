@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.xml
+package org.apache.spark.sql.xml
 
 import org.apache.hadoop.fs.Path
+import org.apache.spark.sql.xml.util.TextFile
 import org.apache.spark.sql.{DataFrame, SaveMode, SQLContext}
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.xml.util.TextFile
 
 /**
  * Provides access to XML data from pure SQL statements (i.e. for users of the
@@ -51,36 +51,51 @@ class DefaultSource
       parameters: Map[String, String],
       schema: StructType): XmlRelation = {
     val path = checkPath(parameters)
+
+    val charset = parameters.getOrElse("charset", TextFile.DEFAULT_CHARSET.name())
+    // TODO validate charset?
+
     val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
 
     val parseMode = parameters.getOrElse("mode", "PERMISSIVE")
 
-    val comment = parameters.getOrElse("comment", "false")
-    val commentFlag = if (comment == "false") {
+    // TODO need to support comment parsing
+    val includeComment = parameters.getOrElse("includeComment", "false")
+    val includeCommentFlag = if (includeComment == "false") {
       false
-    } else if (comment == "true") {
+    } else if (includeComment == "true") {
       true
     } else {
-      throw new Exception("Ignore comment flag can be true or false")
+      throw new Exception("include comment flag can be true or false")
     }
-    val ignoreAttribute = parameters.getOrElse("ignoreAttribute", "false")
-    val ignoreAttributeFlag = if (comment == "false") {
+
+    // TODO need to support include attributes
+    val includeAttribute = parameters.getOrElse("includeAttribute", "false")
+    val includeAttributeFlag = if (includeAttribute == "false") {
       false
-    } else if (comment == "true") {
+    } else if (includeAttribute == "true") {
       true
     } else {
-      throw new Exception("Ignore attribute flag can be true or false")
+      throw new Exception("Include attribute flag can be true or false")
     }
-    val charset = parameters.getOrElse("charset", TextFile.DEFAULT_CHARSET.name())
-    // TODO validate charset?
+
+    val treatEmptyValuesAsNulls = parameters.getOrElse("treatEmptyValuesAsNulls", "false")
+    val treatEmptyValuesAsNullsFlag = if (treatEmptyValuesAsNulls == "false") {
+      false
+    } else if (treatEmptyValuesAsNulls == "true") {
+      true
+    } else {
+      throw new Exception("Treat empty values as null flag can be true or false")
+    }
 
     XmlRelation(
       () => TextFile.withCharset(sqlContext.sparkContext, path, charset),
       Some(path),
       parseMode,
       samplingRatio,
-      commentFlag,
-      ignoreAttributeFlag,
+      includeCommentFlag,
+      includeAttributeFlag,
+      treatEmptyValuesAsNullsFlag,
       schema)(sqlContext)
   }
 
