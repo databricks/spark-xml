@@ -19,7 +19,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.xml.util.{ParseModes, TextFile}
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.xml.util.TextFile
 
 /**
  * A collection of static functions for working with XML files in Spark SQL
@@ -28,8 +27,7 @@ class XmlReader extends Serializable {
 
   private var charset: String = TextFile.DEFAULT_CHARSET.name()
   private var parseMode: String = ParseModes.DEFAULT
-  private var samplingRatio: Double = 1.0
-  private var includeCommentFlag: Boolean = false
+  private var samplingCount: Int = 10
   private var includeAttributeFlag: Boolean = false
   private var treatEmptyValuesAsNulls: Boolean = false
   private var schema: StructType = null
@@ -44,13 +42,8 @@ class XmlReader extends Serializable {
     this
   }
 
-  def withSamplingRatio(samplingRatio: Double): XmlReader = {
-    this.samplingRatio = samplingRatio
-    this
-  }
-
-  def withCommentFlag(include: Boolean): XmlReader = {
-    this.includeCommentFlag = include
+  def withSamplingCount(samplingRatio: Double): XmlReader = {
+    this.samplingCount = samplingCount
     this
   }
 
@@ -76,8 +69,7 @@ class XmlReader extends Serializable {
       () => TextFile.withCharset(sqlContext.sparkContext, path, charset),
       Some(path),
       parseMode,
-      samplingRatio,
-      includeCommentFlag,
+      samplingCount,
       includeAttributeFlag,
       treatEmptyValuesAsNulls,
       schema)(sqlContext)
@@ -89,8 +81,7 @@ class XmlReader extends Serializable {
       () => xmlRDD,
       None,
       parseMode,
-      samplingRatio,
-      includeCommentFlag,
+      samplingCount,
       includeAttributeFlag,
       treatEmptyValuesAsNulls,
       schema)(sqlContext)

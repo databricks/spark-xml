@@ -16,8 +16,8 @@
 package org.apache.spark.sql.xml
 
 import org.apache.hadoop.fs.Path
-import org.apache.spark.sql.xml.util.TextFile
 import org.apache.spark.sql.{DataFrame, SaveMode, SQLContext}
+import org.apache.spark.sql.xml.util.TextFile
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 
@@ -55,19 +55,9 @@ class DefaultSource
     val charset = parameters.getOrElse("charset", TextFile.DEFAULT_CHARSET.name())
     // TODO validate charset?
 
-    val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
+    val samplingCount = parameters.get("samplingCount").map(_.toInt).getOrElse(10)
 
     val parseMode = parameters.getOrElse("mode", "PERMISSIVE")
-
-    // TODO need to support comment parsing
-    val includeComment = parameters.getOrElse("includeComment", "false")
-    val includeCommentFlag = if (includeComment == "false") {
-      false
-    } else if (includeComment == "true") {
-      true
-    } else {
-      throw new Exception("include comment flag can be true or false")
-    }
 
     // TODO need to support include attributes
     val includeAttribute = parameters.getOrElse("includeAttribute", "false")
@@ -92,8 +82,7 @@ class DefaultSource
       () => TextFile.withCharset(sqlContext.sparkContext, path, charset),
       Some(path),
       parseMode,
-      samplingRatio,
-      includeCommentFlag,
+      samplingCount,
       includeAttributeFlag,
       treatEmptyValuesAsNullsFlag,
       schema)(sqlContext)

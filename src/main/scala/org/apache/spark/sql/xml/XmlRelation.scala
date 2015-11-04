@@ -17,7 +17,7 @@ package org.apache.spark.sql.xml
 
 import java.io.IOException
 
-import org.apache.spark.sql.xml.parsers.StaxXmlParser
+import org.apache.spark.sql.xml.parsers.stax._
 import org.apache.spark.sql.xml.util.{InferSchema, ParseModes}
 
 import scala.collection.JavaConversions._
@@ -33,8 +33,7 @@ case class XmlRelation protected[spark] (
     baseRDD: () => RDD[String],
     location: Option[String],
     parseMode: String,
-    samplingRatio: Double,
-    includeCommentFlag: Boolean,
+    samplingCount: Int,
     includeAttributeFlag: Boolean,
     treatEmptyValuesAsNulls: Boolean,
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
@@ -56,20 +55,22 @@ case class XmlRelation protected[spark] (
   override val schema: StructType = {
     Option(userSchema).getOrElse {
       InferSchema(
-        baseRDD(),
-        samplingRatio)
+        StaxXmlPartialSchemaRDD(
+          baseRDD(),
+          samplingCount)(sqlContext))
     }
   }
 
   override def buildScan: RDD[Row] = {
-    StaxXmlParser(
+    StaxXmlRDD(
       baseRDD(),
-      schema,
-      sqlContext.conf.columnNameOfCorruptRecord)
+      schema)(sqlContext)
   }
 
-  // The function below was borrowed from JSONRelation
+  // The function below was borrowed from XMLRelation
   override def insert(data: DataFrame, overwrite: Boolean): Unit = {
+
+    throw new UnsupportedOperationException("Writing XML is currently not supported.")
 
     val filesystemPath = location match {
       case Some(p) => new Path(p)

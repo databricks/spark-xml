@@ -20,6 +20,7 @@ import java.sql.{Date, Timestamp}
 import java.text.NumberFormat
 import java.util.Locale
 
+import org.apache.commons.lang.StringUtils
 import org.apache.spark.sql.types._
 
 import scala.util.Try
@@ -93,6 +94,87 @@ object TypeCast {
       str.charAt(0)
     } else {
       throw new IllegalArgumentException(s"Delimiter cannot be more than one character: $str")
+    }
+  }
+
+  /**
+   * Helper method that checks and cast string representation of a numeric types.
+   */
+
+  private[xml] def isBoolean(value: String): Boolean = {
+    value.toLowerCase match {
+      case "true" | "false" => true
+      case _ => false
+    }
+  }
+
+  private[xml] def isDouble(value: String): Boolean = {
+    val signSafeValue: String = if (value.startsWith("+") || value.startsWith("-")) {
+      value.substring(1)
+    } else {
+      value
+    }
+    try {
+      signSafeValue.toDouble
+      true
+    } catch {
+      case e: NumberFormatException =>
+        false
+    }
+  }
+
+  private[xml] def isLong(value: String): Boolean = {
+    val signSafeValue: String = if (value.startsWith("+") || value.startsWith("-")) {
+      value.substring(1)
+    } else {
+      value
+    }
+    try {
+      signSafeValue.toLong
+      true
+    } catch {
+      case e: NumberFormatException =>
+        false
+    }
+  }
+
+  private[xml] def signSafeToLong(value: String): Long = {
+    if (value.startsWith("+")) {
+      value.substring(1).toLong
+    } else if (value.startsWith("-")) {
+      -value.substring(1).toLong
+    } else {
+      value.toLong
+    }
+  }
+
+  private[xml] def signSafeToDouble(value: String): Double = {
+    if (value.startsWith("+")) {
+      value.substring(1).toDouble
+    } else if (value.startsWith("-")) {
+      -value.substring(1).toDouble
+    } else {
+      value.toDouble
+    }
+  }
+
+  private[xml] def signSafeToInt(value: String): Int = {
+    if (value.startsWith("+")) {
+      value.substring(1).toInt
+    } else if (value.startsWith("-")) {
+      -value.substring(1).toInt
+    } else {
+      value.toInt
+    }
+  }
+
+  private[xml] def signSafeToFloat(value: String): Float = {
+    if (value.startsWith("+")) {
+      value.substring(1).toFloat
+    } else if (value.startsWith("-")) {
+      -value.substring(1).toFloat
+    } else {
+      value.toFloat
     }
   }
 }
