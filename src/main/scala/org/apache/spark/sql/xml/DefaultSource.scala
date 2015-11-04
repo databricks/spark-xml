@@ -17,7 +17,7 @@ package org.apache.spark.sql.xml
 
 import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.{DataFrame, SaveMode, SQLContext}
-import org.apache.spark.sql.xml.util.TextFile
+import org.apache.spark.sql.xml.util.XmlFile
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 
@@ -52,12 +52,19 @@ class DefaultSource
       schema: StructType): XmlRelation = {
     val path = checkPath(parameters)
 
-    val charset = parameters.getOrElse("charset", TextFile.DEFAULT_CHARSET.name())
+    val charset = parameters.getOrElse("charset", XmlFile.DEFAULT_CHARSET.name())
     // TODO validate charset?
 
-    val samplingCount = parameters.get("samplingCount").map(_.toInt).getOrElse(10)
+    val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
 
     val parseMode = parameters.getOrElse("mode", "PERMISSIVE")
+
+    val rootTag = parameters.getOrElse("rootTag", "").trim
+    if (rootTag == "") {
+      throw new Exception("root tag must be given.")
+    }
+
+    // TODO validate charset?
 
     // TODO need to support include attributes
     val includeAttribute = parameters.getOrElse("includeAttribute", "false")
@@ -79,10 +86,11 @@ class DefaultSource
     }
 
     XmlRelation(
-      () => TextFile.withCharset(sqlContext.sparkContext, path, charset),
+      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rootTag),
       Some(path),
       parseMode,
-      samplingCount,
+      rootTag,
+      samplingRatio,
       includeAttributeFlag,
       treatEmptyValuesAsNullsFlag,
       schema)(sqlContext)

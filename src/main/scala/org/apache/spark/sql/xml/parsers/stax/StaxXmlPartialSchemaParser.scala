@@ -17,69 +17,57 @@
 
 package org.apache.spark.sql.xml.parsers.stax
 
+import java.io.ByteArrayInputStream
 import javax.xml.stream.events.Attribute
 import javax.xml.stream.XMLInputFactory
 
+import org.apache.mahout.text.wikipedia.XmlInputFormat
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.xml.parsers.io.BaseRDDInputStream
 import org.apache.spark.sql.xml.util.InferSchema
 
 import scala.collection.Seq
+import scala.util.control.NonFatal
 
 /**
  * Wraps parser to iteratoration process.
  */
-private[sql] object StaxXmlPartialSchemaRDD {
-  def apply(xml: RDD[String], samplingCount: Int)
+private[sql] object StaxXmlPartialSchemaParser {
+  def apply(xml: RDD[String], rootTag: String, samplingRatio: Double)
            (sqlContext: SQLContext): RDD[DataType] = {
-    val factory = XMLInputFactory.newInstance()
-    val parser = new StaxXmlParser(factory.createXMLEventReader(new BaseRDDInputStream(xml)))
-    val stream = this(parser, samplingCount)
-    sqlContext.sparkContext.parallelize[DataType](stream)
-  }
+    require(samplingRatio > 0, s"samplingRatio ($samplingRatio) should be greater than 0")
+    val schemaData = if (samplingRatio > 0.99) {
+      xml
+    } else {
+      xml.sample(withReplacement = false, samplingRatio, 1)
+    }
 
-  private def apply(parser: StaxXmlParser, samplingCount: Int): Stream[DataType] = {
-
-    new Iterator[DataType] {
-      var count = 0
-      var maybePartialSchemas: Option[DataType] = None
-
-      override def hasNext: Boolean = {
-        if (maybePartialSchemas.isDefined) {
-          true
-        } else {
-          // TODO: The root should be given from users as an option.
-          maybePartialSchemas = startInferField(parser)
-          count < samplingCount && maybePartialSchemas.isDefined
-        }
+    schemaData.mapPartitions { iter =>
+      iter.flatMap { xml =>
+        val factory = XMLInputFactory.newInstance()
+        val parser = new StaxXmlParser(factory.createXMLEventReader(new ByteArrayInputStream(xml.getBytes)))
+        startInferField(parser, rootTag)
       }
-
-      override def next: DataType = {
-        count += count
-        val partialSchemas = maybePartialSchemas.orNull
-        maybePartialSchemas = None
-        partialSchemas
-      }
-    }.toStream
+    }
   }
 
   /**
    * Infer the type of a xml document from the parser's token stream
    */
 
-  private def startInferField(parser: StaxXmlParser): Option[DataType] = {
-    if (parser.readFragment()) {
-      val field = parser.nextEvent.asStartElement.getName.getLocalPart
-      Some(inferObject(parser, field))
+  private def startInferField(parser: StaxXmlParser, rootTag: String): Option[DataType] = {
+    if (parser.readAllEventsInFragment) {
+      // Skip the first event
+      parser.nextEvent
+      Some(inferObject(parser, rootTag))
     } else {
       None
     }
   }
 
   private def inferField(parser: StaxXmlParser, parentField: String): DataType = {
-    import org.apache.spark.sql.xml.parsers.stax.XmlDataTypes._
+    import org.apache.spark.sql.xml.parsers.stax.StaxXmlParser._
     parser.inferDataType match {
       case LONG =>
         parser.nextEvent

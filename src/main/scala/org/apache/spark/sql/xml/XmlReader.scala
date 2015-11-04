@@ -16,7 +16,7 @@
 package org.apache.spark.sql.xml
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.xml.util.{ParseModes, TextFile}
+import org.apache.spark.sql.xml.util.{ParseModes, XmlFile}
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.sql.types.StructType
 
@@ -25,9 +25,10 @@ import org.apache.spark.sql.types.StructType
  */
 class XmlReader extends Serializable {
 
-  private var charset: String = TextFile.DEFAULT_CHARSET.name()
+  private var charset: String = XmlFile.DEFAULT_CHARSET.name()
   private var parseMode: String = ParseModes.DEFAULT
-  private var samplingCount: Int = 10
+  private var rootTag: String = null
+  private var samplingRatio: Double = 1.0
   private var includeAttributeFlag: Boolean = false
   private var treatEmptyValuesAsNulls: Boolean = false
   private var schema: StructType = null
@@ -42,8 +43,13 @@ class XmlReader extends Serializable {
     this
   }
 
-  def withSamplingCount(samplingRatio: Double): XmlReader = {
-    this.samplingCount = samplingCount
+  def withRootTag(rootTag: String): XmlReader = {
+    this.rootTag = rootTag
+    this
+  }
+
+  def withSamplingRatio(samplingRatio: Double): XmlReader = {
+    this.samplingRatio = samplingRatio
     this
   }
 
@@ -66,10 +72,11 @@ class XmlReader extends Serializable {
   @throws[RuntimeException]
   def xmlFile(sqlContext: SQLContext, path: String): DataFrame = {
     val relation: XmlRelation = XmlRelation(
-      () => TextFile.withCharset(sqlContext.sparkContext, path, charset),
+      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rootTag),
       Some(path),
       parseMode,
-      samplingCount,
+      rootTag,
+      samplingRatio,
       includeAttributeFlag,
       treatEmptyValuesAsNulls,
       schema)(sqlContext)
@@ -81,7 +88,8 @@ class XmlReader extends Serializable {
       () => xmlRDD,
       None,
       parseMode,
-      samplingCount,
+      rootTag,
+      samplingRatio,
       includeAttributeFlag,
       treatEmptyValuesAsNulls,
       schema)(sqlContext)

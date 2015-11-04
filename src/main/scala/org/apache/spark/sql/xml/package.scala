@@ -16,7 +16,7 @@
 package org.apache.spark.sql
 
 import org.apache.hadoop.io.compress.CompressionCodec
-import org.apache.spark.sql.xml.util.TextFile
+import org.apache.spark.sql.xml.util.XmlFile
 
 package object xml {
   /**
@@ -26,17 +26,19 @@ package object xml {
     def xmlFile(
                  filePath: String,
                  mode: String = "PERMISSIVE",
-                 samplingCount: Int = 10,
+                 rootTag: String,
+                 samplingRatio: Double = 1.0,
                  includeAttributeFlag: Boolean = false,
                  treatEmptyValuesAsNulls: Boolean = false,
-                 charset: String = TextFile.DEFAULT_CHARSET.name()
+                 charset: String = XmlFile.DEFAULT_CHARSET.name()
                  ): DataFrame = {
 
       val xmlRelation = XmlRelation(
-        () => TextFile.withCharset(sqlContext.sparkContext, filePath, charset),
+        () => XmlFile.withCharset(sqlContext.sparkContext, filePath, charset, rootTag),
         location = Some(filePath),
         parseMode = mode,
-        samplingCount = samplingCount,
+        rootTag = rootTag,
+        samplingRatio = samplingRatio,
         includeAttributeFlag = includeAttributeFlag,
         treatEmptyValuesAsNulls = treatEmptyValuesAsNulls)(sqlContext)
       sqlContext.baseRelationToDataFrame(xmlRelation)

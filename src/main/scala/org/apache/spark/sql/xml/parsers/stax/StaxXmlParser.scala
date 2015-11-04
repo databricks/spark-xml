@@ -17,161 +17,69 @@
 
 package org.apache.spark.sql.xml.parsers.stax
 
+import java.io.ByteArrayInputStream
 import javax.xml.stream.events.{Attribute, XMLEvent}
-import javax.xml.stream.{XMLEventReader, XMLInputFactory, XMLStreamException, XMLStreamReader}
+import javax.xml.stream.{XMLEventReader, XMLInputFactory}
 
+import com.sun.xml.internal.stream.events.CharacterEvent
 import org.apache.commons.lang.StringUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
-import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.xml.parsers.io.BaseRDDInputStream
 import org.apache.spark.sql.xml.util.TypeCast._
 import org.apache.spark.unsafe.types.UTF8String
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 
-/**
- * This defines the possible types for XML.
- */
-private[sql] object XmlDataTypes {
-  val FAIL: Int = -1
-  val NULL: Int = 1
-  val BOOLEAN: Int = 2
-  val LONG: Int = 3
-  val DOUBLE: Int = 4
-  val STRING: Int = 5
-  val OBJECT: Int = 6
-  val ARRAY: Int = 7
-}
-
-
 private[sql] class StaxXmlParser(parser: XMLEventReader) {
-  import org.apache.spark.sql.xml.parsers.stax.XmlDataTypes._
+  import org.apache.spark.sql.xml.parsers.stax.StaxXmlParser._
 
   private var startField: Option[String] = None
   private var currentField: Option[String] = None
   var eventsInFragment: ArrayBuffer[XMLEvent] = ArrayBuffer.empty[XMLEvent]
 
   /**
-   * In this parser, this method should be called for `next()` and `hasNext()`.
-   * The fragment means the object started with the root and ended with the root.
-   * If not given, then it starts with the first met element.
+   * Read all the event to infer datatypes.
    */
 
-  // TODO: Polish here
-  def readFragment(): Boolean = {
-
-    if (startField.isEmpty) {
-      // By default we skip the root element in the XML file
-      // Find the first event
-      var isFirstFound = false
-      var lastEvent: Option[XMLEvent] = None
-      while (parser.hasNext && !isFirstFound) {
-        val event = parser.nextEvent
-        if (event.isStartElement) {
-          lastEvent = seekStartEvent(parser)
-          isFirstFound = true
-        }
-      }
-
-      // TODO: Polish here
-      val field = lastEvent.map(_.asStartElement.getName.getLocalPart)
-      val attrIter = lastEvent.map(_.asStartElement.getAttributes.asScala.map(_.asInstanceOf[XMLEvent]))
-      lastEvent.map(eventsInFragment += _)
-      eventsInFragment = eventsInFragment ++ attrIter.getOrElse(ArrayBuffer.empty[XMLEvent])
-      startField = field
-      field.exists(readFragment)
-    } else {
-      val lastEvent = seekStartEvent(parser)
-      val field = lastEvent.map(_.asStartElement.getName.getLocalPart)
-      val attrIter = lastEvent.map(_.asStartElement.getAttributes.asScala.map(_.asInstanceOf[XMLEvent]))
-      lastEvent.map(eventsInFragment += _)
-      eventsInFragment = eventsInFragment ++ attrIter.getOrElse(ArrayBuffer.empty[XMLEvent])
-      field.exists(readFragment)
-    }
-  }
-
-  private def seekStartEvent(parser: XMLEventReader): Option[XMLEvent] = {
-    var event = parser.nextEvent
-    var found = false
-    while (parser.hasNext && !found) {
-      event = parser.nextEvent
-      if (event.isStartElement) {
-        found = true
-      }
-    }
-    if (found) {
-      Some(event)
-    } else {
-      None
-    }
-  }
-
-  def readFragment(root: String): Boolean = {
-    var field = root
-    var isFirstFound = false
-
-    // Find the first event
-    val currentEvent = getCurrentEvent
-    if (currentEvent.isStartElement) {
-      if (field == currentEvent.asStartElement.getName.getLocalPart) {
-        isFirstFound = true
-      }
-    }
-
-    while (parser.hasNext && !isFirstFound) {
+  def readAllEventsInFragment: Boolean = {
+    var isLastCharators = false
+    while (parser.hasNext) {
       val event = parser.nextEvent
-      if (event.isStartElement) {
-        val startEvent = event.asStartElement
-        if (field == startEvent.getName.getLocalPart) {
-          isFirstFound = true
-          val attrIter = event.asStartElement.getAttributes.asScala.map(_.asInstanceOf[XMLEvent])
+      if (event.isCharacters && !StringUtils.isBlank(event.asCharacters.getData)) {
+
+        // We need to concatenate values if character token is found again.
+        // Java StAX XML produces character event sequentially sometimes.
+        // TODO: Check why it is.
+        if(eventsInFragment.last.isCharacters){
+          val previous = eventsInFragment.last.asCharacters.getData
+          val current = event.asCharacters.getData
+          eventsInFragment.last.asInstanceOf[CharacterEvent].setData(previous + current)
+        } else {
           eventsInFragment += event
-          eventsInFragment = eventsInFragment ++ attrIter
         }
-      }
-    }
-
-    // Find the last event
-    var isLastFound = false
-    while (parser.hasNext && !isLastFound) {
-      val event = parser.nextEvent
-      val isWhiteSpace = event.isCharacters && StringUtils.isBlank(event.asCharacters.getData)
-      if (!isWhiteSpace) {
-        eventsInFragment += event
-      }
-
-      if (event.isStartElement) {
+      } else if (event.isStartElement) {
         val attrIter = event.asStartElement.getAttributes.asScala.map(_.asInstanceOf[XMLEvent])
+        eventsInFragment += event
         eventsInFragment = eventsInFragment ++ attrIter
       } else if (event.isEndElement) {
-        val lastEvent = event.asEndElement
-        if (field == lastEvent.getName.getLocalPart) {
-          isLastFound = true
-        }
+
+        // We keep this to give null in case it only has the start and end tag without value.
+        eventsInFragment += event
       }
     }
-
-    if (eventsInFragment.isEmpty){
-      false
-    } else {
-      currentField = Some(eventsInFragment.last.asEndElement.getName.getLocalPart)
-      true
-    }
+    eventsInFragment.nonEmpty
   }
 
 
   def skipEndElementUntil(field: String): Boolean = {
     var shouldSkip = true
-    while (hasNext && shouldSkip) {
+    while (eventsInFragment.nonEmpty && shouldSkip) {
       val event = eventsInFragment.head
-      if (event.isEndElement && currentField.contains(field)) {
-        shouldSkip = false
-      } else if (event.isEndElement) {
+      if (event.isEndElement) {
         nextEvent
         shouldSkip = true
       } else {
@@ -182,18 +90,8 @@ private[sql] class StaxXmlParser(parser: XMLEventReader) {
     !shouldSkip
   }
 
-  def hasNext = eventsInFragment.nonEmpty
-
-  def getCurrentEvent = eventsInFragment.head
-
   def nextEvent: XMLEvent = {
-    val event = eventsInFragment.remove(0)
-    if (event.isStartElement) {
-      currentField = Some(event.asStartElement.getName.getLocalPart)
-    } else if (event.isEndElement) {
-      currentField = Some(event.asEndElement.getName.getLocalPart)
-    }
-    event
+    eventsInFragment.remove(0)
   }
 
   def clear(): Unit = {
@@ -249,56 +147,41 @@ private[sql] class StaxXmlParser(parser: XMLEventReader) {
 /**
  * Wraps parser to iteratoration process.
  */
-private[sql] object StaxXmlRDD {
+private[sql] object StaxXmlParser {
 
-  def apply(xml: RDD[String], schema: StructType)
+  /**
+   * This defines the possible types for XML.
+   */
+
+  val FAIL: Int = -1
+  val NULL: Int = 1
+  val BOOLEAN: Int = 2
+  val LONG: Int = 3
+  val DOUBLE: Int = 4
+  val STRING: Int = 5
+  val OBJECT: Int = 6
+  val ARRAY: Int = 7
+
+  def apply(xml: RDD[String], schema: StructType, rootTag: String)
            (sqlContext: SQLContext): RDD[Row] = {
-    val factory = XMLInputFactory.newInstance()
-    val parser = new StaxXmlParser(factory.createXMLEventReader(new BaseRDDInputStream(xml)))
-    val stream = this(parser, schema)
-    sqlContext.sparkContext.parallelize[Row](stream)
-  }
-
-  private def apply(parser: StaxXmlParser, schema: StructType): Stream[Row] = {
-
-    new Iterator[Row] {
-      var record: Row = _
-
-      override def hasNext: Boolean = {
-        try {
-          val maybeRecord = startConvertObject(parser, schema)
-          if (maybeRecord.isDefined) {
-            record = Row.fromSeq(maybeRecord.get.toSeq(schema))
-            true
-          } else{
-            false
-          }
-        } catch {
-          // TODO: Permissive mode here
-          case e: XMLStreamException =>
-            record = failedRecord(e)
-            false
-        }
+    xml.mapPartitions { iter =>
+      iter.flatMap { xml =>
+        val factory = XMLInputFactory.newInstance()
+        val parser = new StaxXmlParser(factory.createXMLEventReader(new ByteArrayInputStream(xml.getBytes)))
+        // Skip the first event
+        startConvertObject(parser, schema, rootTag)
       }
-
-      private def failedRecord(e: XMLStreamException): Row = {
-        // TODO: We should fill the elements more.
-        Row.fromSeq(Array[Any](schema.length))
-      }
-
-      override def next: Row = {
-        record
-      }
-    }.toStream
+    }
   }
 
   /**
    * Parse the current token (and related children) according to a desired schema
    */
-  private def startConvertObject(parser: StaxXmlParser, schema: StructType): Option[InternalRow] = {
-    if (parser.readFragment()) {
-      val field = parser.nextEvent.asStartElement.getName.getLocalPart
-      Some(convertObject(parser, schema, field))
+  private def startConvertObject(parser: StaxXmlParser, schema: StructType, rootTag: String): Option[Row] = {
+    if (parser.readAllEventsInFragment) {
+      parser.nextEvent
+      val record = convertObject(parser, schema, rootTag)
+      Some(Row.fromSeq(record.toSeq(schema)))
     } else {
       None
     }

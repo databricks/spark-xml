@@ -33,7 +33,8 @@ case class XmlRelation protected[spark] (
     baseRDD: () => RDD[String],
     location: Option[String],
     parseMode: String,
-    samplingCount: Int,
+    rootTag: String,
+    samplingRatio: Double,
     includeAttributeFlag: Boolean,
     treatEmptyValuesAsNulls: Boolean,
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
@@ -55,16 +56,17 @@ case class XmlRelation protected[spark] (
   override val schema: StructType = {
     Option(userSchema).getOrElse {
       InferSchema(
-        StaxXmlPartialSchemaRDD(
+        StaxXmlPartialSchemaParser(
           baseRDD(),
-          samplingCount)(sqlContext))
-    }
+          rootTag,
+          samplingRatio)(sqlContext))}
   }
 
   override def buildScan: RDD[Row] = {
-    StaxXmlRDD(
+    StaxXmlParser(
       baseRDD(),
-      schema)(sqlContext)
+      schema,
+      rootTag)(sqlContext)
   }
 
   // The function below was borrowed from XMLRelation

@@ -18,22 +18,28 @@ package org.apache.spark.sql.xml.util
 import java.nio.charset.Charset
 
 import org.apache.hadoop.io.{Text, LongWritable}
-import org.apache.hadoop.mapred.TextInputFormat
+import org.apache.mahout.text.wikipedia.XmlInputFormat
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
-private[xml] object TextFile {
+private[xml] object XmlFile {
   val DEFAULT_CHARSET = Charset.forName("UTF-8")
 
-  def withCharset(context: SparkContext, location: String, charset: String): RDD[String] = {
+  def withCharset(context: SparkContext, location: String, charset: String, rootTag: String): RDD[String] = {
+    context.hadoopConfiguration.setIfUnset(XmlInputFormat.START_TAG_KEY, s"<$rootTag")
+    context.hadoopConfiguration.setIfUnset(XmlInputFormat.END_TAG_KEY, s"$rootTag>")
     if (Charset.forName(charset) == DEFAULT_CHARSET) {
-      context.textFile(location)
+      context.newAPIHadoopFile(location,
+        classOf[XmlInputFormat],
+        classOf[LongWritable],
+        classOf[Text]).map(pair => new String(pair._2.getBytes, 0, pair._2.getLength))
     } else {
       // can't pass a Charset object here cause its not serializable
       // TODO: maybe use mapPartitions instead?
-      context.hadoopFile[LongWritable, Text, TextInputFormat](location).map(
-        pair => new String(pair._2.getBytes, 0, pair._2.getLength, charset)
-      )
+      context.newAPIHadoopFile(location,
+        classOf[XmlInputFormat],
+        classOf[LongWritable],
+        classOf[Text]).map(pair => new String(pair._2.getBytes, 0, pair._2.getLength, charset))
     }
   }
 }
