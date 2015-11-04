@@ -3,8 +3,6 @@
 A library for parsing and querying XML data with Apache Spark, for Spark SQL and DataFrames.
 The structure and test tools are mostly copied from databricks/spark-csv.
 
-[![Build Status (Progressing)](https://travis-ci.com/HyukjinKwon/spark-xml.svg?branch=master)](https://travis-ci.com/HyukjinKwon/spark-xml)
-
 ## Requirements
 
 This library requires Spark 1.3+
