@@ -14,16 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.spark.sql.xml.parsers.stax
 
-import java.io.ByteArrayInputStream
+import java.io.{ByteArrayOutputStream, ByteArrayInputStream}
 import javax.xml.stream.events.{Attribute, XMLEvent}
 import javax.xml.stream.{XMLEventReader, XMLInputFactory}
 
-import com.sun.xml.internal.stream.events.CharacterEvent
+import com.fasterxml.jackson.core.JsonEncoding
+import com.fasterxml.jackson.core.JsonToken._
+import com.sun.xml.internal.stream.events.{EndElementEvent, StartElementEvent, StartDocumentEvent, CharacterEvent}
 import org.apache.commons.lang.StringUtils
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
@@ -64,7 +66,19 @@ private[sql] class StaxXmlParser(parser: XMLEventReader) {
       } else if (event.isStartElement) {
         val attrIter = event.asStartElement.getAttributes.asScala.map(_.asInstanceOf[XMLEvent])
         eventsInFragment += event
-        eventsInFragment = eventsInFragment ++ attrIter
+
+        // We wraps an attribute event by converting a start event, character event and end event
+        // in order to process later as the same.
+        attrIter.foreach{ attr =>
+          val field = attr.asInstanceOf[Attribute].getName.getLocalPart
+          val start = new StartElementEvent("", "", field)
+          val characters = new CharacterEvent(attr.asInstanceOf[Attribute].getValue)
+          val end = new EndElementEvent("", "", field)
+          eventsInFragment += start
+          eventsInFragment += characters
+          eventsInFragment += end
+        }
+
       } else if (event.isEndElement) {
 
         // We keep this to give null in case it only has the start and end tag without value.
@@ -131,8 +145,6 @@ private[sql] class StaxXmlParser(parser: XMLEventReader) {
     val currentEvent = eventsInFragment.head
     if (currentEvent.isCharacters) {
       inferNonNestedType(currentEvent.asCharacters.getData)
-    } else if (currentEvent.isAttribute) {
-      inferNonNestedType(currentEvent.asInstanceOf[Attribute].getValue)
     } else if (currentEvent.isStartElement && eventsInFragment(1).isEndElement) {
       NULL
     } else if (currentEvent.isStartElement && eventsInFragment.exists(_.isStartElement)) {
@@ -224,6 +236,73 @@ private[sql] object StaxXmlParser {
           null
         }
 
+      case BinaryType =>
+        val event = parser.nextEvent
+        if (event.isCharacters) {
+          event.asCharacters.getData.getBytes
+        } else {
+          null
+        }
+
+      case DateType =>
+        val event = parser.nextEvent
+        if (event.isCharacters) {
+          val stringValue = event.asCharacters.getData
+          if (stringValue.contains("-")) {
+            // The format of this string will probably be "yyyy-mm-dd".
+            DateTimeUtils.millisToDays(DateTimeUtils.stringToTime(stringValue).getTime)
+          } else {
+            // In Spark 1.5.0, we store the data as number of days since epoch in string.
+            // So, we just convert it to Int.
+            stringValue.toInt
+          }
+        } else {
+          null
+        }
+
+      case TimestampType =>
+        val event = parser.nextEvent
+        if (event.isCharacters) {
+          // This one will lose microseconds parts.
+          // See https://issues.apache.org/jira/browse/SPARK-10681.
+          DateTimeUtils.stringToTime(event.asCharacters.getData).getTime * 1000L
+        } else {
+          null
+        }
+
+      case FloatType =>
+        val event = parser.nextEvent
+        if (event.isCharacters) {
+          event.asCharacters.getData.toFloat
+        } else {
+          null
+        }
+
+      case ByteType =>
+        val event = parser.nextEvent
+        if (event.isCharacters) {
+          event.asCharacters.getData.toByte
+        } else {
+          null
+        }
+
+      case ShortType =>
+        val event = parser.nextEvent
+        if (event.isCharacters) {
+          event.asCharacters.getData.toShort
+        } else {
+          null
+        }
+
+      case IntegerType =>
+        val event = parser.nextEvent
+        if (event.isCharacters) {
+          event.asCharacters.getData.toInt
+        } else {
+          null
+        }
+
+
       case NullType =>
         parser.nextEvent
         null
@@ -253,32 +332,25 @@ private[sql] object StaxXmlParser {
     var row = new GenericMutableRow(schema.length)
     while (parser.skipEndElementUntil(parentField)) {
       val event = parser.nextEvent
-      if (event.isAttribute) {
-        val field = event.asInstanceOf[Attribute].getName.getLocalPart
-        schema.getFieldIndex(field) match {
-          case Some(index) =>
-            // TODO: Currently we only hanlde attribute as string but
-            // all the structure might have to be changed for this.
-            row(index) = UTF8String.fromString(event.asInstanceOf[Attribute].getValue)
-        }
-      } else {
-        // TODO: We might have to add a case when field is null
-        // although this case is impossible.
-        val field = event.asStartElement.getName.getLocalPart
-        schema.getFieldIndex(field) match {
-          case Some(index) =>
-            // For XML, it can contains the same keys. So we need to manually merge them to an array.
-            // TODO: This routine  is hacky and should go out of this.
-            val dataType = schema(index).dataType
-            dataType match {
-              case ArrayType(st, _) =>
-                val values = row.get(index, dataType)
-                val newValues = convertField(parser, dataType, parentField).asInstanceOf[Array[Any]]
-                row(index) = new GenericArrayData(values +: newValues)
-              case _ =>
-                row(index) = convertField(parser, dataType, parentField)
-            }
-        }
+      // TODO: We might have to add a case when field is null
+      // although this case is impossible.
+      val field = event.asStartElement.getName.getLocalPart
+      schema.getFieldIndex(field) match {
+        case Some(index) =>
+          // For XML, it can contains the same keys. So we need to manually merge them to an array.
+          // TODO: This routine  is hacky and should go out of this.
+          val dataType = schema(index).dataType
+          dataType match {
+            case ArrayType(st, _) =>
+              val values = row.get(index, dataType)
+              val newValues = convertField(parser, dataType, parentField).asInstanceOf[Array[Any]]
+              row(index) = new GenericArrayData(values +: newValues)
+            case _ =>
+              row(index) = convertField(parser, dataType, parentField)
+          }
+        case _ =>
+          // This case must not happen.
+          throw new IndexOutOfBoundsException(s"The field ('$field') does not exist in schema")
       }
     }
     row

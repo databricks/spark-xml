@@ -19,7 +19,6 @@ testSparkVersion := sys.props.get("spark.testVersion").getOrElse(sparkVersion.va
 sparkComponents := Seq("core", "sql")
 
 libraryDependencies ++= Seq(
-  "org.apache.mahout" % "mahout-integration" % "0.11.0",
   "org.slf4j" % "slf4j-api" % "1.7.5" % "provided",
   "org.scalatest" %% "scalatest" % "2.2.1" % "test",
   "com.novocode" % "junit-interface" % "0.9" % "test"
@@ -41,14 +40,6 @@ spAppendScalaVersion := true
 
 spIncludeMaven := true
 
-publishTo := {
-  val nexus = "https://oss.sonatype.org/"
-  if (version.value.endsWith("SNAPSHOT"))
-    Some("snapshots" at nexus + "content/repositories/snapshots")
-  else
-    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
-}
-
 pomExtra := (
   <url>https://github.com/HyukjinKwon/spark-xml</url>
   <licenses>
@@ -59,14 +50,14 @@ pomExtra := (
     </license>
   </licenses>
   <scm>
-    <url>git@github.com/HyukjinKwon/spark-xml.git</url>
-    <connection>scm:git:git@github.com/HyukjinKwon/spark-xml.git</connection>
+    <url>git@github.com:HyukjinKwon/spark-xml.git</url>
+    <connection>scm:git:git@github.com:HyukjinKwon/spark-xml.git</connection>
   </scm>
   <developers>
     <developer>
-      <id>falaki</id>
-      <name>Hossein Falaki</name>
-      <url>http://www.falaki.net</url>
+      <id>hyukjinkwon</id>
+      <name>Hyukjin Kwon</name>
+      <url>https://www.facebook.com/hyukjin.kwon.96</url>
     </developer>
   </developers>)
 

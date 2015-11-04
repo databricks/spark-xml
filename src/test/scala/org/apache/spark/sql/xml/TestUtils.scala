@@ -21,7 +21,7 @@ private[xml] object TestUtils {
   /**
    * This function deletes a file or a directory with everything that's in it. This function is
    * copied from Spark with minor modifications made to it. See original source at:
-   * github.com/HyukjinKwon/spark/blob/master/core/src/main/scala/org/apache/spark/util/Utils.scala
+   * github.com/databricks/spark/blob/master/core/src/main/scala/org/apache/spark/util/Utils.scala
    */
   def deleteRecursively(file: File) {
     def listFilesSafely(file: File): Seq[File] = {

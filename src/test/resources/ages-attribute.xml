@@ -1,25 +1,25 @@
 <?xml version="1.0"?>
 <ROWSET>
     <ROW>
-        <id>1</id>
+        <id index="1">1</id>
         <name>Johnson, Smith, and Jones Co.</name>
         <age>45</age>
         <Remark>Pays on time</Remark>
     </ROW>
     <ROW>
-        <id>2</id>
+        <id index="3">2</id>
         <name>Sam Mad Dog Smith</name>
         <amount>93</amount>
     </ROW>
     <ROW>
-        <id>3</id>
+        <id index="5">3</id>
         <name>Barney Company</name>
         <age>0</age>
         <Remark>Great to work with
             and always pays with cash.</Remark>
     </ROW>
     <ROW>
-        <id>4</id>
+        <id index="7">4</id>
         <name>Johnsons Automotive</name>
         <age>2344</age>
         <Remark>Pays on time</Remark>

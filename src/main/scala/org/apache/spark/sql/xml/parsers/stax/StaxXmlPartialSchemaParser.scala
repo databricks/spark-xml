@@ -14,21 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.spark.sql.xml.parsers.stax
 
 import java.io.ByteArrayInputStream
-import javax.xml.stream.events.Attribute
 import javax.xml.stream.XMLInputFactory
 
-import org.apache.mahout.text.wikipedia.XmlInputFormat
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.xml.util.InferSchema
 
 import scala.collection.Seq
-import scala.util.control.NonFatal
 
 /**
  * Wraps parser to iteratoration process.
@@ -105,22 +101,16 @@ private[sql] object StaxXmlPartialSchemaParser {
     val builder = Seq.newBuilder[StructField]
     while (parser.skipEndElementUntil(parentField)) {
       val event = parser.nextEvent
-      // Type is not infered for attributes.
-      if (event.isAttribute) {
-        val field = event.asInstanceOf[Attribute].getName.getLocalPart
-        builder += StructField(field, StringType, nullable = true)
+      val field = if (event.isStartElement) {
+        event.asStartElement.getName.getLocalPart
       } else {
-        val field = if (event.isStartElement) {
-          event.asStartElement.getName.getLocalPart
-        } else {
-          // This case should not happen since values are covered for other cases
-          // and end element is skipped by `skipEndElementUntil()`.
+        // This case should not happen since values are covered for other cases
+        // and end element is skipped by `skipEndElementUntil()`.
 
-          // TODO: When the value is only the child of the document, it comes to this case.
-          "null"
-        }
-        builder += StructField(field, inferField(parser, field), nullable = true)
+        // TODO: When the value is only the child of the document, it comes to this case.
+        "null"
       }
+      builder += StructField(field, inferField(parser, field), nullable = true)
     }
 
     StructType(builder.result().sortBy(_.name))
@@ -135,21 +125,14 @@ private[sql] object StaxXmlPartialSchemaParser {
       val event = parser.nextEvent
 
       // Type is not infered for attributes.
-      if (event.isAttribute) {
-        val field = event.asInstanceOf[Attribute].getName.getLocalPart
-        elementType = StringType
+      val field = if (event.isStartElement) {
+        event.asStartElement.getName.getLocalPart
+      } else {
+        // This case should not happen since values are covered for other cases
+        // and end element is skipped by `skipEndElementUntil()`.
+        "null"
       }
-
-      else {
-        val field = if (event.isStartElement) {
-          event.asStartElement.getName.getLocalPart
-        } else {
-          // This case should not happen since values are covered for other cases
-          // and end element is skipped by `skipEndElementUntil()`.
-          "null"
-        }
-        elementType = InferSchema.compatibleType(elementType, inferField(parser, field))
-      }
+      elementType = InferSchema.compatibleType(elementType, inferField(parser, field))
     }
 
     ArrayType(elementType)
