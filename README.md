@@ -1,7 +1,10 @@
 # Spark XML Library
 
-A library for parsing and querying XML data with Apache Spark, for Spark SQL and DataFrames.
+- A library for parsing and querying XML data with Apache Spark, for Spark SQL and DataFrames.
 The structure and test tools are mostly copied from databricks/spark-csv.
+
+ - This package supports to process format-free XML files in a distributed way, unlike JSON datasource in Spark restricts in-line JSON format.
+
 
 ## Requirements
 
