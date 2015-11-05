@@ -22,7 +22,7 @@ import org.apache.spark.sql.types._
 
 private[sql] object InferSchema {
   /**
-   * Infer the type of a collection of json records in three stages:
+   * Infer the type of a collection of XML records in three stages:
    *   1. Infer the type of each record
    *   2. Merge types by choosing the lowest type necessary to cover equal keys
    *   3. Replace any remaining null fields with string, the top type

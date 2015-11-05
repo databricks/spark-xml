@@ -16,13 +16,11 @@
  */
 package org.apache.spark.sql.xml.parsers.stax
 
-import java.io.{ByteArrayOutputStream, ByteArrayInputStream}
+import java.io.ByteArrayInputStream
 import javax.xml.stream.events.{Attribute, XMLEvent}
 import javax.xml.stream.{XMLEventReader, XMLInputFactory}
 
-import com.fasterxml.jackson.core.JsonEncoding
-import com.fasterxml.jackson.core.JsonToken._
-import com.sun.xml.internal.stream.events.{EndElementEvent, StartElementEvent, StartDocumentEvent, CharacterEvent}
+import com.sun.xml.internal.stream.events.{EndElementEvent, StartElementEvent, CharacterEvent}
 import org.apache.commons.lang.StringUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
@@ -324,7 +322,7 @@ private[sql] object StaxXmlParser {
   /**
    * Parse an object from the token stream into a new Row representing the schema.
    *
-   * Fields in the json that are not defined in the requested schema will be dropped.
+   * Fields in the xml that are not defined in the requested schema will be dropped.
    */
   private def convertObject(parser: StaxXmlParser,
                             schema: StructType,
