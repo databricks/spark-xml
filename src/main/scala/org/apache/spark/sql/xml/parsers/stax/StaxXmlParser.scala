@@ -302,7 +302,7 @@ private[sql] object StaxXmlParser {
       case ShortType =>
         val event = parser.nextEvent
         if (event.isCharacters) {
-          signSafeToShort(event.asCharacters.getData)
+          event.asCharacters.getData.toShort
         } else {
           null
         }

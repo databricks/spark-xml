@@ -178,19 +178,6 @@ object TypeCast {
     }
   }
 
-  private[xml] def signSafeToShort(value: String): Short = {
-    if (value.startsWith("+")) {
-      val data = value.substring(1)
-      TypeCast.castTo(data, ShortType).asInstanceOf[Short]
-    } else if (value.startsWith("-")) {
-      val data = value.substring(1)
-      -TypeCast.castTo(data, ShortType).asInstanceOf[Short]
-    } else {
-      val data = value
-      TypeCast.castTo(data, ShortType).asInstanceOf[Short]
-    }
-  }
-
   private[xml] def signSafeToFloat(value: String): Float = {
     if (value.startsWith("+")) {
       val data = value.substring(1)
