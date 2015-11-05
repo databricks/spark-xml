@@ -207,8 +207,6 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     val results = sqlContext
       .xmlFile(booksNestedArrayFile, rootTag = booksNestedArrayFileTag)
 
-    results.printSchema
-
     assert(results.schema == StructType(List(
       StructField("author", StringType, nullable = true),
       StructField("description", StringType, nullable = true),
