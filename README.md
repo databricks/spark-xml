@@ -42,7 +42,7 @@ OPTIONS (path "books.xml", rootTag "book")
 
 You can also specify column names and types in DDL. In this case, we do not infer schema.
 ```sql
-CREATE TABLE cars (yearMade double, carMake string, carModel string, orgments string, blank string)
+CREATE TABLE books (yearMade double, carMake string, carModel string, orgments string, blank string)
 USING org.apache.spark.sql.xml
 OPTIONS (path "books.xml", rootTag "book")
 ```
