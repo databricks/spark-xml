@@ -175,7 +175,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.schema == StructType(List(
       StructField("author", StringType, nullable = true),
       StructField("description", StringType, nullable = true),
-      StructField("genre", StringType ,nullable = true),
+      StructField("genre", StringType, nullable = true),
       StructField("id", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
       StructField("publish_date", StringType, nullable = true),
@@ -192,7 +192,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.schema == StructType(List(
       StructField("author", StringType, nullable = true),
       StructField("description", StringType, nullable = true),
-      StructField("genre", StringType ,nullable = true),
+      StructField("genre", StringType, nullable = true),
       StructField("id", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
       StructField("publish_dates", StructType(
@@ -210,7 +210,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.schema == StructType(List(
       StructField("author", StringType, nullable = true),
       StructField("description", StringType, nullable = true),
-      StructField("genre", StringType ,nullable = true),
+      StructField("genre", StringType, nullable = true),
       StructField("id", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
       StructField("publish_date", ArrayType(StringType), nullable = true),
