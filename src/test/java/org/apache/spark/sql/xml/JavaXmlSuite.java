@@ -54,10 +54,10 @@ public class JavaXmlSuite {
     @Test
     public void testLoad() {
         HashMap<String, String> options = new HashMap<String, String>();
-        options.put("option", booksFileTag);
+        options.put("rootTag", booksFileTag);
         options.put("path", booksFile);
 
-        DataFrame df = sqlContext.load("org.apache.spark.xml", options);
+        DataFrame df = sqlContext.load("org.apache.spark.sql.xml", options);
         int result = df.select("description").collect().length;
         Assert.assertEquals(result, numCars);
     }
