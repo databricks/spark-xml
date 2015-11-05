@@ -42,7 +42,8 @@ private[sql] object StaxXmlPartialSchemaParser {
     schemaData.mapPartitions { iter =>
       iter.flatMap { xml =>
         val factory = XMLInputFactory.newInstance()
-        val parser = new StaxXmlParser(factory.createXMLEventReader(new ByteArrayInputStream(xml.getBytes)))
+        val parser = new StaxXmlParser(
+          factory.createXMLEventReader(new ByteArrayInputStream(xml.getBytes)))
         startInferField(parser, rootTag)
       }
     }
@@ -92,7 +93,7 @@ private[sql] object StaxXmlPartialSchemaParser {
         inferArray(parser, parentField)
 
       case _ =>
-      //TODO: Now it skips unsupported types (we might have to treat null values).
+      // TODO: Now it skips unsupported types (we might have to treat null values).
         StringType
     }
   }

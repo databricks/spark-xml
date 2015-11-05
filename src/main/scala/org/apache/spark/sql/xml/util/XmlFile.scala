@@ -26,7 +26,9 @@ import org.apache.spark.rdd.RDD
 private[xml] object XmlFile {
   val DEFAULT_CHARSET = Charset.forName("UTF-8")
 
-  def withCharset(context: SparkContext, location: String, charset: String, rootTag: String): RDD[String] = {
+  def withCharset(context: SparkContext, location: String,
+                  charset: String,
+                  rootTag: String): RDD[String] = {
     context.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, s"<$rootTag>")
     context.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, s"</$rootTag>")
     if (Charset.forName(charset) == DEFAULT_CHARSET) {

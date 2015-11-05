@@ -53,7 +53,7 @@ private[sql] class StaxXmlParser(parser: XMLEventReader) {
         // We need to concatenate values if character token is found again.
         // Java StAX XML produces character event sequentially sometimes.
         // TODO: Check why it is.
-        if(eventsInFragment.last.isCharacters){
+        if (eventsInFragment.last.isCharacters){
           val previous = eventsInFragment.last.asCharacters.getData
           val current = event.asCharacters.getData
           eventsInFragment.last.asInstanceOf[CharacterEvent].setData(previous + current)
@@ -199,7 +199,8 @@ private[sql] object StaxXmlParser {
     xml.mapPartitions { iter =>
       iter.flatMap { xml =>
         val factory = XMLInputFactory.newInstance()
-        val parser = new StaxXmlParser(factory.createXMLEventReader(new ByteArrayInputStream(xml.getBytes)))
+        val parser = new StaxXmlParser(
+          factory.createXMLEventReader(new ByteArrayInputStream(xml.getBytes)))
         // Skip the first event
         startConvertObject(parser, schema, rootTag)
       }
@@ -209,7 +210,9 @@ private[sql] object StaxXmlParser {
   /**
    * Parse the current token (and related children) according to a desired schema
    */
-  private def startConvertObject(parser: StaxXmlParser, schema: StructType, rootTag: String): Option[Row] = {
+  private def startConvertObject(parser: StaxXmlParser,
+                                 schema: StructType,
+                                 rootTag: String): Option[Row] = {
     if (parser.readAllEventsInFragment) {
       parser.nextEvent
       Some(convertObject(parser, schema, rootTag))
@@ -358,7 +361,8 @@ private[sql] object StaxXmlParser {
         val field = event.asStartElement.getName.getLocalPart
         schema.getFieldIndex(field) match {
           case Some(index) =>
-            // For XML, it can contains the same keys. So we need to manually merge them to an array.
+            // For XML, it can contains the same keys.
+            // So we need to manually merge them to an array.
             // TODO: This routine  is hacky and should go out of this.
             val dataType = schema(index).dataType
             dataType match {
