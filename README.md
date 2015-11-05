@@ -1,11 +1,11 @@
-# Spark XML Library
+# Spark XML Library [![Build Status](https://travis-ci.org/HyukjinKwon/spark-xml.svg?branch=master)](https://travis-ci.org/HyukjinKwon/spark-xml)
 
 - A library for parsing and querying XML data with Apache Spark, for Spark SQL and DataFrames.
 The structure and test tools are mostly copied from databricks/spark-csv.
 
 - This package supports to process format-free XML files in a distributed way, unlike JSON datasource in Spark restricts in-line JSON format.
 
-- Note that this package is yet buggy and hacky, and tested only on a small dataset. In addition, it has not even been uploaded in Maven. So, I do not recommand to use this for a production purpose until CI integration process is finished (under development) and this becomes stable.
+- Note that this package is yet buggy and hacky, and tested only on a small dataset. In addition, it has not even been uploaded in Maven. So, I do not recommand to use this for a production purpose until this becomes stable.
 
 [![Build Status](https://travis-ci.org/HyukjinKwon/spark-xml.svg?branch=master)](https://travis-ci.org/HyukjinKwon/spark-xml)
 
