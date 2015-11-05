@@ -17,10 +17,38 @@
 package org.apache.spark.sql.xml.util
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.analysis.HiveTypeCoercion
 import org.apache.spark.sql.types._
 
 private[sql] object InferSchema {
+
+  // Both vals below brought from HiveTypeCoercion just for version compatibility
+  private val numericPrecedence =
+    IndexedSeq(
+      ByteType,
+      ShortType,
+      IntegerType,
+      LongType,
+      FloatType,
+      DoubleType)
+
+  val findTightestCommonTypeOfTwo: (DataType, DataType) => Option[DataType] = {
+    case (t1, t2) if t1 == t2 => Some(t1)
+    case (NullType, t1) => Some(t1)
+    case (t1, NullType) => Some(t1)
+
+    case (t1: IntegralType, t2: DecimalType) if t2.isWiderThan(t1) =>
+      Some(t2)
+    case (t1: DecimalType, t2: IntegralType) if t1.isWiderThan(t2) =>
+      Some(t1)
+
+    // Promote numeric types to the highest of the two
+    case (t1, t2) if Seq(t1, t2).forall(numericPrecedence.contains) =>
+      val index = numericPrecedence.lastIndexWhere(t => t == t1 || t == t2)
+      Some(numericPrecedence(index))
+
+    case _ => None
+  }
+
   /**
    * Infer the type of a collection of XML records in three stages:
    *   1. Infer the type of each record
@@ -84,7 +112,7 @@ private[sql] object InferSchema {
    * Returns the most general data type for two given data types.
    */
   private[xml] def compatibleType(t1: DataType, t2: DataType): DataType = {
-    HiveTypeCoercion.findTightestCommonTypeOfTwo(t1, t2).getOrElse {
+    findTightestCommonTypeOfTwo(t1, t2).getOrElse {
       // t1 or t2 is a StructType, ArrayType, or an unexpected type.
       (t1, t2) match {
         // Double support larger range than fixed decimal, DecimalType.Maximum should be enough
