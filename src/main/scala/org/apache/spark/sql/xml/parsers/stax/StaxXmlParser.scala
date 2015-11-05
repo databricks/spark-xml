@@ -350,7 +350,7 @@ private[sql] object StaxXmlParser {
         // TODO: We might have to add a case when field is null
         // although this case is impossible.
         val field = event.asStartElement.getName.getLocalPart
-        schema.getFieldIndex(field) match {
+        schema.map(_.name).zipWithIndex.toMap.get(field) match {
           case Some(index) =>
             // For XML, it can contains the same keys.
             // So we need to manually merge them to an array.
@@ -366,9 +366,6 @@ private[sql] object StaxXmlParser {
               case _ =>
                 row(index) = convertField(parser, dataType, field)
             }
-          case _ =>
-            // This case must not happen.
-            throw new IndexOutOfBoundsException(s"The field ('$field') does not exist in schema")
         }
       } else if (event.isEndElement) {
         // In this case, the given element does not have any value.
