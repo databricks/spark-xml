@@ -141,41 +141,66 @@ object TypeCast {
 
   private[xml] def signSafeToLong(value: String): Long = {
     if (value.startsWith("+")) {
-      value.substring(1).toLong
+      val data = value.substring(1)
+      TypeCast.castTo(data, LongType).asInstanceOf[Long]
     } else if (value.startsWith("-")) {
-      -value.substring(1).toLong
+      val data = value.substring(1)
+      -TypeCast.castTo(data, LongType).asInstanceOf[Long]
     } else {
-      value.toLong
+      val data = value
+      TypeCast.castTo(data, LongType).asInstanceOf[Long]
     }
   }
 
   private[xml] def signSafeToDouble(value: String): Double = {
     if (value.startsWith("+")) {
-      value.substring(1).toDouble
+      val data = value.substring(1)
+      TypeCast.castTo(data, DoubleType).asInstanceOf[Double]
     } else if (value.startsWith("-")) {
-      -value.substring(1).toDouble
+      val data = value.substring(1)
+     -TypeCast.castTo(data, DoubleType).asInstanceOf[Double]
     } else {
-      value.toDouble
+      val data = value
+      TypeCast.castTo(data, DoubleType).asInstanceOf[Double]
     }
   }
 
   private[xml] def signSafeToInt(value: String): Int = {
     if (value.startsWith("+")) {
-      value.substring(1).toInt
+      val data = value.substring(1)
+      TypeCast.castTo(data, IntegerType).asInstanceOf[Int]
     } else if (value.startsWith("-")) {
-      -value.substring(1).toInt
+      val data = value.substring(1)
+      -TypeCast.castTo(data, IntegerType).asInstanceOf[Int]
     } else {
-      value.toInt
+      val data = value
+      TypeCast.castTo(data, IntegerType).asInstanceOf[Int]
+    }
+  }
+
+  private[xml] def signSafeToShort(value: String): Short = {
+    if (value.startsWith("+")) {
+      val data = value.substring(1)
+      TypeCast.castTo(data, ShortType).asInstanceOf[Short]
+    } else if (value.startsWith("-")) {
+      val data = value.substring(1)
+      -TypeCast.castTo(data, ShortType).asInstanceOf[Short]
+    } else {
+      val data = value
+      TypeCast.castTo(data, ShortType).asInstanceOf[Short]
     }
   }
 
   private[xml] def signSafeToFloat(value: String): Float = {
     if (value.startsWith("+")) {
-      value.substring(1).toFloat
+      val data = value.substring(1)
+      TypeCast.castTo(data, FloatType).asInstanceOf[Float]
     } else if (value.startsWith("-")) {
-      -value.substring(1).toFloat
+      val data = value.substring(1)
+      -TypeCast.castTo(data, FloatType).asInstanceOf[Float]
     } else {
-      value.toFloat
+      val data = value
+      TypeCast.castTo(data, FloatType).asInstanceOf[Float]
     }
   }
 }

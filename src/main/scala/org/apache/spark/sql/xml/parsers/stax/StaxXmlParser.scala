@@ -24,6 +24,7 @@ import com.sun.xml.internal.stream.events.{EndElementEvent, StartElementEvent, C
 import org.apache.commons.lang.StringUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
+import org.apache.spark.sql.xml.util.TypeCast
 import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.xml.util.TypeCast._
@@ -245,7 +246,7 @@ private[sql] object StaxXmlParser {
       case BooleanType =>
         val event = parser.nextEvent
         if (event.isCharacters) {
-          event.asCharacters.getData.toBoolean
+          TypeCast.castTo(event.asCharacters.getData, BooleanType)
         } else {
           null
         }
@@ -253,7 +254,7 @@ private[sql] object StaxXmlParser {
       case StringType =>
         val event = parser.nextEvent
         if (event.isCharacters) {
-          UTF8String.fromString(event.asCharacters.getData)
+          TypeCast.castTo(event.asCharacters.getData, StringType)
         } else {
           null
         }
@@ -261,7 +262,7 @@ private[sql] object StaxXmlParser {
       case BinaryType =>
         val event = parser.nextEvent
         if (event.isCharacters) {
-          event.asCharacters.getData.getBytes
+          TypeCast.castTo(event.asCharacters.getData, BinaryType)
         } else {
           null
         }
@@ -269,15 +270,7 @@ private[sql] object StaxXmlParser {
       case DateType =>
         val event = parser.nextEvent
         if (event.isCharacters) {
-          val stringValue = event.asCharacters.getData
-          if (stringValue.contains("-")) {
-            // The format of this string will probably be "yyyy-mm-dd".
-            DateTimeUtils.millisToDays(DateTimeUtils.stringToTime(stringValue).getTime)
-          } else {
-            // In Spark 1.5.0, we store the data as number of days since epoch in string.
-            // So, we just convert it to Int.
-            stringValue.toInt
-          }
+          TypeCast.castTo(event.asCharacters.getData, DateType)
         } else {
           null
         }
@@ -285,9 +278,7 @@ private[sql] object StaxXmlParser {
       case TimestampType =>
         val event = parser.nextEvent
         if (event.isCharacters) {
-          // This one will lose microseconds parts.
-          // See https://issues.apache.org/jira/browse/SPARK-10681.
-          DateTimeUtils.stringToTime(event.asCharacters.getData).getTime * 1000L
+          TypeCast.castTo(event.asCharacters.getData, TimestampType)
         } else {
           null
         }
@@ -295,7 +286,7 @@ private[sql] object StaxXmlParser {
       case FloatType =>
         val event = parser.nextEvent
         if (event.isCharacters) {
-          event.asCharacters.getData.toFloat
+          signSafeToFloat(event.asCharacters.getData)
         } else {
           null
         }
@@ -311,7 +302,7 @@ private[sql] object StaxXmlParser {
       case ShortType =>
         val event = parser.nextEvent
         if (event.isCharacters) {
-          event.asCharacters.getData.toShort
+          signSafeToShort(event.asCharacters.getData)
         } else {
           null
         }
@@ -319,7 +310,7 @@ private[sql] object StaxXmlParser {
       case IntegerType =>
         val event = parser.nextEvent
         if (event.isCharacters) {
-          event.asCharacters.getData.toInt
+          signSafeToInt(event.asCharacters.getData)
         } else {
           null
         }
