@@ -7,8 +7,6 @@ The structure and test tools are mostly copied from databricks/spark-csv.
 
 - Note that this package is yet buggy and hacky, and tested only on a small dataset. In addition, it has not even been uploaded in Maven. So, I do not recommand to use this for a production purpose until this becomes stable.
 
-[![Build Status](https://travis-ci.org/HyukjinKwon/spark-xml.svg?branch=master)](https://travis-ci.org/HyukjinKwon/spark-xml)
-
 ## Requirements
 
 This library requires Spark 1.3+
