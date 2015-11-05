@@ -18,8 +18,8 @@ package org.apache.spark.sql.xml
 
 import java.nio.charset.UnsupportedCharsetException
 
-import org.apache.spark.sql.{SQLContext, Row}
-import org.apache.spark.{SparkContext, SparkException}
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.SparkContext
 import org.apache.spark.sql.types._
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
@@ -32,6 +32,12 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
   val booksFile = "src/test/resources/books.xml"
   val booksFileTag = "book"
+
+  val booksNestedObjectFile = "src/test/resources/books-nested-object.xml"
+  val booksNestedObjectFileTag = "book"
+
+  val booksNestedArrayFile = "src/test/resources/books-nested-array.xml"
+  val booksNestedArrayFileTag = "book"
 
   val carsFile = "src/test/resources/cars.xml"
   val carsFileTag = "ROW"
@@ -179,6 +185,43 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.collect().size === numBooks)
   }
 
+  test("DSL test schema (object) inferred correctly") {
+    val results = sqlContext
+      .xmlFile(booksNestedObjectFile, rootTag = booksNestedObjectFileTag)
+
+    assert(results.schema == StructType(List(
+      StructField("author", StringType, nullable = true),
+      StructField("description", StringType, nullable = true),
+      StructField("genre", StringType ,nullable = true),
+      StructField("id", StringType, nullable = true),
+      StructField("price", DoubleType, nullable = true),
+      StructField("publish_dates", StructType(
+        List(StructField("publish_date", StringType))), nullable = true),
+      StructField("title", StringType, nullable = true))
+    ))
+
+    assert(results.collect().size === numBooks)
+  }
+
+  test("DSL test schema (array) inferred correctly") {
+    val results = sqlContext
+      .xmlFile(booksNestedArrayFile, rootTag = booksNestedArrayFileTag)
+
+    results.printSchema
+
+    assert(results.schema == StructType(List(
+      StructField("author", StringType, nullable = true),
+      StructField("description", StringType, nullable = true),
+      StructField("genre", StringType ,nullable = true),
+      StructField("id", StringType, nullable = true),
+      StructField("price", DoubleType, nullable = true),
+      StructField("publish_date", ArrayType(StringType), nullable = true),
+      StructField("title", StringType, nullable = true))
+    ))
+
+    assert(results.collect().size === numBooks)
+  }
+
   test("DSL test with different data types") {
     val stringSchema = new StructType(
       Array(
@@ -232,6 +275,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
     assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
   }
+
 }
 
 class XmlSuite extends AbstractXmlSuite {

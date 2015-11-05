@@ -101,38 +101,54 @@ private[sql] object StaxXmlPartialSchemaParser {
     val builder = Seq.newBuilder[StructField]
     while (parser.skipEndElementUntil(parentField)) {
       val event = parser.nextEvent
-      val field = if (event.isStartElement) {
-        event.asStartElement.getName.getLocalPart
+      if (event.isStartElement) {
+        val field = event.asStartElement.getName.getLocalPart
+        builder += StructField(field, inferField(parser, field), nullable = true)
+      } else if (event.isEndElement) {
+
+        // In this case, the given element does not have any value.
+        val field = event.asEndElement.getName.getLocalPart
+        builder += StructField(field, NullType, nullable = true)
       } else {
+
         // This case should not happen since values are covered for other cases
         // and end element is skipped by `skipEndElementUntil()`.
-
         // TODO: When the value is only the child of the document, it comes to this case.
-        "null"
+        throw new RuntimeException("Given element type is not StartEelement or EndEelementEvent")
       }
-      builder += StructField(field, inferField(parser, field), nullable = true)
     }
 
     StructType(builder.result().sortBy(_.name))
   }
 
   def inferArray(parser: StaxXmlParser, parentField: String): DataType = {
+
     // If this XML array is empty, we use NullType as a placeholder.
     // If this array is not empty in other XML objects, we can resolve
     // the type as we pass through all XML objects.
     var elementType: DataType = NullType
     while (parser.skipEndElementUntil(parentField)) {
       val event = parser.nextEvent
+      if (event.isStartElement) {
+        val field = event.asStartElement.getName.getLocalPart
+        elementType = InferSchema.compatibleType(elementType, inferField(parser, field))
+      } else if (event.isEndElement) {
 
-      // Type is not infered for attributes.
-      val field = if (event.isStartElement) {
-        event.asStartElement.getName.getLocalPart
+        // In this case, the given element does not have any value.
+        val field = event.asEndElement.getName.getLocalPart
+        elementType = NullType
+      } else if (event.isCharacters){
+
+        // In array, this can have charater event since it treats just as an element in XML
+        elementType = InferSchema.compatibleType(elementType, inferField(parser, null))
       } else {
+
         // This case should not happen since values are covered for other cases
         // and end element is skipped by `skipEndElementUntil()`.
-        "null"
+        // TODO: When the value is only the child of the document, it comes to this case.
+        throw new RuntimeException("Given element type is not StartEelement or EndEelementEvent")
       }
-      elementType = InferSchema.compatibleType(elementType, inferField(parser, field))
+
     }
 
     ArrayType(elementType)

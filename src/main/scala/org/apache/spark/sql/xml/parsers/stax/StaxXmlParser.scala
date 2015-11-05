@@ -25,8 +25,6 @@ import org.apache.commons.lang.StringUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.{Row, SQLContext}
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.xml.util.TypeCast._
 import org.apache.spark.unsafe.types.UTF8String
@@ -37,14 +35,15 @@ import scala.collection.mutable.ArrayBuffer
 private[sql] class StaxXmlParser(parser: XMLEventReader) {
   import org.apache.spark.sql.xml.parsers.stax.StaxXmlParser._
 
-  private var startField: Option[String] = None
-  private var currentField: Option[String] = None
   var eventsInFragment: ArrayBuffer[XMLEvent] = ArrayBuffer.empty[XMLEvent]
+  var currentEvent: XMLEvent = _
+  var currentField: String = _
 
   /**
    * Read all the event to infer datatypes.
    */
 
+  // TODO: need to polish. Now it is really messy.
   def readAllEventsInFragment: Boolean = {
     var isLastCharators = false
     while (parser.hasNext) {
@@ -89,21 +88,33 @@ private[sql] class StaxXmlParser(parser: XMLEventReader) {
 
   def skipEndElementUntil(field: String): Boolean = {
     var shouldSkip = true
+    var shouldProceed = true
     while (eventsInFragment.nonEmpty && shouldSkip) {
       val event = eventsInFragment.head
       if (event.isEndElement) {
         nextEvent
-        shouldSkip = true
+        shouldProceed = event.asEndElement.getName.getLocalPart != field
+        shouldSkip = shouldProceed
       } else {
         shouldSkip = false
       }
     }
-
-    !shouldSkip
+    shouldProceed
   }
 
   def nextEvent: XMLEvent = {
-    eventsInFragment.remove(0)
+    val event = eventsInFragment.remove(0)
+    currentEvent = event
+    if (event.isStartElement) {
+      currentField = event.asStartElement.getName.getLocalPart
+    } else if (event.isEndElement){
+      currentField = event.asEndElement.getName.getLocalPart
+    }
+    event
+  }
+
+  def getCurrentEvnet: XMLEvent = {
+    currentEvent
   }
 
   def clear(): Unit = {
@@ -122,31 +133,42 @@ private[sql] class StaxXmlParser(parser: XMLEventReader) {
     }
   }
 
-  private def inferNestedType(field: String): Int = {
-    val isObject = eventsInFragment.filter {
+  private def isArray(field: String) = {
+    eventsInFragment.filter {
       case event => event.isStartElement
     }.map {
       case startEvent => startEvent.asStartElement.getName.getLocalPart
     }.contains(field)
+  }
 
-    if (isObject) {
-      OBJECT
-    } else {
+  private def inferNestedType(field: String): Int = {
+    if (isArray(field)) {
       ARRAY
+    } else {
+      OBJECT
     }
   }
 
   /**
    * This infers the type of data.
    */
+  // TODO: need to polish. Now it is really messy.
   def inferDataType: Int = {
-    val currentEvent = eventsInFragment.head
-    if (currentEvent.isCharacters) {
+    val nextEvent = eventsInFragment.head
+    if (nextEvent.isCharacters && isArray(currentField)) {
+      // This is when the nested type has a null value.
+      ARRAY
+    } else if (nextEvent.isCharacters) {
+      inferNonNestedType(nextEvent.asCharacters.getData)
+    } else if (currentEvent.isCharacters) {
+      // When in an array, this case can happen. This is because there is no concept of Array
+      // but just they are elements. So we need to skip a event to get into, therefore this happens
       inferNonNestedType(currentEvent.asCharacters.getData)
-    } else if (currentEvent.isStartElement && eventsInFragment(1).isEndElement) {
+    } else if (currentEvent.isStartElement && nextEvent.isEndElement) {
+      // This is when the nested type has a null value.
       NULL
     } else if (currentEvent.isStartElement && eventsInFragment.exists(_.isStartElement)) {
-      inferNestedType(currentEvent.asStartElement.getName.getLocalPart)
+      inferNestedType(currentField)
     } else {
       FAIL
     }
@@ -190,8 +212,7 @@ private[sql] object StaxXmlParser {
   private def startConvertObject(parser: StaxXmlParser, schema: StructType, rootTag: String): Option[Row] = {
     if (parser.readAllEventsInFragment) {
       parser.nextEvent
-      val record = convertObject(parser, schema, rootTag)
-      Some(Row.fromSeq(record.toSeq(schema)))
+      Some(convertObject(parser, schema, rootTag))
     } else {
       None
     }
@@ -324,34 +345,55 @@ private[sql] object StaxXmlParser {
    *
    * Fields in the xml that are not defined in the requested schema will be dropped.
    */
+  // TODO: need to polish. Now it is really messy.
   private def convertObject(parser: StaxXmlParser,
                             schema: StructType,
-                            parentField: String): InternalRow = {
-    var row = new GenericMutableRow(schema.length)
+                            parentField: String): Row = {
+    val row = new Array[Any](schema.length)
     while (parser.skipEndElementUntil(parentField)) {
       val event = parser.nextEvent
-      // TODO: We might have to add a case when field is null
-      // although this case is impossible.
-      val field = event.asStartElement.getName.getLocalPart
-      schema.getFieldIndex(field) match {
-        case Some(index) =>
-          // For XML, it can contains the same keys. So we need to manually merge them to an array.
-          // TODO: This routine  is hacky and should go out of this.
-          val dataType = schema(index).dataType
-          dataType match {
-            case ArrayType(st, _) =>
-              val values = row.get(index, dataType)
-              val newValues = convertField(parser, dataType, parentField).asInstanceOf[Array[Any]]
-              row(index) = new GenericArrayData(values +: newValues)
-            case _ =>
-              row(index) = convertField(parser, dataType, parentField)
-          }
-        case _ =>
-          // This case must not happen.
-          throw new IndexOutOfBoundsException(s"The field ('$field') does not exist in schema")
+      if (event.isStartElement) {
+        // TODO: We might have to add a case when field is null
+        // although this case is impossible.
+        val field = event.asStartElement.getName.getLocalPart
+        schema.getFieldIndex(field) match {
+          case Some(index) =>
+            // For XML, it can contains the same keys. So we need to manually merge them to an array.
+            // TODO: This routine  is hacky and should go out of this.
+            val dataType = schema(index).dataType
+            dataType match {
+              case ArrayType(st, _) =>
+                val values = Option(row(index))
+                  .map(_.asInstanceOf[ArrayBuffer[Any]])
+                  .getOrElse(ArrayBuffer.empty[Any])
+                val newValue = convertField(parser, dataType, field)
+                row(index) = values :+ newValue
+              case _ =>
+                row(index) = convertField(parser, dataType, field)
+            }
+          case _ =>
+            // This case must not happen.
+            throw new IndexOutOfBoundsException(s"The field ('$field') does not exist in schema")
+        }
+      } else if (event.isEndElement) {
+        // In this case, the given element does not have any value.
+        val field = event.asEndElement.getName.getLocalPart
+        schema.getFieldIndex(field) match {
+          case Some(index) =>
+            row(index) = null
+          case _ =>
+            // This case must not happen.
+            throw new IndexOutOfBoundsException(s"The field ('$field') does not exist in schema")
+        }
+      } else {
+
+        // This case should not happen since values are covered for other cases
+        // and end element is skipped by `skipEndElementUntil()`.
+        // TODO: When the value is only the child of the document, it comes to this case.
+        throw new RuntimeException("Given element type is not StartEelement or EndEelementEvent")
       }
     }
-    row
+    Row.fromSeq(row)
   }
 
   /**
@@ -359,9 +401,7 @@ private[sql] object StaxXmlParser {
    */
   private def convertPartialArray(parser: StaxXmlParser,
                                   elementType: DataType,
-                                  parentField: String): Array[Any] = {
-    val values = ArrayBuffer.empty[Any]
-    values += convertField(parser, elementType, parentField)
-    values.toArray
+                                  parentField: String): Any = {
+    convertField(parser, elementType, parentField)
   }
 }
