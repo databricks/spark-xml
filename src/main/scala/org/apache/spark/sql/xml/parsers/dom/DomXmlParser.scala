@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql.xml.parsers.stax
+package org.apache.spark.sql.xml.parsers.dom
 
 import java.io.ByteArrayInputStream
 import javax.xml.parsers.DocumentBuilderFactory
@@ -36,7 +36,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 
 private[sql] class DomXmlParser(doc: Node) extends Iterable[Node] {
-  import org.apache.spark.sql.xml.parsers.stax.DomXmlParser._
+  import org.apache.spark.sql.xml.parsers.dom.DomXmlParser._
   lazy val nodes = readChildNodes
   var index: Int = 0
   override def iterator: Iterator[Node] = nodes.iterator

@@ -18,7 +18,7 @@ package org.apache.spark.sql.xml
 
 import java.io.IOException
 
-import org.apache.spark.sql.xml.parsers.stax._
+import org.apache.spark.sql.xml.parsers.dom._
 import org.apache.spark.sql.xml.util.{InferSchema, ParseModes}
 
 import scala.collection.JavaConversions._

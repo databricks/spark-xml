@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql.xml.parsers.stax
+package org.apache.spark.sql.xml.parsers.dom
 
 import java.io.ByteArrayInputStream
 import javax.xml.parsers.DocumentBuilderFactory
@@ -71,7 +71,7 @@ private[sql] object DomXmlPartialSchemaParser {
   }
 
   private def inferField(dataType: Int, parser: DomXmlParser, node: Node): DataType = {
-    import org.apache.spark.sql.xml.parsers.stax.DomXmlParser._
+    import org.apache.spark.sql.xml.parsers.dom.DomXmlParser._
     dataType match {
       case LONG =>
         LongType
