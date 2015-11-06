@@ -27,6 +27,7 @@ import org.apache.spark.sql.xml.util.InferSchema
 import org.w3c.dom.Node
 
 import scala.collection.Seq
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * Wraps parser to iteratoration process.
@@ -92,7 +93,7 @@ private[sql] object DomXmlPartialSchemaParser {
         inferObject(new DomXmlParser(node))
 
       case ARRAY =>
-        inferArray(parser, node)
+        partiallyInferArray(parser, node)
 
       case _ =>
       // TODO: Now it skips unsupported types (we might have to treat null values).
@@ -102,14 +103,33 @@ private[sql] object DomXmlPartialSchemaParser {
 
   def inferObject(parser: DomXmlParser): DataType = {
     val builder = Seq.newBuilder[StructField]
+    val partialInferredArrayTypes = collection.mutable.Map[String, ArrayBuffer[DataType]]()
     parser.foreach{ node =>
       val field = node.getNodeName
-      builder += StructField(field, inferField(parser, node), nullable = true)
+      val inferredType = inferField(parser, node)
+      inferredType match {
+        // For XML, it can contains the same keys.
+        // So we need to manually merge them to an array.
+        case ArrayType(st, _) =>
+          val dataTypes = partialInferredArrayTypes.getOrElse(field, ArrayBuffer.empty[DataType])
+          dataTypes += st
+          partialInferredArrayTypes += (field -> dataTypes)
+        case _ =>
+          builder += StructField(field, inferField(parser, node), nullable = true)
+      }
     }
+
+    // We need to manually merges all the [[ArrayType]]s.
+    partialInferredArrayTypes.foreach{
+      case (field, dataTypes) =>
+        val elementType = dataTypes.reduceLeft(InferSchema.compatibleType)
+        builder += StructField(field, ArrayType(elementType), nullable = true)
+    }
+
     StructType(builder.result().sortBy(_.name))
   }
 
-  def inferArray(parser: DomXmlParser, node: Node): DataType = {
+  def partiallyInferArray(parser: DomXmlParser, node: Node): DataType = {
 
     // If this XML array is empty, we use NullType as a placeholder.
     // If this array is not empty in other XML objects, we can resolve
