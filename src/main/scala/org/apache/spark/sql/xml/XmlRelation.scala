@@ -59,13 +59,20 @@ case class XmlRelation protected[spark] (
         DomXmlPartialSchemaParser(
           baseRDD(),
           rootTag,
-          samplingRatio)(sqlContext))}
+          samplingRatio,
+          parseMode,
+          includeAttributeFlag,
+          treatEmptyValuesAsNulls))
+    }
   }
 
   override def buildScan: RDD[Row] = {
     DomXmlParser(
       baseRDD(),
       schema,
-      rootTag)(sqlContext)
+      rootTag,
+      parseMode,
+      includeAttributeFlag,
+      treatEmptyValuesAsNulls)
   }
 }

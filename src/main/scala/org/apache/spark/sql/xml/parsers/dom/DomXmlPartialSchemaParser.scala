@@ -32,9 +32,14 @@ import scala.collection.mutable.ArrayBuffer
 /**
  * Wraps parser to iteratoration process.
  */
+
 private[sql] object DomXmlPartialSchemaParser {
-  def apply(xml: RDD[String], rootTag: String, samplingRatio: Double)
-           (sqlContext: SQLContext): RDD[DataType] = {
+  def apply(xml: RDD[String],
+            rootTag: String,
+            samplingRatio: Double,
+            parseMode: String,
+            includeAttributeFlag: Boolean,
+            treatEmptyValuesAsNulls: Boolean): RDD[DataType] = {
     require(samplingRatio > 0, s"samplingRatio ($samplingRatio) should be greater than 0")
     val schemaData = if (samplingRatio > 0.99) {
       xml

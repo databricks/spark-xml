@@ -139,8 +139,12 @@ private[sql] object DomXmlParser {
   val OBJECT: Int = 6
   val ARRAY: Int = 7
 
-  def apply(xml: RDD[String], schema: StructType, rootTag: String)
-           (sqlContext: SQLContext): RDD[Row] = {
+  def apply(xml: RDD[String],
+            schema: StructType,
+            rootTag: String,
+            parseMode: String,
+            includeAttributeFlag: Boolean,
+            treatEmptyValuesAsNulls: Boolean): RDD[Row] = {
     xml.mapPartitions { iter =>
       iter.flatMap { xml =>
         val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
