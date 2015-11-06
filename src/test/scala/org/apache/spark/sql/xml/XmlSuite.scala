@@ -39,6 +39,9 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   val booksNestedArrayFile = "src/test/resources/books-nested-array.xml"
   val booksNestedArrayFileTag = "book"
 
+  val booksComplicatedFile = "src/test/resources/books-complicated.xml"
+  val booksComplicatedFileTag = "book"
+
   val carsFile = "src/test/resources/cars.xml"
   val carsFileTag = "ROW"
 
@@ -53,6 +56,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
   val numCars = 3
   val numBooks = 12
+  val numBooksComplicated = 3
 
   private var sqlContext: SQLContext = _
 
@@ -218,6 +222,31 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     ))
 
     assert(results.collect().size === numBooks)
+  }
+
+  test("DSL test schema (complicated) inferred correctly") {
+    val results = sqlContext
+      .xmlFile(booksComplicatedFile, rootTag = booksComplicatedFileTag)
+
+    assert(results.schema == StructType(List(
+      StructField("author", StringType, nullable = true),
+      StructField("genre", StructType(
+        List(StructField("genreid", LongType),
+          StructField("name", StringType))),
+        nullable = true),
+      StructField("id", StringType, nullable = true),
+      StructField("price", DoubleType, nullable = true),
+      StructField("publish_dates", StructType(
+        List(StructField("publish_date",
+            ArrayType(StructType(
+                List(StructField("day", LongType, nullable = true),
+                  StructField("month", LongType, nullable = true),
+                  StructField("year", LongType, nullable = true))))))),
+        nullable = true),
+      StructField("title", StringType, nullable = true))
+    ))
+
+    assert(results.collect().size === numBooksComplicated)
   }
 
   test("DSL test with different data types") {
