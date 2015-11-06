@@ -253,7 +253,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DSL test nullable fields") {
     val results = new XmlReader()
       .withSchema(StructType(List(StructField("name", StringType, false),
-                                  StructField("age", LongType, true))))
+                                  StructField("age", IntegerType, true))))
       .withRootTag(nullNumbersFileTag)
       .xmlFile(sqlContext, nullNumbersFile)
       .collect()
@@ -262,18 +262,6 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results(1).toSeq === Seq("bob", null))
     assert(results(2).toSeq === Seq("coc", 24))
   }
-
-  test("Shorten name test") {
-    sqlContext.sql(
-      s"""
-         |CREATE TEMPORARY TABLE carsTable
-         |USING org.apache.spark.sql.xml
-         |OPTIONS (path "$carsFile", rootTag "$carsFileTag")
-      """.stripMargin.replaceAll("\n", " "))
-
-    assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
-  }
-
 }
 
 class XmlSuite extends AbstractXmlSuite {
