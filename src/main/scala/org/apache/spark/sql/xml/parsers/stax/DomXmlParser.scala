@@ -97,7 +97,7 @@ private[sql] class DomXmlParser(doc: Node) extends Iterable[Node] {
   def inferArrayElementType(node: Node): Int = {
     if (checkObjectType(node)){
       OBJECT
-    }else {
+    } else {
       inferPrimitiveType(node)
     }
   }
