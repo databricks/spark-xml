@@ -56,14 +56,14 @@ case class XmlRelation protected[spark] (
   override val schema: StructType = {
     Option(userSchema).getOrElse {
       InferSchema(
-        StaxXmlPartialSchemaParser(
+        DomXmlPartialSchemaParser(
           baseRDD(),
           rootTag,
           samplingRatio)(sqlContext))}
   }
 
   override def buildScan: RDD[Row] = {
-    StaxXmlParser(
+    DomXmlParser(
       baseRDD(),
       schema,
       rootTag)(sqlContext)
