@@ -65,8 +65,6 @@ class DefaultSource
       throw new Exception("root tag must be given.")
     }
 
-    // TODO validate charset?
-
     // TODO need to support include attributes
     val includeAttribute = parameters.getOrElse("includeAttribute", "false")
     val includeAttributeFlag = if (includeAttribute == "false") {

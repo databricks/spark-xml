@@ -220,14 +220,14 @@ from pyspark.sql import SQLContext
 from pyspark.sql.types import *
 
 sqlContext = SQLContext(sc)
-customSchema = StructType( \
-    StructField("author", StringType, true), \
-    StructField("description", StringType, true), \
-    StructField("genre", StringType, true), \
-    StructField("id", StringType, true), \
-    StructField("price", DoubleType, true), \
-    StructField("publish_date", StringType, true), \
-    StructField("title", StringType, true)) \
+customSchema = StructType([ \
+    StructField("author", StringType(), True), \
+    StructField("description", StringType(), True), \
+    StructField("genre", StringType(), True), \
+    StructField("id", StringType(), True), \
+    StructField("price", DoubleType(), True), \
+    StructField("publish_date", StringType(), True), \
+    StructField("title", StringType(), True])) \
 
 df = sqlContext.read \
     .format('org.apache.spark.sql.xml') \
@@ -254,12 +254,12 @@ from pyspark.sql import SQLContext
 from pyspark.sql.types import *
 
 sqlContext = SQLContext(sc)
-customSchema = StructType( \
-    StructField("year", IntegerType, true), \
-    StructField("make", StringType, true), \
-    StructField("model", StringType, true), \
-    StructField("orgment", StringType, true), \
-    StructField("blank", StringType, true))
+customSchema = StructType([ \
+    StructField("year", IntegerType(), True), \
+    StructField("make", StringType(), True), \
+    StructField("model", StringType(), True), \
+    StructField("orgment", StringType(), True), \
+    StructField("blank", StringType(), True)])
 
 df = sqlContext.load(source="org.apache.spark.xml", rootTag = 'book', schema = customSchema, path = 'books.xml')
 df.select("author", "id").collect()

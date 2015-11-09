@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.spark.sql.xml.parsers.dom
 
 import org.scalatest.FunSuite
 
-class StaxXmlParserSuite extends FunSuite {
+class DomXmlPartialSchemaParserSuite extends FunSuite {
 
-  // TODO: Write test code for [[StaxXmlParser]]
+  // TODO: Write test code for [[StaxXmlPartialSchemaParser]]
 
 }
