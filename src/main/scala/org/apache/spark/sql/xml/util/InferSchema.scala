@@ -103,8 +103,6 @@ private[sql] object InferSchema {
    * Remove top-level ArrayType wrappers and merge the remaining schemas
    */
   private def compatibleRootType: (DataType, DataType) => DataType = {
-    case (ArrayType(ty1, _), ty2) => compatibleRootType(ty1, ty2)
-    case (ty1, ArrayType(ty2, _)) => compatibleRootType(ty1, ty2)
     case (ty1, ty2) => compatibleType(ty1, ty2)
   }
 
@@ -141,6 +139,14 @@ private[sql] object InferSchema {
 
         case (ArrayType(elementType1, containsNull1), ArrayType(elementType2, containsNull2)) =>
           ArrayType(compatibleType(elementType1, elementType2), containsNull1 || containsNull2)
+
+        // In XML datasource, since StructType can be compared with ArrayType.
+        // In this case, ArrayType wraps the StructType.
+        case (ArrayType(ty1, _), ty2) =>
+          ArrayType(compatibleType(ty1, ty2))
+
+        case (ty1, ArrayType(ty2, _)) =>
+          ArrayType(compatibleType(ty1, ty2))
 
         // strings and every string is a XML object.
         case (_, _) => StringType

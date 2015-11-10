@@ -135,12 +135,6 @@ private[sql] object DomXmlPartialSchemaParser {
   }
 
   def partiallyInferArray(parser: DomXmlParser, node: Node): DataType = {
-
-    // If this XML array is empty, we use NullType as a placeholder.
-    // If this array is not empty in other XML objects, we can resolve
-    // the type as we pass through all XML objects.
-    var elementType: DataType = NullType
-    elementType = InferSchema.compatibleType(elementType, inferArrayEelementField(parser, node))
-    ArrayType(elementType)
+    ArrayType(inferArrayEelementField(parser, node))
   }
 }

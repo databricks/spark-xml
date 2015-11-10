@@ -14,11 +14,6 @@
             <month>10</month>
             <day>01</day>
          </publish_date>
-         <publish_date>
-            <year>2000</year>
-            <month>10</month>
-            <day>02</day>
-         </publish_date>
       </publish_dates>
    </book>
    <book id="bk102">
@@ -35,7 +30,7 @@
             <month>12</month>
             <day>16</day>
          </publish_date>
-         <publish_date>
+         <publish_date tag="lastest">
             <year>2000</year>
             <month>12</month>
             <day>17</day>

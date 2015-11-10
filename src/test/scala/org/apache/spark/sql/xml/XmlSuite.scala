@@ -241,6 +241,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
             ArrayType(StructType(
                 List(StructField("day", LongType, nullable = true),
                   StructField("month", LongType, nullable = true),
+                  StructField("tag", StringType, nullable = true),
                   StructField("year", LongType, nullable = true))))))),
         nullable = true),
       StructField("title", StringType, nullable = true))
