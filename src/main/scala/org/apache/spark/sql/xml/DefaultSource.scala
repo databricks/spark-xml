@@ -65,11 +65,10 @@ class DefaultSource
       throw new Exception("root tag must be given.")
     }
 
-    // TODO need to support include attributes
-    val includeAttribute = parameters.getOrElse("includeAttribute", "false")
-    val includeAttributeFlag = if (includeAttribute == "false") {
+    val excludeAttribute = parameters.getOrElse("excludeAttribute", "false")
+    val excludeAttributeFlag = if (excludeAttribute == "false") {
       false
-    } else if (includeAttribute == "true") {
+    } else if (excludeAttribute == "true") {
       true
     } else {
       throw new Exception("Include attribute flag can be true or false")
@@ -88,9 +87,8 @@ class DefaultSource
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rootTag),
       Some(path),
       parseMode,
-      rootTag,
       samplingRatio,
-      includeAttributeFlag,
+      excludeAttributeFlag,
       treatEmptyValuesAsNullsFlag,
       schema)(sqlContext)
   }

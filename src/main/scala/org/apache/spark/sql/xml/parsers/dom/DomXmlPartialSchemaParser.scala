@@ -35,10 +35,9 @@ import scala.collection.mutable.ArrayBuffer
 
 private[sql] object DomXmlPartialSchemaParser {
   def apply(xml: RDD[String],
-            rootTag: String,
             samplingRatio: Double,
             parseMode: String,
-            includeAttributeFlag: Boolean,
+            excludeAttributeFlag: Boolean,
             treatEmptyValuesAsNulls: Boolean): RDD[DataType] = {
     require(samplingRatio > 0, s"samplingRatio ($samplingRatio) should be greater than 0")
     val schemaData = if (samplingRatio > 0.99) {
@@ -55,7 +54,8 @@ private[sql] object DomXmlPartialSchemaParser {
         // always finds the root tag without a heading space.
         val childNode = builder.parse(new ByteArrayInputStream(xml.getBytes))
           .getChildNodes.item(0)
-        val parser = new DomXmlParser(childNode)
+        val conf =  DomConfiguration(excludeAttributeFlag, treatEmptyValuesAsNulls)
+        val parser = new DomXmlParser(childNode, conf)
         if (parser.isEmpty) {
           None
         } else {
@@ -68,15 +68,15 @@ private[sql] object DomXmlPartialSchemaParser {
   /**
    * Infer the type of a xml document from the parser's token stream
    */
-  private def inferField(parser: DomXmlParser, node: Node): DataType = {
-    inferField(parser.inferDataType(node), parser, node)
+  private def inferField(parser: DomXmlParser, node: Node, conf: DomConfiguration): DataType = {
+    inferField(parser.inferDataType(node), parser, node, conf)
   }
 
-  private def inferArrayEelementField(parser: DomXmlParser, node: Node): DataType = {
-    inferField(parser.inferArrayElementType(node), parser, node)
+  private def inferArrayEelementField(parser: DomXmlParser, node: Node, conf: DomConfiguration): DataType = {
+    inferField(parser.inferArrayElementType(node), parser, node, conf)
   }
 
-  private def inferField(dataType: Int, parser: DomXmlParser, node: Node): DataType = {
+  private def inferField(dataType: Int, parser: DomXmlParser, node: Node, conf: DomConfiguration): DataType = {
     import org.apache.spark.sql.xml.parsers.dom.DomXmlParser._
     dataType match {
       case LONG =>
@@ -95,10 +95,10 @@ private[sql] object DomXmlPartialSchemaParser {
         NullType
 
       case OBJECT =>
-        inferObject(new DomXmlParser(node))
+        inferObject(new DomXmlParser(node, conf))
 
       case ARRAY =>
-        partiallyInferArray(parser, node)
+        partiallyInferArray(parser, node, conf)
 
       case _ =>
       // TODO: Now it skips unsupported types (we might have to treat null values).
@@ -111,7 +111,7 @@ private[sql] object DomXmlPartialSchemaParser {
     val partialInferredArrayTypes = collection.mutable.Map[String, ArrayBuffer[DataType]]()
     parser.foreach{ node =>
       val field = node.getNodeName
-      val inferredType = inferField(parser, node)
+      val inferredType = inferField(parser, node, parser.getConf)
       inferredType match {
         // For XML, it can contains the same keys.
         // So we need to manually merge them to an array.
@@ -120,7 +120,7 @@ private[sql] object DomXmlPartialSchemaParser {
           dataTypes += st
           partialInferredArrayTypes += (field -> dataTypes)
         case _ =>
-          builder += StructField(field, inferField(parser, node), nullable = true)
+          builder += StructField(field, inferField(parser, node, parser.getConf), nullable = true)
       }
     }
 
@@ -134,7 +134,7 @@ private[sql] object DomXmlPartialSchemaParser {
     StructType(builder.result().sortBy(_.name))
   }
 
-  def partiallyInferArray(parser: DomXmlParser, node: Node): DataType = {
-    ArrayType(inferArrayEelementField(parser, node))
+  def partiallyInferArray(parser: DomXmlParser, node: Node, conf: DomConfiguration): DataType = {
+    ArrayType(inferArrayEelementField(parser, node, conf))
   }
 }

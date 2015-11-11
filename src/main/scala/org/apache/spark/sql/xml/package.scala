@@ -29,7 +29,7 @@ package object xml {
                  mode: String = "PERMISSIVE",
                  rootTag: String,
                  samplingRatio: Double = 1.0,
-                 includeAttributeFlag: Boolean = false,
+                 excludeAttributeFlag: Boolean = false,
                  treatEmptyValuesAsNulls: Boolean = false,
                  charset: String = XmlFile.DEFAULT_CHARSET.name()
                  ): DataFrame = {
@@ -38,9 +38,8 @@ package object xml {
         () => XmlFile.withCharset(sqlContext.sparkContext, filePath, charset, rootTag),
         location = Some(filePath),
         parseMode = mode,
-        rootTag = rootTag,
         samplingRatio = samplingRatio,
-        includeAttributeFlag = includeAttributeFlag,
+        excludeAttributeFlag = excludeAttributeFlag,
         treatEmptyValuesAsNulls = treatEmptyValuesAsNulls)(sqlContext)
       sqlContext.baseRelationToDataFrame(xmlRelation)
     }

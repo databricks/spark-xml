@@ -5,8 +5,6 @@ The structure and test tools are mostly copied from databricks/spark-csv.
 
 - This package supports to process format-free XML files in a distributed way, unlike JSON datasource in Spark restricts in-line JSON format.
 
-- Note that this package is yet buggy and hacky, and tested only on a small dataset. So, I do not recommand to use this for a production purpose until this becomes stable.
-
 ## Requirements
 
 This library requires Spark 1.3+
@@ -16,9 +14,9 @@ This package allows reading XML files in local or distributed filesystem as [Spa
 When reading files the API accepts several options:
 * `path`: location of files. Similar to Spark can accept standard Hadoop globbing expressions.
 * `rootTag`: **This is a necessary option.** The root tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`.
-* `samplingRatio`: Sampling ratio for infering schema. For now, this always tries to infer schema. Possible types are only `StructType`, `ArrayType`, `StringType`, `LongType`, `DoubleType` and `NullType`, unless user provides a schema for this.
-* `includeAttributeFlag` : Whether you want to include tags of elements as fields or not. **This is under development. For now, always includes tags**
-* `treatEmptyValuesAsNulls` : Whether you want to treat whitespaces as a null value. **This is under development.**
+* `samplingRatio`: Sampling ratio for inferring schema (0.0 ~ 1). Default is 1. Possible types are `StructType`, `ArrayType`, `StringType`, `LongType`, `DoubleType` and `NullType`, unless user provides a schema for this.
+* `excludeAttributeFlag` : Whether you want to exclude tags of elements as fields or not. Default is false.
+* `treatEmptyValuesAsNulls` : Whether you want to treat whitespaces as a null value. Default is false.
 * `mode`: determines the parsing mode. **This is under development.**
 * `charset`: defaults to 'UTF-8' but can be set to other valid charset names. **This is under development. For now, UTF-8 is only supported by default.**
 

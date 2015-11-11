@@ -34,9 +34,8 @@ case class XmlRelation protected[spark] (
     baseRDD: () => RDD[String],
     location: Option[String],
     parseMode: String,
-    rootTag: String,
     samplingRatio: Double,
-    includeAttributeFlag: Boolean,
+    excludeAttributeFlag: Boolean,
     treatEmptyValuesAsNulls: Boolean,
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
   extends BaseRelation
@@ -58,10 +57,9 @@ case class XmlRelation protected[spark] (
       InferSchema(
         DomXmlPartialSchemaParser(
           baseRDD(),
-          rootTag,
           samplingRatio,
           parseMode,
-          includeAttributeFlag,
+          excludeAttributeFlag,
           treatEmptyValuesAsNulls))
     }
   }
@@ -70,9 +68,8 @@ case class XmlRelation protected[spark] (
     DomXmlParser(
       baseRDD(),
       schema,
-      rootTag,
       parseMode,
-      includeAttributeFlag,
+      excludeAttributeFlag,
       treatEmptyValuesAsNulls)
   }
 }

@@ -30,7 +30,7 @@ class XmlReader extends Serializable {
   private var parseMode: String = ParseModes.DEFAULT
   private var rootTag: String = null
   private var samplingRatio: Double = 1.0
-  private var includeAttributeFlag: Boolean = false
+  private var excludeAttributeFlag: Boolean = false
   private var treatEmptyValuesAsNulls: Boolean = false
   private var schema: StructType = null
 
@@ -54,8 +54,8 @@ class XmlReader extends Serializable {
     this
   }
 
-  def withIncludeAttributeFlag(include: Boolean): XmlReader = {
-    this.includeAttributeFlag = include
+  def withIncludeAttributeFlag(exclude: Boolean): XmlReader = {
+    this.excludeAttributeFlag = exclude
     this
   }
 
@@ -76,9 +76,8 @@ class XmlReader extends Serializable {
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rootTag),
       Some(path),
       parseMode,
-      rootTag,
       samplingRatio,
-      includeAttributeFlag,
+      excludeAttributeFlag,
       treatEmptyValuesAsNulls,
       schema)(sqlContext)
     sqlContext.baseRelationToDataFrame(relation)
@@ -89,9 +88,8 @@ class XmlReader extends Serializable {
       () => xmlRDD,
       None,
       parseMode,
-      rootTag,
       samplingRatio,
-      includeAttributeFlag,
+      excludeAttributeFlag,
       treatEmptyValuesAsNulls,
       schema)(sqlContext)
     sqlContext.baseRelationToDataFrame(relation)

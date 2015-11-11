@@ -18,24 +18,22 @@ package org.apache.spark.sql.xml.parsers.dom
 
 import java.io.ByteArrayInputStream
 import javax.xml.parsers.DocumentBuilderFactory
-import javax.xml.stream.events.{Attribute, XMLEvent}
-import javax.xml.stream.{XMLEventReader, XMLInputFactory}
 
-import com.sun.xml.internal.stream.events.{EndElementEvent, StartElementEvent, CharacterEvent}
-import org.apache.commons.lang.StringUtils
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.util.DateTimeUtils
-import org.apache.spark.sql.xml.util.TypeCast
-import org.apache.spark.sql.{Row, SQLContext}
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.xml.util.TypeCast._
-import org.apache.spark.unsafe.types.UTF8String
-import org.w3c.dom.{NamedNodeMap, Node, NodeList, Document}
+import org.w3c.dom.Node
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 
-private[sql] class DomXmlParser(doc: Node) extends Iterable[Node] {
+/**
+ *  Configuration used during parsing.
+ */
+case class DomConfiguration(excludeAttributeFlag: Boolean = false,
+                            treatEmptyValuesAsNulls: Boolean = false)
+
+private[sql] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfiguration()) extends Iterable[Node] {
   import org.apache.spark.sql.xml.parsers.dom.DomXmlParser._
   lazy val nodes = readChildNodes
   var index: Int = 0
@@ -55,7 +53,7 @@ private[sql] class DomXmlParser(doc: Node) extends Iterable[Node] {
       nodesBuffer ++= (0 until childNodes.getLength).map(childNodes.item)
     }
 
-    if (doc.hasAttributes) {
+    if (!conf.excludeAttributeFlag && doc.hasAttributes) {
       val attributeNodes = doc.getAttributes
       nodesBuffer ++= (0 until attributeNodes.getLength).map(attributeNodes.item)
     }
@@ -102,11 +100,15 @@ private[sql] class DomXmlParser(doc: Node) extends Iterable[Node] {
     }
   }
 
-private   def inferPrimitiveType(node: Node): Int = {
+  private def inferPrimitiveType(node: Node): Int = {
     val data = node.getTextContent
-
-    // TODO: Here we can decide if it treats spaces as null value or not for types
-    if (data == "" ||  data == null) {
+    if (data.trim.length <= 0) {
+      if (conf.treatEmptyValuesAsNulls) {
+        NULL
+      } else {
+        STRING
+      }
+    } else if (data == null) {
       NULL
     } else if (isLong(data)) {
       LONG
@@ -117,6 +119,10 @@ private   def inferPrimitiveType(node: Node): Int = {
     } else {
       STRING
     }
+  }
+
+  def getConf: DomConfiguration = {
+    conf
   }
 }
 
@@ -141,9 +147,8 @@ private[sql] object DomXmlParser {
 
   def apply(xml: RDD[String],
             schema: StructType,
-            rootTag: String,
             parseMode: String,
-            includeAttributeFlag: Boolean,
+            excludeAttributeFlag: Boolean,
             treatEmptyValuesAsNulls: Boolean): RDD[Row] = {
     xml.mapPartitions { iter =>
       iter.flatMap { xml =>
@@ -153,7 +158,8 @@ private[sql] object DomXmlParser {
         // always finds the root tag without a heading space.
         val childNode = builder.parse(new ByteArrayInputStream(xml.getBytes))
           .getChildNodes.item(0)
-        val parser = new DomXmlParser(childNode)
+        val conf =  DomConfiguration(excludeAttributeFlag, treatEmptyValuesAsNulls)
+        val parser = new DomXmlParser(childNode, conf)
         if (parser.isEmpty) {
           None
         } else {
@@ -168,7 +174,8 @@ private[sql] object DomXmlParser {
    */
 
   private[sql] def convertField(node: Node,
-                                schema: DataType): Any = {
+                                schema: DataType,
+                                conf: DomConfiguration ): Any = {
 
     // TODO: Here we can decide if it treats spaces as null value or not for data
     if (node.getTextContent == null) {
@@ -214,14 +221,14 @@ private[sql] object DomXmlParser {
           null
 
         case ArrayType(st, _) =>
-          convertPartialArray(node, st)
+          convertPartialArray(node, st, conf)
 
         case st: StructType =>
-          val nestedParser = new DomXmlParser(node)
+          val nestedParser = new DomXmlParser(node, conf)
           convertObject(nestedParser, st)
 
         case (udt: UserDefinedType[_]) =>
-          convertField(node, udt.sqlType)
+          convertField(node, udt.sqlType, conf)
 
         case dataType =>
           sys.error(s"Failed to parse a value for data type $dataType.")
@@ -233,8 +240,9 @@ private[sql] object DomXmlParser {
    * Parse an object as a array
    */
   private def convertPartialArray(node: Node,
-                                  elementType: DataType): Any = {
-    convertField(node, elementType)
+                                  elementType: DataType,
+                                  conf: DomConfiguration): Any = {
+    convertField(node, elementType, conf)
   }
 
   /**
@@ -258,10 +266,10 @@ private[sql] object DomXmlParser {
               val values = Option(row(index))
                 .map(_.asInstanceOf[ArrayBuffer[Any]])
                 .getOrElse(ArrayBuffer.empty[Any])
-              val newValue = convertField(node, dataType)
+              val newValue = convertField(node, dataType, parser.getConf)
               row(index) = values :+ newValue
             case _ =>
-              row(index) = convertField(node, dataType)
+              row(index) = convertField(node, dataType, parser.getConf)
           }
         case _ =>
           // This case must not happen.
