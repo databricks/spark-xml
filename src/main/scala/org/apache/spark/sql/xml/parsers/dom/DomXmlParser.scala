@@ -33,7 +33,8 @@ import scala.collection.mutable.ArrayBuffer
 case class DomConfiguration(excludeAttributeFlag: Boolean = false,
                             treatEmptyValuesAsNulls: Boolean = false)
 
-private[sql] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfiguration()) extends Iterable[Node] {
+private[sql] class DomXmlParser(doc: Node,conf: DomConfiguration = DomConfiguration())
+    extends Iterable[Node] {
   import org.apache.spark.sql.xml.parsers.dom.DomXmlParser._
   lazy val nodes = readChildNodes
   var index: Int = 0
@@ -158,7 +159,7 @@ private[sql] object DomXmlParser {
         // always finds the root tag without a heading space.
         val childNode = builder.parse(new ByteArrayInputStream(xml.getBytes))
           .getChildNodes.item(0)
-        val conf =  DomConfiguration(excludeAttributeFlag, treatEmptyValuesAsNulls)
+        val conf = DomConfiguration(excludeAttributeFlag, treatEmptyValuesAsNulls)
         val parser = new DomXmlParser(childNode, conf)
         if (parser.isEmpty) {
           None

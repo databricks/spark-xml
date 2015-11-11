@@ -54,7 +54,7 @@ private[sql] object DomXmlPartialSchemaParser {
         // always finds the root tag without a heading space.
         val childNode = builder.parse(new ByteArrayInputStream(xml.getBytes))
           .getChildNodes.item(0)
-        val conf =  DomConfiguration(excludeAttributeFlag, treatEmptyValuesAsNulls)
+        val conf = DomConfiguration(excludeAttributeFlag, treatEmptyValuesAsNulls)
         val parser = new DomXmlParser(childNode, conf)
         if (parser.isEmpty) {
           None
@@ -68,15 +68,22 @@ private[sql] object DomXmlPartialSchemaParser {
   /**
    * Infer the type of a xml document from the parser's token stream
    */
-  private def inferField(parser: DomXmlParser, node: Node, conf: DomConfiguration): DataType = {
+  private def inferField(parser: DomXmlParser,
+                         node: Node,
+                         conf: DomConfiguration): DataType = {
     inferField(parser.inferDataType(node), parser, node, conf)
   }
 
-  private def inferArrayEelementField(parser: DomXmlParser, node: Node, conf: DomConfiguration): DataType = {
+  private def inferArrayEelementField(parser: DomXmlParser,
+                                      node: Node,
+                                      conf: DomConfiguration): DataType = {
     inferField(parser.inferArrayElementType(node), parser, node, conf)
   }
 
-  private def inferField(dataType: Int, parser: DomXmlParser, node: Node, conf: DomConfiguration): DataType = {
+  private def inferField(dataType: Int,
+                         parser: DomXmlParser,
+                         node: Node,
+                         conf: DomConfiguration): DataType = {
     import org.apache.spark.sql.xml.parsers.dom.DomXmlParser._
     dataType match {
       case LONG =>
