@@ -136,8 +136,8 @@ public class XmlInputFormat extends TextInputFormat {
                             startTag[startTag.length - 1] = ' ';
                             return true;
                         }
-                        i = 0;
                     }
+                    i = 0;
                 }
                 // see if we've passed the stop point:
                 if (!withinBlock && i == 0 && fsin.getPos() >= end) {
