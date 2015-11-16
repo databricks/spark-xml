@@ -24,6 +24,8 @@ The package does not support to write a Dataframe to XML file.
 
 These examples use a XML file available for download [here](https://github.com/HyukjinKwon/spark-xml/raw/master/src/test/resources/books.xml):
 
+Currently it supports the shorten name useage. You can use just `xml` instead of `org.apache.spark.sql.xml` from Spark 1.5.0+
+
 ```
 $ wget https://github.com/HyukjinKwon/spark-xml/raw/master/src/test/resources/books.xml
 ```
