@@ -1,6 +1,6 @@
 name := "spark-xml"
 
-version := "1.3.0-SNAPSHOT"
+version := "0.1-SNAPSHOT"
 
 organization := "org.apache"
 
