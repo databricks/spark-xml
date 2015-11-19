@@ -2,7 +2,7 @@ name := "spark-xml"
 
 version := "0.1-SNAPSHOT"
 
-organization := "org.apache"
+organization := "HyukjinKwon"
 
 scalaVersion := "2.11.7"
 
