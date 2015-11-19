@@ -1,6 +1,6 @@
 name := "spark-xml"
 
-version := "0.1-SNAPSHOT"
+version := "0.1.2"
 
 organization := "HyukjinKwon"
 
