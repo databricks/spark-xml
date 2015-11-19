@@ -5,9 +5,24 @@ The structure and test tools are mostly copied from databricks/spark-csv.
 
 - This package supports to process format-free XML files in a distributed way, unlike JSON datasource in Spark restricts in-line JSON format.
 
+- Since this package is supposed to move under another organazation, it is not uploaded to maven yet.
+
 ## Requirements
 
 This library requires Spark 1.3+
+
+## Using with Spark shell
+This package can be added to  Spark using the `--packages` command line option.  For example, to include it when starting the spark shell:
+
+### Spark compiled with Scala 2.11
+```
+$SPARK_HOME/bin/spark-shell --packages HyukjinKwon:spark-xml:0.1.1-s_2.11
+```
+
+### Spark compiled with Scala 2.10
+```
+$SPARK_HOME/bin/spark-shell --packages HyukjinKwon:spark-xml:0.1.1-s_2.10
+```
 
 ## Features
 This package allows reading XML files in local or distributed filesystem as [Spark DataFrames](https://spark.apache.org/docs/1.3.0/sql-programming-guide.html).
