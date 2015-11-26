@@ -1,4 +1,4 @@
-# Spark XML Library [![Build Status](https://travis-ci.org/HyukjinKwon/spark-xml.svg?branch=master)](https://travis-ci.org/HyukjinKwon/spark-xml)
+# Spark XML Library [![Build Status](https://travis-ci.org/databricks/spark-xml.svg?branch=master)](https://travis-ci.org/databricks/spark-xml)
 
 - A library for parsing and querying XML data with Apache Spark, for Spark SQL and DataFrames.
 The structure and test tools are mostly copied from databricks/spark-csv.
@@ -39,10 +39,10 @@ The package does not support to write a Dataframe to XML file.
 
 Currently it supports the shorten name useage. You can use just `xml` instead of `org.apache.spark.sql.xml` from Spark 1.5.0+
 
-These examples use a XML file available for download [here](https://github.com/HyukjinKwon/spark-xml/raw/master/src/test/resources/books.xml):
+These examples use a XML file available for download [here](https://github.com/databricks/spark-xml/raw/master/src/test/resources/books.xml):
 
 ```
-$ wget https://github.com/HyukjinKwon/spark-xml/raw/master/src/test/resources/books.xml
+$ wget https://github.com/databricks/spark-xml/raw/master/src/test/resources/books.xml
 ```
 
 ### SQL API
@@ -282,3 +282,9 @@ df.select("author", "id").collect()
 
 ## Building From Source
 This library is built with [SBT](http://www.scala-sbt.org/0.13/docs/Command-Line-Reference.html), which is automatically downloaded by the included shell script. To build a JAR file simply run `sbt/sbt package` from the project root. The build configuration includes support for both Scala 2.10 and 2.11.
+
+
+## Acknowledgements
+
+This project was initially created by @HyukjinKwon and donated to Databricks.
+
