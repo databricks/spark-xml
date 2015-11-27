@@ -32,16 +32,16 @@ private[xml] object InferSchema {
       DoubleType)
 
   val findTightestCommonTypeOfTwo: (DataType, DataType) => Option[DataType] = {
-      case (t1, t2) if t1 == t2 => Some(t1)
-      case (NullType, t1) => Some(t1)
-      case (t1, NullType) => Some(t1)
+    case (t1, t2) if t1 == t2 => Some(t1)
+    case (NullType, t1) => Some(t1)
+    case (t1, NullType) => Some(t1)
 
-      // Promote numeric types to the highest of the two and all numeric types to unlimited decimal
-      case (t1, t2) if Seq(t1, t2).forall(numericPrecedence.contains) =>
-        val index = numericPrecedence.lastIndexWhere(t => t == t1 || t == t2)
-        Some(numericPrecedence(index))
+    // Promote numeric types to the highest of the two and all numeric types to unlimited decimal
+    case (t1, t2) if Seq(t1, t2).forall(numericPrecedence.contains) =>
+      val index = numericPrecedence.lastIndexWhere(t => t == t1 || t == t2)
+      Some(numericPrecedence(index))
 
-      case _ => None
+    case _ => None
   }
 
   /**
