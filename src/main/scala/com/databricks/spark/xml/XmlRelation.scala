@@ -14,21 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql.xml
+package com.databricks.spark.xml
 
-import java.io.IOException
-
-import org.apache.spark.sql.xml.parsers.dom._
-import org.apache.spark.sql.xml.util.{InferSchema, ParseModes}
-
-import scala.collection.JavaConversions._
-import org.apache.hadoop.fs.Path
 import org.slf4j.LoggerFactory
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
-import org.apache.spark.sql.sources.{BaseRelation, InsertableRelation, TableScan}
+import org.apache.spark.sql.sources.{BaseRelation, TableScan}
 import org.apache.spark.sql.types._
+import com.databricks.spark.xml.parsers.dom._
+import com.databricks.spark.xml.util.{InferSchema, ParseModes}
 
 case class XmlRelation protected[spark] (
     baseRDD: () => RDD[String],

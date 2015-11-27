@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql.xml
+package com.databricks.spark.xml
 
 import java.nio.charset.UnsupportedCharsetException
 
-import org.apache.spark.sql.SQLContext
-import org.apache.spark.SparkContext
-import org.apache.spark.sql.types._
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
+
+import org.apache.spark.SparkContext
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.types._
 
 abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   val agesFile = "src/test/resources/ages.xml"
@@ -96,7 +97,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     sqlContext.sql(
       s"""
          |CREATE TEMPORARY TABLE carsTable
-         |USING org.apache.spark.sql.xml
+         |USING com.databricks.spark.xml
          |OPTIONS (path "$carsFile", rootTag "$carsFileTag")
       """.stripMargin.replaceAll("\n", " "))
 
@@ -165,7 +166,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     sqlContext.sql(s"""
            |CREATE TEMPORARY TABLE carsTable
            |(year double, make string, model string, comments string, grp string)
-           |USING org.apache.spark.sql.xml
+           |USING com.databricks.spark.xml
            |OPTIONS (path "$emptyFile", rootTag "$emptyFileTag")
       """.stripMargin.replaceAll("\n", " "))
 

@@ -1,5 +1,3 @@
-package org.apache.hadoop.mapreduce.lib.input;
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -16,6 +14,9 @@ package org.apache.hadoop.mapreduce.lib.input;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.databricks.hadoop.mapreduce.lib.input;
+
+import java.io.IOException;
 
 import com.google.common.io.Closeables;
 import org.apache.commons.io.Charsets;
@@ -29,10 +30,11 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 
 /**
  * Reads records that are delimited by a specific begin/end tag.

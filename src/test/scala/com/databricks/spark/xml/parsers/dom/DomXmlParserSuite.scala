@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.spark.sql.xml.parsers.dom
+package com.databricks.spark.xml.parsers.dom
 
 import org.scalatest.FunSuite
 

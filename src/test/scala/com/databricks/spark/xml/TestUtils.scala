@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql.xml
+package com.databricks.spark.xml
 
 import java.io.{File, IOException}
 

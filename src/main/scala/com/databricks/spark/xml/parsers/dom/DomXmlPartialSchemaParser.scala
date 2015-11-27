@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql.xml.parsers.dom
+package com.databricks.spark.xml.parsers.dom
 
 import java.io.ByteArrayInputStream
 import javax.xml.parsers.DocumentBuilderFactory
-import javax.xml.stream.XMLInputFactory
-
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.types._
-import org.apache.spark.sql.xml.util.InferSchema
-import org.w3c.dom.Node
 
 import scala.collection.Seq
 import scala.collection.mutable.ArrayBuffer
+
+import org.w3c.dom.Node
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.types._
+import com.databricks.spark.xml.util.InferSchema
+
 
 /**
  * Wraps parser to iteratoration process.
  */
 
-private[sql] object DomXmlPartialSchemaParser {
+private[xml] object DomXmlPartialSchemaParser {
   def apply(xml: RDD[String],
             samplingRatio: Double,
             parseMode: String,
@@ -84,7 +84,7 @@ private[sql] object DomXmlPartialSchemaParser {
                          parser: DomXmlParser,
                          node: Node,
                          conf: DomConfiguration): DataType = {
-    import org.apache.spark.sql.xml.parsers.dom.DomXmlParser._
+    import com.databricks.spark.xml.parsers.dom.DomXmlParser._
     dataType match {
       case LONG =>
         LongType

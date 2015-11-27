@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql.xml.util
+package com.databricks.spark.xml.util
 
 import java.nio.charset.Charset
 
 import org.apache.hadoop.io.{Text, LongWritable}
-import org.apache.hadoop.mapreduce.lib.input.XmlInputFormat
+
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
+import com.databricks.hadoop.mapreduce.lib.input.XmlInputFormat
 
 private[xml] object XmlFile {
   val DEFAULT_CHARSET = Charset.forName("UTF-8")

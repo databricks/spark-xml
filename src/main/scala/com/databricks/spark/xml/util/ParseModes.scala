@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql.xml.util
+package com.databricks.spark.xml.util
 
 private[xml] object ParseModes {
 

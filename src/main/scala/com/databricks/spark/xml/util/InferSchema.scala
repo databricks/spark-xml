@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql.xml.util
+package com.databricks.spark.xml.util
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 
-private[sql] object InferSchema {
+private[xml] object InferSchema {
 
   // Both vals below brought from HiveTypeCoercion just for version compatibility
   private val numericPrecedence =
@@ -32,21 +32,16 @@ private[sql] object InferSchema {
       DoubleType)
 
   val findTightestCommonTypeOfTwo: (DataType, DataType) => Option[DataType] = {
-    case (t1, t2) if t1 == t2 => Some(t1)
-    case (NullType, t1) => Some(t1)
-    case (t1, NullType) => Some(t1)
+      case (t1, t2) if t1 == t2 => Some(t1)
+      case (NullType, t1) => Some(t1)
+      case (t1, NullType) => Some(t1)
 
-    case (t1: IntegralType, t2: DecimalType) if t2.isWiderThan(t1) =>
-      Some(t2)
-    case (t1: DecimalType, t2: IntegralType) if t1.isWiderThan(t2) =>
-      Some(t1)
+      // Promote numeric types to the highest of the two and all numeric types to unlimited decimal
+      case (t1, t2) if Seq(t1, t2).forall(numericPrecedence.contains) =>
+        val index = numericPrecedence.lastIndexWhere(t => t == t1 || t == t2)
+        Some(numericPrecedence(index))
 
-    // Promote numeric types to the highest of the two
-    case (t1, t2) if Seq(t1, t2).forall(numericPrecedence.contains) =>
-      val index = numericPrecedence.lastIndexWhere(t => t == t1 || t == t2)
-      Some(numericPrecedence(index))
-
-    case _ => None
+      case _ => None
   }
 
   /**

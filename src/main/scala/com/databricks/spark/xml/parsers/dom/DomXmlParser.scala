@@ -14,28 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql.xml.parsers.dom
+package com.databricks.spark.xml.parsers.dom
 
 import java.io.ByteArrayInputStream
 import javax.xml.parsers.DocumentBuilderFactory
 
+import scala.collection.mutable.ArrayBuffer
+
+import org.w3c.dom.Node
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.xml.util.TypeCast._
-import org.w3c.dom.Node
-
-import scala.collection.mutable.ArrayBuffer
+import com.databricks.spark.xml.util.TypeCast._
 
 /**
  *  Configuration used during parsing.
  */
-case class DomConfiguration(excludeAttributeFlag: Boolean = false,
+private[parsers] case class DomConfiguration(excludeAttributeFlag: Boolean = false,
                             treatEmptyValuesAsNulls: Boolean = false)
 
-private[sql] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfiguration())
+private[xml] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfiguration())
     extends Iterable[Node] {
-  import org.apache.spark.sql.xml.parsers.dom.DomXmlParser._
+  import com.databricks.spark.xml.parsers.dom.DomXmlParser._
   lazy val nodes = readChildNodes
   var index: Int = 0
   override def iterator: Iterator[Node] = nodes.iterator
@@ -131,7 +132,7 @@ private[sql] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfigura
 /**
  * Wraps parser to iteratoration process.
  */
-private[sql] object DomXmlParser {
+private[xml] object DomXmlParser {
 
   /**
    * This defines the possible types for XML.
@@ -174,7 +175,7 @@ private[sql] object DomXmlParser {
    * Parse the current token (and related children) according to a desired schema
    */
 
-  private[sql] def convertField(node: Node,
+  private[xml] def convertField(node: Node,
                                 schema: DataType,
                                 conf: DomConfiguration ): Any = {
 

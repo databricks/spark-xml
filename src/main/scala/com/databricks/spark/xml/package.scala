@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql
+package com.databricks.spark
 
 import org.apache.hadoop.io.compress.CompressionCodec
-import org.apache.spark.sql.xml.util.XmlFile
+
+import org.apache.spark.sql.{DataFrame, SQLContext}
+import com.databricks.spark.xml.util.XmlFile
 
 package object xml {
   /**

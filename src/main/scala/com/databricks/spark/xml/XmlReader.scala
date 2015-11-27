@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql.xml
+package com.databricks.spark.xml
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.xml.util.{ParseModes, XmlFile}
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.sql.types.StructType
+import com.databricks.spark.xml.util.{ParseModes, XmlFile}
+
 
 /**
  * A collection of static functions for working with XML files in Spark SQL

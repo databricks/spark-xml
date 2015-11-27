@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql.xml.util
+package com.databricks.spark.xml.util
 
 import java.math.BigDecimal
 import java.sql.{Date, Timestamp}
 import java.text.NumberFormat
 import java.util.Locale
 
-import org.apache.commons.lang.StringUtils
+import scala.util.Try
+
 import org.apache.spark.sql.types._
 
-import scala.util.Try
 
 /**
  * Utility functions for type casting
