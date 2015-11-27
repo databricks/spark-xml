@@ -57,7 +57,7 @@ public class JavaXmlSuite {
         options.put("rootTag", booksFileTag);
         options.put("path", booksFile);
 
-        DataFrame df = sqlContext.load("org.apache.spark.sql.xml", options);
+        DataFrame df = sqlContext.load("com.databricks.spark.xml", options);
         int result = df.select("description").collect().length;
         Assert.assertEquals(result, numCars);
     }
