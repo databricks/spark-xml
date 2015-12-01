@@ -1,4 +1,4 @@
-# Spark XML Library [![Build Status](https://travis-ci.org/databricks/spark-xml.svg?branch=master)](https://travis-ci.org/databricks/spark-xml)
+# Spark XML Library [![Build Status](https://travis-ci.org/databricks/spark-xml.svg?branch=master)](https://travis-ci.org/databricks/spark-xml) [![codecov.io](http://codecov.io/github/databricks/spark-xml/coverage.svg?branch=master)](http://codecov.io/github/databricks/spark-xml?branch=master)
 
 - A library for parsing and querying XML data with Apache Spark, for Spark SQL and DataFrames.
 The structure and test tools are mostly copied from databricks/spark-csv.
