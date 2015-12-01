@@ -22,7 +22,7 @@ import org.apache.hadoop.io.{Text, LongWritable}
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import com.databricks.hadoop.mapreduce.lib.input.XmlInputFormat
+import com.databricks.hadoop.mapred.lib.input.XmlInputFormat
 
 private[xml] object XmlFile {
   val DEFAULT_CHARSET = Charset.forName("UTF-8")
@@ -33,14 +33,14 @@ private[xml] object XmlFile {
     context.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, s"<$rootTag>")
     context.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, s"</$rootTag>")
     if (Charset.forName(charset) == DEFAULT_CHARSET) {
-      context.newAPIHadoopFile(location,
+      context.hadoopFile(location,
         classOf[XmlInputFormat],
         classOf[LongWritable],
         classOf[Text]).map(pair => new String(pair._2.getBytes, 0, pair._2.getLength))
     } else {
       // can't pass a Charset object here cause its not serializable
       // TODO: maybe use mapPartitions instead?
-      context.newAPIHadoopFile(location,
+      context.hadoopFile(location,
         classOf[XmlInputFormat],
         classOf[LongWritable],
         classOf[Text]).map(pair => new String(pair._2.getBytes, 0, pair._2.getLength, charset))

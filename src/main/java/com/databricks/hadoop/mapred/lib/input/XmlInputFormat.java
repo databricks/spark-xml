@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.databricks.hadoop.mapreduce.lib.input;
+package com.databricks.hadoop.mapred.lib.input;
 
 import java.io.IOException;
 
@@ -27,11 +27,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapred.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,10 +42,11 @@ public class XmlInputFormat extends TextInputFormat {
     public static final String START_TAG_KEY = "xmlinput.start";
     public static final String END_TAG_KEY = "xmlinput.end";
 
-    @Override
-    public RecordReader<LongWritable, Text> createRecordReader(InputSplit split, TaskAttemptContext context) {
+    public RecordReader<LongWritable, Text> getRecordReader(
+            InputSplit split, JobConf job,
+            Reporter reporter){
         try {
-            return new XmlRecordReader((FileSplit) split, context.getConfiguration());
+            return new XmlRecordReader((FileSplit) split, job);
         } catch (IOException ioe) {
             log.warn("Error while creating XmlRecordReader", ioe);
             return null;
@@ -61,7 +58,7 @@ public class XmlInputFormat extends TextInputFormat {
      * by the start tag and end tag
      *
      */
-    public static class XmlRecordReader extends RecordReader<LongWritable, Text> {
+    public static class XmlRecordReader implements RecordReader<LongWritable, Text> {
 
         private final byte[] startTag;
         private final byte[] endTag;
@@ -69,8 +66,6 @@ public class XmlInputFormat extends TextInputFormat {
         private final long end;
         private final FSDataInputStream fsin;
         private final DataOutputBuffer buffer = new DataOutputBuffer();
-        private LongWritable currentKey;
-        private Text currentValue;
 
         public XmlRecordReader(FileSplit split, Configuration conf) throws IOException {
             startTag = conf.get(START_TAG_KEY).getBytes(Charsets.UTF_8);
@@ -85,7 +80,7 @@ public class XmlInputFormat extends TextInputFormat {
             fsin.seek(start);
         }
 
-        private boolean next(LongWritable key, Text value) throws IOException {
+        public boolean next(LongWritable key, Text value) throws IOException {
             if (fsin.getPos() < end && readUntilMatch(startTag, false)) {
                 try {
                     buffer.write(startTag);
@@ -99,6 +94,21 @@ public class XmlInputFormat extends TextInputFormat {
                 }
             }
             return false;
+        }
+
+        @Override
+        public LongWritable createKey() {
+            return new LongWritable();
+        }
+
+        @Override
+        public Text createValue() {
+            return new Text();
+        }
+
+        @Override
+        public long getPos() throws IOException {
+            return 0;
         }
 
         @Override
@@ -146,27 +156,6 @@ public class XmlInputFormat extends TextInputFormat {
                     return false;
                 }
             }
-        }
-
-        @Override
-        public LongWritable getCurrentKey() throws IOException, InterruptedException {
-            return currentKey;
-        }
-
-        @Override
-        public Text getCurrentValue() throws IOException, InterruptedException {
-            return currentValue;
-        }
-
-        @Override
-        public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
-        }
-
-        @Override
-        public boolean nextKeyValue() throws IOException, InterruptedException {
-            currentKey = new LongWritable();
-            currentValue = new Text();
-            return next(currentKey, currentValue);
         }
     }
 }
