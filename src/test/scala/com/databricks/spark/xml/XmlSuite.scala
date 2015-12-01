@@ -104,6 +104,20 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
   }
 
+  test("DDL test with alias name") {
+    assume(org.apache.spark.SPARK_VERSION.take(3) >= "1.5",
+      "Datasource alias feature was added in Spark 1.5")
+
+    sqlContext.sql(
+      s"""
+         |CREATE TEMPORARY TABLE carsTable
+         |USING com.databricks.spark.xml
+         |OPTIONS (path "$carsFile", rootTag "$carsFileTag")
+      """.stripMargin.replaceAll("\n", " "))
+
+    assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
+  }
+
 //   TODO: We need to support mode
 //  test("DSL test for DROPMALFORMED parsing mode") {
 //    val results = new XmlReader()
