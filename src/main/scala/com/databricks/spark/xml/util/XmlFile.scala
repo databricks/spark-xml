@@ -17,12 +17,11 @@
 package com.databricks.spark.xml.util
 
 import java.nio.charset.Charset
-
+import com.databricks.hadoop.mapred.XmlInputFormat
 import org.apache.hadoop.io.{Text, LongWritable}
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import com.databricks.hadoop.mapred.lib.input.XmlInputFormat
 
 private[xml] object XmlFile {
   val DEFAULT_CHARSET = Charset.forName("UTF-8")

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.databricks.hadoop.mapred.lib.input;
+package com.databricks.hadoop.mapred;
 
 import java.io.IOException;
 
@@ -96,31 +96,6 @@ public class XmlInputFormat extends TextInputFormat {
             return false;
         }
 
-        @Override
-        public LongWritable createKey() {
-            return new LongWritable();
-        }
-
-        @Override
-        public Text createValue() {
-            return new Text();
-        }
-
-        @Override
-        public long getPos() throws IOException {
-            return 0;
-        }
-
-        @Override
-        public void close() throws IOException {
-            Closeables.close(fsin, true);
-        }
-
-        @Override
-        public float getProgress() throws IOException {
-            return (fsin.getPos() - start) / (float) (end - start);
-        }
-
         private boolean readUntilMatch(byte[] match, boolean withinBlock) throws IOException {
             int i = 0;
             while (true) {
@@ -156,6 +131,31 @@ public class XmlInputFormat extends TextInputFormat {
                     return false;
                 }
             }
+        }
+
+        @Override
+        public LongWritable createKey() {
+            return new LongWritable();
+        }
+
+        @Override
+        public Text createValue() {
+            return new Text();
+        }
+
+        @Override
+        public long getPos() throws IOException {
+            return fsin.getPos();
+        }
+
+        @Override
+        public void close() throws IOException {
+            Closeables.close(fsin, true);
+        }
+
+        @Override
+        public float getProgress() throws IOException {
+            return (fsin.getPos() - start) / (float) (end - start);
         }
     }
 }
