@@ -16,6 +16,7 @@
  */
 package com.databricks.spark.xml;
 
+import java.io.File;
 import java.util.HashMap;
 
 import org.junit.After;
@@ -28,10 +29,12 @@ import org.apache.spark.sql.*;
 
 public class JavaXmlSuite {
     private transient SQLContext sqlContext;
-    private int numCars = 12;
+    private int numBooks = 12;
 
     String booksFile = "src/test/resources/books.xml";
     String booksFileTag = "book";
+
+    private String tempDir = "target/test/xmlData/";
 
     @Before
     public void setUp() {
@@ -46,19 +49,30 @@ public class JavaXmlSuite {
 
     @Test
     public void testXmlParser() {
-        DataFrame df = (new XmlReader()).withRootTag(booksFileTag).xmlFile(sqlContext, booksFile);
+        DataFrame df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(sqlContext, booksFile);
         int result = df.select("id").collect().length;
-        Assert.assertEquals(result, numCars);
+        Assert.assertEquals(result, numBooks);
     }
 
     @Test
     public void testLoad() {
         HashMap<String, String> options = new HashMap<String, String>();
-        options.put("rootTag", booksFileTag);
+        options.put("rowTag", booksFileTag);
         options.put("path", booksFile);
 
         DataFrame df = sqlContext.load("com.databricks.spark.xml", options);
         int result = df.select("description").collect().length;
-        Assert.assertEquals(result, numCars);
+        Assert.assertEquals(result, numBooks);
+    }
+
+    @Test
+    public void testSave() {
+        DataFrame df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(sqlContext, booksFile);
+        TestUtils.deleteRecursively(new File(tempDir));
+        df.select("price", "description").save(tempDir, "com.databricks.spark.xml");
+
+        DataFrame newDf = (new XmlReader()).xmlFile(sqlContext, tempDir);
+        int result = newDf.select("price").collect().length;
+        Assert.assertEquals(result, numBooks);
     }
 }

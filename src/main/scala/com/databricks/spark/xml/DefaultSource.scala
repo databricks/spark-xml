@@ -21,7 +21,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
-import com.databricks.spark.xml.util.XmlFile
+import com.databricks.spark.xml.util.{ParseModes, XmlFile}
 
 /**
  * Provides access to XML data from pure SQL statements (i.e. for users of the
@@ -59,12 +59,9 @@ class DefaultSource
 
     val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
 
-    val parseMode = parameters.getOrElse("mode", "PERMISSIVE")
+    val parseMode = parameters.getOrElse("mode", ParseModes.DEFAULT)
 
-    val rootTag = parameters.getOrElse("rootTag", "").trim
-    if (rootTag == "") {
-      throw new Exception("root tag must be given.")
-    }
+    val rowTag = parameters.getOrElse("rowTag", XmlFile.DEFAULT_ROW_TAG)
 
     val excludeAttribute = parameters.getOrElse("excludeAttribute", "false")
     val excludeAttributeFlag = if (excludeAttribute == "false") {
@@ -85,7 +82,7 @@ class DefaultSource
     }
 
     XmlRelation(
-      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rootTag),
+      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
       Some(path),
       parseMode,
       samplingRatio,

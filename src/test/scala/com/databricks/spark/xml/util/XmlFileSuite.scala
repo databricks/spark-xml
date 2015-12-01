@@ -45,13 +45,13 @@ class XmlFileSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("read utf-8 encoded file") {
-    val baseRDD = XmlFile.withCharset(sparkContext, booksFile, utf8, rootTag = booksFileTag)
+    val baseRDD = XmlFile.withCharset(sparkContext, booksFile, utf8, rowTag = booksFileTag)
     assert(baseRDD.count() === numBooks)
   }
 
   test("unsupported charset") {
     val exception = intercept[UnsupportedCharsetException] {
-      XmlFile.withCharset(sparkContext, booksFile, "frylock", rootTag = booksFileTag).count()
+      XmlFile.withCharset(sparkContext, booksFile, "frylock", rowTag = booksFileTag).count()
     }
     assert(exception.getMessage.contains("frylock"))
   }

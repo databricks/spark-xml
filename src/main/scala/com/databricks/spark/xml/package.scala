@@ -16,10 +16,18 @@
  */
 package com.databricks.spark
 
-import org.apache.hadoop.io.compress.CompressionCodec
+import java.io.StringWriter
+import javax.xml.stream.XMLOutputFactory
 
-import org.apache.spark.sql.{DataFrame, SQLContext}
+import com.sun.xml.txw2.output.IndentingXMLStreamWriter
+import org.apache.hadoop.io.compress.CompressionCodec
+import org.apache.spark.sql.types._
+
+import org.apache.spark.sql.{Row, DataFrame, SQLContext}
+import com.databricks.spark.xml.parsers.stax.StaxXmlGenerator
 import com.databricks.spark.xml.util.XmlFile
+
+import scala.collection.Map
 
 package object xml {
   /**
@@ -29,15 +37,14 @@ package object xml {
     def xmlFile(
                  filePath: String,
                  mode: String = "PERMISSIVE",
-                 rootTag: String,
+                 rowTag: String,
                  samplingRatio: Double = 1.0,
                  excludeAttributeFlag: Boolean = false,
                  treatEmptyValuesAsNulls: Boolean = false,
-                 charset: String = XmlFile.DEFAULT_CHARSET.name()
-                 ): DataFrame = {
+                 charset: String = XmlFile.DEFAULT_CHARSET.name()): DataFrame = {
 
       val xmlRelation = XmlRelation(
-        () => XmlFile.withCharset(sqlContext.sparkContext, filePath, charset, rootTag),
+        () => XmlFile.withCharset(sqlContext.sparkContext, filePath, charset, rowTag),
         location = Some(filePath),
         parseMode = mode,
         samplingRatio = samplingRatio,
@@ -48,11 +55,59 @@ package object xml {
   }
 
   implicit class XmlSchemaRDD(dataFrame: DataFrame) {
-
-    // TODO: XML write also should be supported.
     def saveAsXmlFile(path: String, parameters: Map[String, String] = Map(),
                       compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
-      throw new UnsupportedOperationException("Writing XML is currently not supported.")
+      val nullValue = parameters.getOrElse("nullValue", "null")
+      val rootTag = parameters.getOrElse("rootTag", XmlFile.DEFAULT_ROOT_TAG)
+      val rowTag = parameters.getOrElse("rowTag", XmlFile.DEFAULT_ROW_TAG)
+      val startElement = s"<$rootTag>"
+      val endElement = s"</$rootTag>"
+      val rowSchema = dataFrame.schema
+      val indent = XmlFile.DEFAULT_INDENT
+
+      val xmlRDD = dataFrame.rdd.mapPartitions { iter =>
+        val factory = XMLOutputFactory.newInstance()
+
+        new Iterator[String] {
+          var headingTag: Boolean = true
+          var trailingTag: Boolean = true
+          override def hasNext: Boolean = iter.hasNext || headingTag || trailingTag
+
+          override def next: String = {
+            if (iter.nonEmpty) {
+              val writer = new StringWriter()
+              val xmlWriter = factory.createXMLStreamWriter(writer)
+              val indentingXmlWriter = new IndentingXMLStreamWriter(xmlWriter)
+              indentingXmlWriter.setIndentStep(indent)
+              val xml = {
+                StaxXmlGenerator(
+                  rowSchema,
+                  rowTag,
+                  indentingXmlWriter,
+                  nullValue)(iter.next())
+
+                // Manually put indent for the start and end element
+                writer.toString.replaceAll("\n", s"\n$indent")
+              }
+
+              if (headingTag) {
+                headingTag = false
+                s"$startElement\n$indent$xml"
+              } else {
+                s"$indent$xml"
+              }
+            } else {
+              trailingTag = false
+              s"$endElement"
+            }
+          }
+        }
+      }
+
+      compressionCodec match {
+        case null => xmlRDD.saveAsTextFile(path)
+        case codec => xmlRDD.saveAsTextFile(path, codec)
+      }
     }
   }
 }

@@ -29,7 +29,7 @@ class XmlReader extends Serializable {
 
   private var charset: String = XmlFile.DEFAULT_CHARSET.name()
   private var parseMode: String = ParseModes.DEFAULT
-  private var rootTag: String = null
+  private var rowTag: String = XmlFile.DEFAULT_ROW_TAG
   private var samplingRatio: Double = 1.0
   private var excludeAttributeFlag: Boolean = false
   private var treatEmptyValuesAsNulls: Boolean = false
@@ -45,8 +45,8 @@ class XmlReader extends Serializable {
     this
   }
 
-  def withRootTag(rootTag: String): XmlReader = {
-    this.rootTag = rootTag
+  def withRowTag(rowTag: String): XmlReader = {
+    this.rowTag = rowTag
     this
   }
 
@@ -74,7 +74,7 @@ class XmlReader extends Serializable {
   @throws[RuntimeException]
   def xmlFile(sqlContext: SQLContext, path: String): DataFrame = {
     val relation: XmlRelation = XmlRelation(
-      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rootTag),
+      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
       Some(path),
       parseMode,
       samplingRatio,
