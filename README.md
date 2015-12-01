@@ -103,7 +103,7 @@ df.select("author", "id").collect().foreach(println)
 
 You can manually specify the schema when reading data:
 ```scala
-import of.SQLContext
+import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.types.{StructType, StructField, StringType, IntegerType};
 
 val sqlContext = new SQLContext(sc)
