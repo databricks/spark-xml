@@ -227,8 +227,8 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     new File(tempEmptyDir).mkdirs()
     val copyFilePath = tempEmptyDir + "data-copy.xml"
 
-    val schema = StructType(List(
-      StructField("a", ArrayType(ArrayType(StringType)), nullable = true)))
+    val schema = StructType(
+      List(StructField("a", ArrayType(ArrayType(StringType)), nullable = true)))
     val data = sqlContext.sparkContext.parallelize(
       List(List(List("aa", "bb"), List("aa", "bb")))).map(Row(_))
     val df = sqlContext.createDataFrame(data, schema)
@@ -237,11 +237,10 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     // When [[ArrayType]] has [[ArrayType]] as elements, it is confusing what is the element
     // name for XML file. Now, it is "item". So, "item" field is additionally added
     // to wrap the element.
-    val schemaCopy = StructType(List(
-      StructField("a", ArrayType(
-        StructType(List(
-          StructField("item", ArrayType(StringType), nullable = true)
-        ))), nullable = true)))
+    val schemaCopy = StructType(
+      List(StructField("a", ArrayType(
+        StructType(List(StructField("item", ArrayType(StringType), nullable = true)))),
+        nullable = true)))
     val dfCopy = sqlContext.xmlFile(copyFilePath + "/")
 
     assert(dfCopy.count == df.count)
