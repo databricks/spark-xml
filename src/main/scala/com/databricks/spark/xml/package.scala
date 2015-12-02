@@ -36,7 +36,7 @@ package object xml {
     def xmlFile(
                  filePath: String,
                  mode: String = "PERMISSIVE",
-                 rowTag: String,
+                 rowTag: String = XmlFile.DEFAULT_ROW_TAG,
                  samplingRatio: Double = 1.0,
                  excludeAttributeFlag: Boolean = false,
                  treatEmptyValuesAsNulls: Boolean = false,

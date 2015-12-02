@@ -57,6 +57,18 @@ private[xml] object StaxXmlGenerator {
           writer.writeEndElement()
         }
 
+      // For the case roundtrip in reading and writing XML files, [[ArrayType]] cannot have
+      // [[ArrayType]] as element type. It always wraps the element with [[StructType]]. So,
+      // This case only can happen when we convert a normal [[Dataframe]] to XML file.
+      // When [[ArrayType]] has [[ArrayType]] as elements, it is confusing what is element name
+      // for XML file. Now, it is "item" but this might have to be according the parent field name.
+      case (ArrayType(ty, _), v: Seq[_]) =>
+        v.foreach { p =>
+          writer.writeStartElement("item")
+          writeElement(ty, p)
+          writer.writeEndElement()
+        }
+
       case (StructType(ty), v: Row) =>
         ty.zip(v.toSeq).foreach {
           case (_, null) =>

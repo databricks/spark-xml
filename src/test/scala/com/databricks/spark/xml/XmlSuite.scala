@@ -22,7 +22,7 @@ import java.nio.charset.UnsupportedCharsetException
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.sql.types._
 
 abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
@@ -219,6 +219,33 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
     assert(booksCopy.count == books.count)
     assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+  }
+
+  test("DSL save dataframe not read from a XML file") {
+    // Create temp directory
+    TestUtils.deleteRecursively(new File(tempEmptyDir))
+    new File(tempEmptyDir).mkdirs()
+    val copyFilePath = tempEmptyDir + "data-copy.xml"
+
+    val schema = StructType(List(
+      StructField("a", ArrayType(ArrayType(StringType)), nullable = true)))
+    val data = sqlContext.sparkContext.parallelize(
+      List(List(List("aa", "bb"), List("aa", "bb")))).map(Row(_))
+    val df = sqlContext.createDataFrame(data, schema)
+    df.saveAsXmlFile(copyFilePath)
+
+    // When [[ArrayType]] has [[ArrayType]] as elements, it is confusing what is the element
+    // name for XML file. Now, it is "item". So, "item" field is additionally added
+    // to wrap the element.
+    val schemaCopy = StructType(List(
+      StructField("a", ArrayType(
+        StructType(List(
+          StructField("item", ArrayType(StringType), nullable = true)
+        ))), nullable = true)))
+    val dfCopy = sqlContext.xmlFile(copyFilePath + "/")
+
+    assert(dfCopy.count == df.count)
+    assert(dfCopy.schema === schemaCopy)
   }
 
   test("DSL test schema inferred correctly") {
