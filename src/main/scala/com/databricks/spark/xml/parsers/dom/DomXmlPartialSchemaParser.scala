@@ -51,7 +51,7 @@ private[xml] object DomXmlPartialSchemaParser {
         val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
 
         // It does not have to skip for white space, since [[XmlInputFormat]]
-        // always finds the record tag without a heading space.
+        // always finds the row tag without a heading space.
         val childNode = builder.parse(new ByteArrayInputStream(xml.getBytes))
           .getChildNodes.item(0)
         val conf = DomConfiguration(excludeAttributeFlag, treatEmptyValuesAsNulls)

@@ -240,7 +240,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     val schemaCopy = StructType(
       List(StructField("a", ArrayType(
         StructType(List(StructField("item", ArrayType(StringType), nullable = true)))),
-        nullable = true)))
+          nullable = true)))
     val dfCopy = sqlContext.xmlFile(copyFilePath + "/")
 
     assert(dfCopy.count == df.count)
