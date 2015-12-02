@@ -27,8 +27,9 @@ private[xml] object StaxXmlGenerator {
   /** Transforms a single Row to XML
     *
     * @param rowSchema the schema object used for conversion
-    * @param writer a XML writer object
     * @param row The row to convert
+    * @param writer a XML writer object
+    * @param nullValue replacement for null.
     */
   def apply(rowSchema: StructType,
             tag: String,

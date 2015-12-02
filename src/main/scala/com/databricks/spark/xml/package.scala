@@ -16,7 +16,7 @@
  */
 package com.databricks.spark
 
-import java.io.{CharArrayWriter, StringWriter}
+import java.io.CharArrayWriter
 import javax.xml.stream.XMLOutputFactory
 
 import scala.collection.Map
@@ -30,7 +30,7 @@ import com.databricks.spark.xml.util.XmlFile
 
 package object xml {
   /**
-   * Adds a method, `xmlFile`, to SQLContext that allows reading XML data.
+   * Adds a method, `xmlFile`, to [[SQLContext]] that allows reading XML data.
    */
   implicit class XmlContext(sqlContext: SQLContext) extends Serializable {
     def xmlFile(
@@ -53,7 +53,24 @@ package object xml {
     }
   }
 
+  /**
+   * Adds a method, `saveAsXmlFile`, to [[DataFrame]] that allows writing XML data.
+   */
   implicit class XmlSchemaRDD(dataFrame: DataFrame) {
+    // Note that writing a XML file from [[DataFrame]] having a field [[ArrayType]] with
+    // its element as [[ArrayType]] would have an additional nested field for the element.
+    // For example, the [[DataFrame]] having a field below,
+    //
+    //   fieldA [[data1, data2]]
+    //
+    // would produce a XML file below.
+    //
+    //   <fieldA>
+    //       <item>data1</item>
+    //       <item>data2</item>
+    //   </fieldA>
+    //
+    // Namely, roundtrip in writing and reading can end up in different schema structure.
     def saveAsXmlFile(path: String, parameters: Map[String, String] = Map(),
                       compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
       val nullValue = parameters.getOrElse("nullValue", "null")
@@ -63,7 +80,7 @@ package object xml {
       val endElement = s"</$rootTag>"
       val rowSchema = dataFrame.schema
       val indent = XmlFile.DEFAULT_INDENT
-      val rowSeparator = XmlFile.DEFAULT_ROW_SEQ
+      val rowSeparator = XmlFile.DEFAULT_ROW_SEPARATOR
 
       val xmlRDD = dataFrame.rdd.mapPartitions { iter =>
         val factory = XMLOutputFactory.newInstance()
