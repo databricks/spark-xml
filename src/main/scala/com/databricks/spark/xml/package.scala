@@ -72,10 +72,10 @@ package object xml {
         indentingXmlWriter.setIndentStep(indent)
 
         new Iterator[String] {
-          var startTag: Boolean = true
-          var endTag: Boolean = true
+          var firstRow: Boolean = true
+          var lastRow: Boolean = true
 
-          override def hasNext: Boolean = iter.hasNext || startTag || endTag
+          override def hasNext: Boolean = iter.hasNext || firstRow || lastRow
 
           override def next: String = {
             if (iter.nonEmpty) {
@@ -92,21 +92,21 @@ package object xml {
               // Here it needs to add indentations for the start of each line,
               // in order to insert the start element and end element.
               val indentedXml = indent + xml.replaceAll("\n", s"\n$indent")
-              if (startTag) {
-                startTag = false
+              if (firstRow) {
+                firstRow = false
                 s"$startElement\n$indentedXml"
               } else {
                 indentedXml
               }
             } else {
               indentingXmlWriter.close()
-              if (!startTag) {
-                endTag = false
+              if (!firstRow) {
+                lastRow = false
                 endElement
               } else {
                 // This means the iterator was initially empty.
-                startTag = false
-                endTag = false
+                firstRow = false
+                lastRow = false
                 ""
               }
             }
