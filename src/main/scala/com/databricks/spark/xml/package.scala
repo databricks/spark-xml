@@ -16,7 +16,7 @@
  */
 package com.databricks.spark
 
-import java.io.StringWriter
+import java.io.{CharArrayWriter, StringWriter}
 import javax.xml.stream.XMLOutputFactory
 
 import scala.collection.Map
@@ -66,38 +66,49 @@ package object xml {
 
       val xmlRDD = dataFrame.rdd.mapPartitions { iter =>
         val factory = XMLOutputFactory.newInstance()
+        val writer = new CharArrayWriter()
+        val xmlWriter = factory.createXMLStreamWriter(writer)
+        val indentingXmlWriter = new IndentingXMLStreamWriter(xmlWriter)
+        indentingXmlWriter.setIndentStep(indent)
 
         new Iterator[String] {
-          var headingTag: Boolean = true
-          var trailingTag: Boolean = true
-          override def hasNext: Boolean = iter.hasNext || headingTag || trailingTag
+          var startTag: Boolean = true
+          var endTag: Boolean = true
+
+          override def hasNext: Boolean = iter.hasNext || startTag || endTag
 
           override def next: String = {
             if (iter.nonEmpty) {
-              val writer = new StringWriter()
-              val xmlWriter = factory.createXMLStreamWriter(writer)
-              val indentingXmlWriter = new IndentingXMLStreamWriter(xmlWriter)
-              indentingXmlWriter.setIndentStep(indent)
               val xml = {
                 StaxXmlGenerator(
                   rowSchema,
                   rowTag,
                   indentingXmlWriter,
                   nullValue)(iter.next())
-
-                // Manually put indent for the start and end element
-                writer.toString.replaceAll("\n", s"\n$indent")
+                writer.toString
               }
+              writer.reset()
 
-              if (headingTag) {
-                headingTag = false
-                s"$startElement\n$indent$xml"
+              // Here it needs to add indentations for the start of each line,
+              // in order to insert the start element and end element.
+              val indentedXml = indent + xml.replaceAll("\n", s"\n$indent")
+              if (startTag) {
+                startTag = false
+                s"$startElement\n$indentedXml"
               } else {
-                s"$indent$xml"
+                indentedXml
               }
             } else {
-              trailingTag = false
-              s"$endElement"
+              indentingXmlWriter.close()
+              if (!startTag) {
+                endTag = false
+                endElement
+              } else {
+                // This means the iterator was initially empty.
+                startTag = false
+                endTag = false
+                ""
+              }
             }
           }
         }
