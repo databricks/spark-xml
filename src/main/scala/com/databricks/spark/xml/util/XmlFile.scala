@@ -29,6 +29,7 @@ private[xml] object XmlFile {
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_INDENT = "    "
   val DEFAULT_CHARSET = Charset.forName("UTF-8")
+  val DEFAULT_ROW_SEQ = "\n"
 
   def withCharset(context: SparkContext, location: String,
                   charset: String,

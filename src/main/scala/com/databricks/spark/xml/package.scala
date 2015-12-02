@@ -63,6 +63,7 @@ package object xml {
       val endElement = s"</$rootTag>"
       val rowSchema = dataFrame.schema
       val indent = XmlFile.DEFAULT_INDENT
+      val rowSeparator = XmlFile.DEFAULT_ROW_SEQ
 
       val xmlRDD = dataFrame.rdd.mapPartitions { iter =>
         val factory = XMLOutputFactory.newInstance()
@@ -91,10 +92,10 @@ package object xml {
 
               // Here it needs to add indentations for the start of each line,
               // in order to insert the start element and end element.
-              val indentedXml = indent + xml.replaceAll("\n", s"\n$indent")
+              val indentedXml = indent + xml.replaceAll(rowSeparator, rowSeparator + indent)
               if (firstRow) {
                 firstRow = false
-                s"$startElement\n$indentedXml"
+                startElement + rowSeparator + indentedXml
               } else {
                 indentedXml
               }
