@@ -111,7 +111,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     sqlContext.sql(
       s"""
          |CREATE TEMPORARY TABLE carsTable
-         |USING com.databricks.spark.xml
+         |USING xml
          |OPTIONS (path "$carsFile", rootTag "$carsFileTag")
       """.stripMargin.replaceAll("\n", " "))
 
