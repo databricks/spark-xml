@@ -75,7 +75,7 @@ class TypeCastSuite extends FunSuite {
     assert(exception.getMessage.contains("For input string: \"\""))
   }
 
-  test("Types are casted correctly") {
+  test("Types are cast correctly") {
     assert(TypeCast.castTo("10", ByteType) == 10)
     assert(TypeCast.castTo("10", ShortType) == 10)
     assert(TypeCast.castTo("10", IntegerType) == 10)
@@ -88,7 +88,7 @@ class TypeCastSuite extends FunSuite {
     assert(TypeCast.castTo("2015-01-01", DateType) == Date.valueOf("2015-01-01"))
   }
 
-  test("Types with sign are casted correctly") {
+  test("Types with sign are cast correctly") {
     assert(TypeCast.signSafeToInt("+10") == 10)
     assert(TypeCast.signSafeToLong("-10") == -10)
     assert(TypeCast.signSafeToFloat("1.00") == 1.0)
