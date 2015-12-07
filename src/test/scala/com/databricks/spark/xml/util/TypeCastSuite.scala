@@ -75,7 +75,7 @@ class TypeCastSuite extends FunSuite {
     assert(exception.getMessage.contains("For input string: \"\""))
   }
 
-  test("Types are cast correctly") {
+  test("Types are casted correctly") {
     assert(TypeCast.castTo("10", ByteType) == 10)
     assert(TypeCast.castTo("10", ShortType) == 10)
     assert(TypeCast.castTo("10", IntegerType) == 10)
@@ -86,6 +86,19 @@ class TypeCastSuite extends FunSuite {
     val timestamp = "2015-01-01 00:00:00"
     assert(TypeCast.castTo(timestamp, TimestampType) == Timestamp.valueOf(timestamp))
     assert(TypeCast.castTo("2015-01-01", DateType) == Date.valueOf("2015-01-01"))
+  }
+
+  test("Types with sign are casted correctly") {
+    assert(TypeCast.signSafeToInt("+10") == 10)
+    assert(TypeCast.signSafeToLong("-10") == -10)
+    assert(TypeCast.signSafeToFloat("1.00") == 1.0)
+    assert(TypeCast.signSafeToDouble("-1.00") == -1.0)
+  }
+
+  test("Types with sign are checked correctly") {
+    assert(TypeCast.isBoolean("true"))
+    assert(TypeCast.isLong("10"))
+    assert(TypeCast.isDouble("+10.1"))
   }
 
   test("Float and Double Types are cast correctly with Locale") {
