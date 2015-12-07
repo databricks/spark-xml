@@ -27,8 +27,10 @@ matrix:
       scala: 2.11.7
       env: TEST_SPARK_VERSION="1.5.0"
 script:
-  - sbt -Dspark.testVersion=$TEST_SPARK_VERSION ++$TRAVIS_SCALA_VERSION test
+  - sbt -Dspark.testVersion=$TEST_SPARK_VERSION ++$TRAVIS_SCALA_VERSION coverage test
   - sbt ++$TRAVIS_SCALA_VERSION assembly
   - sbt ++$TRAVIS_SCALA_VERSION scalastyle
   - sbt ++$TRAVIS_SCALA_VERSION "test:scalastyle"
   #- sbt ++$TRAVIS_SCALA_VERSION mima-report-binary-issues
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
