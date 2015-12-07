@@ -2,11 +2,11 @@ name := "spark-xml"
 
 version := "0.1.2"
 
-organization := "HyukjinKwon"
+organization := "com.databricks"
 
 scalaVersion := "2.11.7"
 
-spName := "HyukjinKwon/spark-xml"
+spName := "databricks/spark-xml"
 
 crossScalaVersions := Seq("2.10.5", "2.11.7")
 
@@ -46,7 +46,7 @@ spAppendScalaVersion := true
 spIncludeMaven := true
 
 pomExtra := (
-  <url>https://github.com/HyukjinKwon/spark-xml</url>
+  <url>https://github.com/databricks/spark-xml</url>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
@@ -55,8 +55,8 @@ pomExtra := (
     </license>
   </licenses>
   <scm>
-    <url>git@github.com:HyukjinKwon/spark-xml.git</url>
-    <connection>scm:git:git@github.com:HyukjinKwon/spark-xml.git</connection>
+    <url>git@github.com:databricks/spark-xml.git</url>
+    <connection>scm:git:git@github.com:databricks/spark-xml.git</connection>
   </scm>
   <developers>
     <developer>
