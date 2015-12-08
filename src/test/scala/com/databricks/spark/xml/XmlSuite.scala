@@ -120,7 +120,6 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
   }
 
-
   test("DSL test for parsing a malformed XML file") {
     val results = new XmlReader()
       .withFailFast(false)
