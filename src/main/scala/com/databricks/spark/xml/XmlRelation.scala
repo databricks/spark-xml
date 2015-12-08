@@ -22,29 +22,26 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.sources.{BaseRelation, TableScan}
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.parsers.dom._
-import com.databricks.spark.xml.util.{InferSchema, ParseModes}
+import com.databricks.spark.xml.util.InferSchema
 
 case class XmlRelation protected[spark] (
     baseRDD: () => RDD[String],
     location: Option[String],
-    parseMode: String,
     samplingRatio: Double,
     excludeAttributeFlag: Boolean,
     treatEmptyValuesAsNulls: Boolean,
+    failFastFlag: Boolean,
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
   extends BaseRelation
   with TableScan {
 
   private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
-  // Parse mode flags
-  if (!ParseModes.isValidMode(parseMode)) {
-    logger.warn(s"$parseMode is not a valid parse mode. Using ${ParseModes.DEFAULT}.")
-  }
-
-  private val failFast = ParseModes.isFailFastMode(parseMode)
-  private val dropMalformed = ParseModes.isDropMalformedMode(parseMode)
-  private val permissive = ParseModes.isPermissiveMode(parseMode)
+  private val parseConf = DomConfiguration(
+    excludeAttributeFlag,
+    treatEmptyValuesAsNulls,
+    failFastFlag
+  )
 
   override val schema: StructType = {
     Option(userSchema).getOrElse {
@@ -52,9 +49,7 @@ case class XmlRelation protected[spark] (
         DomXmlPartialSchemaParser(
           baseRDD(),
           samplingRatio,
-          parseMode,
-          excludeAttributeFlag,
-          treatEmptyValuesAsNulls))
+          parseConf))
     }
   }
 
@@ -62,8 +57,6 @@ case class XmlRelation protected[spark] (
     DomXmlParser(
       baseRDD(),
       schema,
-      parseMode,
-      excludeAttributeFlag,
-      treatEmptyValuesAsNulls)
+      parseConf)
   }
 }

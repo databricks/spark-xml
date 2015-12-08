@@ -19,7 +19,7 @@ import java.nio.charset.UnsupportedCharsetException
 
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkException, SparkContext}
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.types._
 
@@ -47,6 +47,9 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
   val carsUnbalancedFile = "src/test/resources/cars-unbalanced-elements.xml"
   val carsUnbalancedFileTag = "ROW"
+
+  val carsMalformedFile = "src/test/resources/cars-malformed.xml"
+  val carsMalformedFileTag = "ROW"
 
   val nullNumbersFile = "src/test/resources/null-numbers.xml"
   val nullNumbersFileTag = "ROW"
@@ -117,35 +120,47 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
   }
 
-//   TODO: We need to support mode
-//  test("DSL test for DROPMALFORMED parsing mode") {
-//    val results = new XmlReader()
-//      .withParseMode(ParseModes.DROP_MALFORMED_MODE)
-//      .withUseHeader(true)
-//      .withParserLib(parserLib)
-//      .xmlFile(sqlContext, carsFile)
-//      .select("year")
-//      .collect()
-//
-//    assert(results.size === numCars - 1)
-//  }
 
-  // TODO: We need to support mode
-//  test("DSL test for FAILFAST parsing mode") {
-//    val parser = new XmlReader()
-//      .withParseMode(ParseModes.FAIL_FAST_MODE)
-//      .withUseHeader(true)
-//      .withParserLib(parserLib)
-//
-//    val exception = intercept[SparkException]{
-//      parser.xmlFile(sqlContext, carsFile)
-//        .select("year")
-//        .collect()
-//    }
-//
-//    assert(exception.getMessage.contains("Malformed line in FAILFAST mode: 2015,Chevy,Volt"))
-//  }
+  test("DSL test for parsing a malformed XML file") {
+    val results = new XmlReader()
+      .withFailFast(false)
+      .withRootTag(carsMalformedFileTag)
+      .xmlFile(sqlContext, carsMalformedFile)
+      .count()
 
+    assert(results === 1)
+  }
+
+  test("DSL test for failing fast") {
+    // Inferring schema
+    val exceptionInSchema = intercept[SparkException]{
+      new XmlReader()
+        .withFailFast(true)
+        .withRootTag(carsMalformedFileTag)
+        .xmlFile(sqlContext, carsMalformedFile)
+        .printSchema()
+    }
+    assert(exceptionInSchema.getMessage.contains("Malformed row (failing fast)"))
+
+    // Parsing the actual content
+    val schema = new StructType(
+      Array(
+        StructField("year", LongType, true),
+        StructField("make", StringType, true),
+        StructField("model", StringType, true),
+        StructField("comment", StringType, true)
+      )
+    )
+    val exceptionInContent = intercept[SparkException]{
+      new XmlReader()
+        .withFailFast(true)
+        .withSchema(schema)
+        .withRootTag(carsMalformedFileTag)
+        .xmlFile(sqlContext, carsMalformedFile)
+        .count()
+    }
+    assert(exceptionInContent.getMessage.contains("Malformed row (failing fast)"))
+  }
 
   test("DSL test with empty file and known schema") {
     val results = new XmlReader()

@@ -20,7 +20,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
-import com.databricks.spark.xml.util.XmlFile
+import com.databricks.spark.xml.util.{TypeCast, XmlFile}
 
 /**
  * Provides access to XML data from pure SQL statements (i.e. for users of the
@@ -51,6 +51,15 @@ class DefaultSource
       sqlContext: SQLContext,
       parameters: Map[String, String],
       schema: StructType): XmlRelation = {
+    def checkedCastToBoolean(value: String, name: String): Boolean = {
+      if (TypeCast.isBoolean(value)) {
+        value.toBoolean
+      }
+      else {
+        throw new Exception(s"$name can be only true or false")
+      }
+    }
+
     val path = checkPath(parameters)
 
     val charset = parameters.getOrElse("charset", XmlFile.DEFAULT_CHARSET.name())
@@ -58,38 +67,28 @@ class DefaultSource
 
     val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
 
-    val parseMode = parameters.getOrElse("mode", "PERMISSIVE")
-
     val rootTag = parameters.getOrElse("rootTag", "").trim
     if (rootTag == "") {
       throw new Exception("root tag must be given.")
     }
 
+    val failFast = parameters.getOrElse("failFast", "false")
+    val failFastFlag = checkedCastToBoolean(failFast, "failFast")
+
     val excludeAttribute = parameters.getOrElse("excludeAttribute", "false")
-    val excludeAttributeFlag = if (excludeAttribute == "false") {
-      false
-    } else if (excludeAttribute == "true") {
-      true
-    } else {
-      throw new Exception("Include attribute flag can be true or false")
-    }
+    val excludeAttributeFlag = checkedCastToBoolean(excludeAttribute, "excludeAttribute")
 
     val treatEmptyValuesAsNulls = parameters.getOrElse("treatEmptyValuesAsNulls", "false")
-    val treatEmptyValuesAsNullsFlag = if (treatEmptyValuesAsNulls == "false") {
-      false
-    } else if (treatEmptyValuesAsNulls == "true") {
-      true
-    } else {
-      throw new Exception("Treat empty values as null flag can be true or false")
-    }
+    val treatEmptyValuesAsNullsFlag =
+      checkedCastToBoolean(treatEmptyValuesAsNulls, "treatEmptyValuesAsNulls")
 
     XmlRelation(
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rootTag),
       Some(path),
-      parseMode,
       samplingRatio,
       excludeAttributeFlag,
       treatEmptyValuesAsNullsFlag,
+      failFastFlag,
       schema)(sqlContext)
   }
 

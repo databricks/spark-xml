@@ -20,24 +20,29 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 import scala.collection.mutable.ArrayBuffer
 
+import org.xml.sax.SAXException
+import org.slf4j.LoggerFactory
 import org.w3c.dom.Node
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.TypeCast._
+import com.databricks.spark.xml.parsers.dom.DomXmlParser._
 
 /**
  *  Configuration used during parsing.
  */
-private[parsers] case class DomConfiguration(excludeAttributeFlag: Boolean = false,
-                            treatEmptyValuesAsNulls: Boolean = false)
+private[xml] case class DomConfiguration(excludeAttributeFlag: Boolean = false,
+                                         treatEmptyValuesAsNulls: Boolean = false,
+                                         failFastFlag: Boolean = false)
 
 private[xml] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfiguration())
     extends Iterable[Node] {
-  import com.databricks.spark.xml.parsers.dom.DomXmlParser._
+
   lazy val nodes = readChildNodes
   var index: Int = 0
+
   override def iterator: Iterator[Node] = nodes.iterator
   override def isEmpty: Boolean = nodes.isEmpty
 
@@ -133,10 +138,11 @@ private[xml] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfigura
  */
 private[xml] object DomXmlParser {
 
+  private val logger = LoggerFactory.getLogger(DomXmlParser.getClass)
+
   /**
    * This defines the possible types for XML.
    */
-
   val FAIL: Int = -1
   val NULL: Int = 1
   val BOOLEAN: Int = 2
@@ -148,23 +154,32 @@ private[xml] object DomXmlParser {
 
   def apply(xml: RDD[String],
             schema: StructType,
-            parseMode: String,
-            excludeAttributeFlag: Boolean,
-            treatEmptyValuesAsNulls: Boolean): RDD[Row] = {
+            conf: DomConfiguration): RDD[Row] = {
+    val failFast = conf.failFastFlag
+
     xml.mapPartitions { iter =>
       iter.flatMap { xml =>
-        val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
-
         // It does not have to skip for white space, since [[XmlInputFormat]]
         // always finds the root tag without a heading space.
-        val childNode = builder.parse(new ByteArrayInputStream(xml.getBytes))
-          .getChildNodes.item(0)
-        val conf = DomConfiguration(excludeAttributeFlag, treatEmptyValuesAsNulls)
-        val parser = new DomXmlParser(childNode, conf)
-        if (parser.isEmpty) {
-          None
-        } else {
+        val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+
+        // We treats the exception explicitly below. So turn off the error handler.
+        builder.setErrorHandler(null)
+        try{
+          val childNode = builder.parse(new ByteArrayInputStream(xml.getBytes))
+            .getChildNodes.item(0)
+          val parser = new DomXmlParser(childNode, conf)
+          if (parser.isEmpty) {
+            None
+          }
           Some(convertObject(parser, schema))
+        } catch {
+          // Java library DOMParser throws SAXException when it fails.
+          case se: SAXException if !failFast =>
+            logger.warn(s"Dropping malformed row: ${xml.replaceAll("\n", "")}")
+            None
+          case se: SAXException if failFast =>
+            throw new RuntimeException(s"Malformed row (failing fast): ${xml.replaceAll("\n", "")}")
         }
       }
     }

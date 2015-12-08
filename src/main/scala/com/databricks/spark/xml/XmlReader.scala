@@ -18,7 +18,7 @@ package com.databricks.spark.xml
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.sql.types.StructType
-import com.databricks.spark.xml.util.{ParseModes, XmlFile}
+import com.databricks.spark.xml.util.XmlFile
 
 
 /**
@@ -27,20 +27,15 @@ import com.databricks.spark.xml.util.{ParseModes, XmlFile}
 class XmlReader extends Serializable {
 
   private var charset: String = XmlFile.DEFAULT_CHARSET.name()
-  private var parseMode: String = ParseModes.DEFAULT
   private var rootTag: String = null
   private var samplingRatio: Double = 1.0
   private var excludeAttributeFlag: Boolean = false
   private var treatEmptyValuesAsNulls: Boolean = false
+  private var failFastFlag: Boolean = false
   private var schema: StructType = null
 
   def withCharset(charset: String): XmlReader = {
     this.charset = charset
-    this
-  }
-
-  def withParseMode(mode: String): XmlReader = {
-    this.parseMode = mode
     this
   }
 
@@ -64,6 +59,11 @@ class XmlReader extends Serializable {
     this
   }
 
+  def withFailFast(failFast: Boolean): XmlReader = {
+    this.failFastFlag = failFast
+    this
+  }
+
   def withSchema(schema: StructType): XmlReader = {
     this.schema = schema
     this
@@ -75,10 +75,10 @@ class XmlReader extends Serializable {
     val relation: XmlRelation = XmlRelation(
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rootTag),
       Some(path),
-      parseMode,
       samplingRatio,
       excludeAttributeFlag,
       treatEmptyValuesAsNulls,
+      failFastFlag,
       schema)(sqlContext)
     sqlContext.baseRelationToDataFrame(relation)
   }
@@ -87,10 +87,10 @@ class XmlReader extends Serializable {
     val relation: XmlRelation = XmlRelation(
       () => xmlRDD,
       None,
-      parseMode,
       samplingRatio,
       excludeAttributeFlag,
       treatEmptyValuesAsNulls,
+      failFastFlag,
       schema)(sqlContext)
     sqlContext.baseRelationToDataFrame(relation)
   }
