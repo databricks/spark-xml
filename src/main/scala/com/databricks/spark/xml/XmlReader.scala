@@ -54,7 +54,7 @@ class XmlReader extends Serializable {
     this
   }
 
-  def withIncludeAttributeFlag(exclude: Boolean): XmlReader = {
+  def withExcludeAttributeFlag(exclude: Boolean): XmlReader = {
     this.excludeAttributeFlag = exclude
     this
   }
