@@ -266,7 +266,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test schema (excluding tags) inferred correctly") {
     val results = new XmlReader()
-      .withExcludeAttributeFlag(true)
+      .withExcludeAttribute(true)
       .withRootTag(booksFileTag)
       .xmlFile(sqlContext, booksFile)
 
