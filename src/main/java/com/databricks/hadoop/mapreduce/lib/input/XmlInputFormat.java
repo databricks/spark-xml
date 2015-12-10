@@ -78,7 +78,7 @@ public class XmlInputFormat extends TextInputFormat {
             try {
                 method = context.getClass().getMethod("getConfiguration");
                 conf = (Configuration) method.invoke(context);
-            } catch (ReflectiveOperationException e) {
+            } catch (Exception e) {
                 throw new RuntimeException("Error while getting the configuration for XmlRecordReader.");
             }
             startTag = conf.get(START_TAG_KEY).getBytes(Charsets.UTF_8);
