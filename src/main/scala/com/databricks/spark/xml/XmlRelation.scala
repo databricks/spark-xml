@@ -45,8 +45,8 @@ case class XmlRelation protected[spark] (
 
   override val schema: StructType = {
     Option(userSchema).getOrElse {
-      InferSchema(
-        DomXmlPartialSchemaParser(
+      InferSchema.infer(
+        DomXmlPartialSchemaParser.parse(
           baseRDD(),
           samplingRatio,
           parseConf))
@@ -54,7 +54,7 @@ case class XmlRelation protected[spark] (
   }
 
   override def buildScan: RDD[Row] = {
-    DomXmlParser(
+    DomXmlParser.parse(
       baseRDD(),
       schema,
       parseConf)

@@ -38,7 +38,7 @@ private[xml] object DomXmlPartialSchemaParser {
 
   private val logger = LoggerFactory.getLogger(DomXmlPartialSchemaParser.getClass)
 
-  def apply(xml: RDD[String],
+  def parse(xml: RDD[String],
             samplingRatio: Double,
             conf: DomConfiguration): RDD[DataType] = {
     require(samplingRatio > 0, s"samplingRatio ($samplingRatio) should be greater than 0")
