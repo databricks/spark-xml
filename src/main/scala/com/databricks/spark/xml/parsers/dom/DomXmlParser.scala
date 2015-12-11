@@ -146,7 +146,7 @@ private[xml] object DomXmlParser {
   val OBJECT: Int = 6
   val ARRAY: Int = 7
 
-  def apply(xml: RDD[String],
+  def parse(xml: RDD[String],
             schema: StructType,
             parseMode: String,
             excludeAttributeFlag: Boolean,

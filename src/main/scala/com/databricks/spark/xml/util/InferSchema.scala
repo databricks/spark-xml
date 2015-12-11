@@ -49,7 +49,7 @@ private[xml] object InferSchema {
    *   2. Merge types by choosing the lowest type necessary to cover equal keys
    *   3. Replace any remaining null fields with string, the top type
    */
-  def apply(partialSchema: RDD[DataType]): StructType = {
+  def infer(partialSchema: RDD[DataType]): StructType = {
     // perform schema inference on each row and merge afterwards
     val rootType = partialSchema
       .treeAggregate[DataType](StructType(Seq()))(compatibleRootType, compatibleRootType)

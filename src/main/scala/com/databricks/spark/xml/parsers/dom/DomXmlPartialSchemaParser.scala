@@ -33,7 +33,7 @@ import com.databricks.spark.xml.util.InferSchema
  */
 
 private[xml] object DomXmlPartialSchemaParser {
-  def apply(xml: RDD[String],
+  def parse(xml: RDD[String],
             samplingRatio: Double,
             parseMode: String,
             excludeAttributeFlag: Boolean,
