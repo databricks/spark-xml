@@ -279,7 +279,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test schema inferred correctly with sampling ratio") {
     val results = sqlContext
-      .xmlFile(booksFile, rootTag = booksFileTag, samplingRatio = 0.5)
+      .xmlFile(booksFile, rowTag = booksFileTag, samplingRatio = 0.5)
 
     assert(results.schema == StructType(List(
       StructField("author", StringType, nullable = true),
