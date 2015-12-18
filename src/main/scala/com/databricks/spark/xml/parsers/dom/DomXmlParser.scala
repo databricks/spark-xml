@@ -196,16 +196,16 @@ private[xml] object DomXmlParser {
    */
 
   private[xml] def convertField(node: Node,
-                                schema: DataType,
+                                dataType: DataType,
                                 conf: DomConfiguration ): Any = {
+    val shouldBeNullValue = node.getTextContent == null ||
+      node.getTextContent.size <= 0 && conf.treatEmptyValuesAsNulls
 
-    // TODO: Here we can decide if it treats spaces as null value or not for data
-    if (node.getTextContent == null) {
+    if (shouldBeNullValue) {
       null
-    } else if (node.getTextContent.length <= 0) {
-      null
-    } else {
-      schema match {
+    }
+    else {
+      dataType match {
         case LongType =>
           signSafeToLong(node.getTextContent)
 
@@ -277,8 +277,8 @@ private[xml] object DomXmlParser {
     val row = new Array[Any](schema.length)
     parser.foreach{ node =>
       val field = node.getNodeName
-      schema.map(_.name).zipWithIndex
-        .toMap.get(field) match {
+      val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+      nameToIndex.get(field) match {
         case Some(index) =>
           // For XML, it can contains the same keys.
           // So we need to manually merge them to an array.

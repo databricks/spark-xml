@@ -351,6 +351,24 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.collect().size === numBooksComplicated)
   }
 
+  test("DSL test schema (excluding tags) inferred correctly") {
+    val results = new XmlReader()
+      .withExcludeAttribute(true)
+      .withRowTag(booksFileTag)
+      .xmlFile(sqlContext, booksFile)
+
+    val schema = StructType(List(
+      StructField("author", StringType, nullable = true),
+      StructField("description", StringType, nullable = true),
+      StructField("genre", StringType, nullable = true),
+      StructField("price", DoubleType, nullable = true),
+      StructField("publish_date", StringType, nullable = true),
+      StructField("title", StringType, nullable = true))
+    )
+
+    assert(results.schema === schema)
+  }
+
   test("DSL test with different data types") {
     val stringSchema = new StructType(
       Array(
@@ -384,14 +402,26 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DSL test nullable fields") {
     val results = new XmlReader()
       .withSchema(StructType(List(StructField("name", StringType, false),
-                                  StructField("age", IntegerType, true))))
+                                  StructField("age", StringType, true))))
       .withRowTag(nullNumbersFileTag)
       .xmlFile(sqlContext, nullNumbersFile)
       .collect()
 
-    assert(results.head.toSeq === Seq("alice", 35))
+    assert(results.head.toSeq === Seq("alice", "35"))
+    assert(results(1).toSeq === Seq("bob", ""))
+    assert(results(2).toSeq === Seq("coc", "24"))
+  }
+
+  test("DSL test for treating empty string as null value") {
+    val results = new XmlReader()
+      .withSchema(StructType(List(StructField("name", StringType, false),
+      StructField("age", IntegerType, true))))
+      .withRowTag(nullNumbersFileTag)
+      .withTreatEmptyValuesAsNulls(true)
+      .xmlFile(sqlContext, nullNumbersFile)
+      .collect()
+
     assert(results(1).toSeq === Seq("bob", null))
-    assert(results(2).toSeq === Seq("coc", 24))
   }
 }
 
