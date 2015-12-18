@@ -39,15 +39,17 @@ package object xml {
                  samplingRatio: Double = 1.0,
                  excludeAttributeFlag: Boolean = false,
                  treatEmptyValuesAsNulls: Boolean = false,
+                 failFastFlag: Boolean = false,
                  charset: String = XmlFile.DEFAULT_CHARSET.name()): DataFrame = {
+
 
       val xmlRelation = XmlRelation(
         () => XmlFile.withCharset(sqlContext.sparkContext, filePath, charset, rowTag),
         location = Some(filePath),
-        parseMode = mode,
         samplingRatio = samplingRatio,
         excludeAttributeFlag = excludeAttributeFlag,
-        treatEmptyValuesAsNulls = treatEmptyValuesAsNulls)(sqlContext)
+        treatEmptyValuesAsNulls = treatEmptyValuesAsNulls,
+        failFastFlag = failFastFlag)(sqlContext)
       sqlContext.baseRelationToDataFrame(xmlRelation)
     }
   }

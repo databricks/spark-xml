@@ -21,6 +21,8 @@ import javax.xml.parsers.DocumentBuilderFactory
 import scala.collection.Seq
 import scala.collection.mutable.ArrayBuffer
 
+import org.slf4j.LoggerFactory
+import org.xml.sax.SAXException
 import org.w3c.dom.Node
 
 import org.apache.spark.rdd.RDD
@@ -33,11 +35,12 @@ import com.databricks.spark.xml.util.InferSchema
  */
 
 private[xml] object DomXmlPartialSchemaParser {
+
+  private val logger = LoggerFactory.getLogger(DomXmlPartialSchemaParser.getClass)
+
   def parse(xml: RDD[String],
             samplingRatio: Double,
-            parseMode: String,
-            excludeAttributeFlag: Boolean,
-            treatEmptyValuesAsNulls: Boolean): RDD[DataType] = {
+            conf: DomConfiguration): RDD[DataType] = {
     require(samplingRatio > 0, s"samplingRatio ($samplingRatio) should be greater than 0")
     val schemaData = if (samplingRatio > 0.99) {
       xml
@@ -45,20 +48,32 @@ private[xml] object DomXmlPartialSchemaParser {
       xml.sample(withReplacement = false, samplingRatio, 1)
     }
 
+    val failFast = conf.failFastFlag
+
     schemaData.mapPartitions { iter =>
       iter.flatMap { xml =>
+        // It does not have to skip for white space, since [[XmlInputFormat]]
+        // always finds the root tag without a heading space.
         val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
 
-        // It does not have to skip for white space, since [[XmlInputFormat]]
-        // always finds the row tag without a heading space.
-        val childNode = builder.parse(new ByteArrayInputStream(xml.getBytes))
-          .getChildNodes.item(0)
-        val conf = DomConfiguration(excludeAttributeFlag, treatEmptyValuesAsNulls)
-        val parser = new DomXmlParser(childNode, conf)
-        if (parser.isEmpty) {
-          None
-        } else {
+        // We treats the exception explicitly below. So turn off the error handlers.
+        builder.setErrorHandler(null)
+        try{
+          val childNode = builder.parse(new ByteArrayInputStream(xml.getBytes))
+            .getChildNodes.item(0)
+          val parser = new DomXmlParser(childNode, conf)
+
+          if (parser.isEmpty) {
+            None
+          }
           Some(inferObject(parser))
+        } catch {
+          // Java library DOMParser throws SAXException when it fails.
+          case se: SAXException if !failFast =>
+            logger.warn(s"Dropping malformed row: ${xml.replaceAll("\n", "")}")
+            None
+          case se: SAXException if failFast =>
+            throw new RuntimeException(s"Malformed row (failing fast): ${xml.replaceAll("\n", "")}")
         }
       }
     }

@@ -16,9 +16,9 @@ When reading files the API accepts several options:
 * `path`: location of files. Similar to Spark can accept standard Hadoop globbing expressions.
 * `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
 * `samplingRatio`: Sampling ratio for inferring schema (0.0 ~ 1). Default is 1. Possible types are `StructType`, `ArrayType`, `StringType`, `LongType`, `DoubleType` and `NullType`, unless user provides a schema for this.
-* `excludeAttributeFlag` : Whether you want to exclude tags of elements as fields or not. Default is false.
+* `excludeAttribute` : Whether you want to exclude tags of elements as fields or not. Default is false.
 * `treatEmptyValuesAsNulls` : Whether you want to treat whitespaces as a null value. Default is false.
-* `mode`: determines the parsing mode. **This is under development.**
+* `failFast` : Whether you want to fail when it fails to parse malformed rows in XML files, instead of dropping the rows. Default is false.
 * `charset`: defaults to 'UTF-8' but can be set to other valid charset names. **This is under development. For now, UTF-8 is only supported by default.**
 
 When writing files the API accepts several options:
