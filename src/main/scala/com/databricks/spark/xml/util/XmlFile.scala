@@ -24,13 +24,17 @@ import org.apache.spark.rdd.RDD
 import com.databricks.hadoop.mapreduce.lib.input.XmlInputFormat
 
 private[xml] object XmlFile {
+  val DEFAULT_ROW_TAG = "ROW"
+  val DEFAULT_ROOT_TAG = "ROWS"
+  val DEFAULT_INDENT = "    "
   val DEFAULT_CHARSET = Charset.forName("UTF-8")
+  val DEFAULT_ROW_SEPARATOR = "\n"
 
   def withCharset(context: SparkContext, location: String,
                   charset: String,
-                  rootTag: String): RDD[String] = {
-    context.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, s"<$rootTag>")
-    context.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, s"</$rootTag>")
+                  rowTag: String): RDD[String] = {
+    context.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, s"<$rowTag>")
+    context.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, s"</$rowTag>")
     if (Charset.forName(charset) == DEFAULT_CHARSET) {
       context.newAPIHadoopFile(location,
         classOf[XmlInputFormat],
