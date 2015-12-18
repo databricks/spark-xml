@@ -20,7 +20,7 @@ import javax.xml.stream.XMLOutputFactory
 
 import scala.collection.Map
 
-import com.sun.xml.txw2.output.IndentingXMLStreamWriter
+import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter
 import org.apache.hadoop.io.compress.CompressionCodec
 
 import org.apache.spark.sql.{DataFrame, SQLContext}
