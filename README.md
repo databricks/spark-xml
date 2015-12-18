@@ -14,14 +14,18 @@ This library requires Spark 1.3+
 This package allows reading XML files in local or distributed filesystem as [Spark DataFrames](https://spark.apache.org/docs/1.3.0/sql-programming-guide.html).
 When reading files the API accepts several options:
 * `path`: location of files. Similar to Spark can accept standard Hadoop globbing expressions.
-* `rootTag`: **This is a necessary option.** The root tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`.
+* `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
 * `samplingRatio`: Sampling ratio for inferring schema (0.0 ~ 1). Default is 1. Possible types are `StructType`, `ArrayType`, `StringType`, `LongType`, `DoubleType` and `NullType`, unless user provides a schema for this.
 * `excludeAttributeFlag` : Whether you want to exclude tags of elements as fields or not. Default is false.
 * `treatEmptyValuesAsNulls` : Whether you want to treat whitespaces as a null value. Default is false.
 * `mode`: determines the parsing mode. **This is under development.**
 * `charset`: defaults to 'UTF-8' but can be set to other valid charset names. **This is under development. For now, UTF-8 is only supported by default.**
 
-The package does not support to write a Dataframe to XML file.
+When writing files the API accepts several options:
+* `path`: location of files. Similar to Spark can accept standard Hadoop globbing expressions.
+* `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
+* `rootTag`: The root tag of your xml files to treat as the root. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `books`. Default is `ROWS`.
+* `nullValue`: The value to write `null` value. Default is string `null`.
 
 Currently it supports the shorten name useage. You can use just `xml` instead of `com.databricks.spark.xml` from Spark 1.5.0+
 
@@ -37,14 +41,14 @@ Spark-xml can infer data types:
 ```sql
 CREATE TABLE books
 USING com.databricks.spark.xml
-OPTIONS (path "books.xml", rootTag "book")
+OPTIONS (path "books.xml", rowTag "book")
 ```
 
 You can also specify column names and types in DDL. In this case, we do not infer schema.
 ```sql
 CREATE TABLE books (author string, description string, genre string, id string, price double, publish_date string, title string)
 USING com.databricks.spark.xml
-OPTIONS (path "books.xml", rootTag "book")
+OPTIONS (path "books.xml", rowTag "book")
 ```
 
 ### Scala API
@@ -56,10 +60,15 @@ import org.apache.spark.sql.SQLContext
 val sqlContext = new SQLContext(sc)
 val df = sqlContext.read
     .format("com.databricks.spark.xml")
-    .option("rootTag", "book") // This should be always given.
+    .option("rowTag", "book")
     .load("books.xml")
 
-df.collect().foreach(println)
+val selectedData = df.select("author", "id")
+selectedData.write
+    .format("com.databricks.spark.xml")
+    .option("rootTag", "books")
+    .option("rowTag", "book")
+    .save("newbooks.xml")
 ```
 
 You can manually specify the schema when reading data:
@@ -80,11 +89,16 @@ val customSchema = StructType(
 
 val df = sqlContext.read
     .format("com.databricks.spark.xml")
-    .option("rootTag", "book") // This should be always given.
+    .option("rowTag", "book")
     .schema(customSchema)
     .load("books.xml")
 
-df.select("author", "id").collect().foreach(println)
+val selectedData = df.select("author", "id")
+selectedData.write
+    .format("com.databricks.spark.xml")
+    .option("rootTag", "books")
+    .option("rowTag", "book")
+    .save("newbooks.xml")
 ```
 
 
@@ -96,9 +110,12 @@ import org.apache.spark.sql.SQLContext
 val sqlContext = new SQLContext(sc)
 val df = sqlContext.load(
     "com.databricks.spark.xml",
-    Map("path" -> "books.xml", "rootTag" -> "book"))
+    Map("path" -> "books.xml", "rowTag" -> "book"))
 
-df.select("author", "id").collect().foreach(println)
+val selectedData = df.select("author", "id")
+selectedData.save("com.databricks.spark.xml",
+	SaveMode.ErrorIfExists,
+	Map("path" -> "newbooks.xml", "rootTag" -> "books", "rowTag" -> "book"))
 ```
 
 You can manually specify the schema when reading data:
@@ -119,9 +136,12 @@ val customSchema = StructType(
 val df = sqlContext.load(
     "com.databricks.spark.xml",
     schema = customSchema,
-    Map("path" -> "books.xml", "rootTag" -> "book"))
+    Map("path" -> "books.xml", "rowTag" -> "book"))
 
-df.select("author", "id").collect().foreach(println)
+val selectedData = df.select("author", "id")
+selectedData.save("com.databricks.spark.xml",
+	SaveMode.ErrorIfExists,
+	Map("path" -> "newbooks.xml", "rootTag" -> "books", "rowTag" -> "book"))
 ```
 
 ### Java API
@@ -133,10 +153,14 @@ import org.apache.spark.sql.SQLContext
 SQLContext sqlContext = new SQLContext(sc);
 DataFrame df = sqlContext.read()
     .format("com.databricks.spark.xml")
-    .option("rootTag", "book")
+    .option("rowTag", "book")
     .load("books.xml");
 
-df.select("author", "id").collect();
+df.select("author", "id").write()
+    .format("com.databricks.spark.xml")
+    .option("rootTag", "books")
+    .option("rowTag", "book")
+    .save("newbooks.xml");
 ```
 
 You can manually specify schema:
@@ -156,11 +180,15 @@ StructType customSchema = new StructType(
 
 DataFrame df = sqlContext.read()
     .format("com.databricks.spark.xml")
-    .option("rootTag", "book")
+    .option("rowTag", "book")
     .schema(customSchema)
     .load("books.xml");
 
-df.select("author", "id").collect();
+df.select("author", "id").write()
+    .format("com.databricks.spark.xml")
+    .option("rootTag", "books")
+    .option("rowTag", "book")
+    .save("newbooks.xml");
 ```
 
 
@@ -173,11 +201,15 @@ import org.apache.spark.sql.SQLContext
 SQLContext sqlContext = new SQLContext(sc);
 
 HashMap<String, String> options = new HashMap<String, String>();
-options.put("rootTag", "book");
+options.put("rowTag", "book");
 options.put("path", "books.xml");
-
 DataFrame df = sqlContext.load("com.databricks.spark.xml", options);
-df.select("author", "id").collect();
+
+HashMap<String, String> options = new HashMap<String, String>();
+options.put("rowTag", "book");
+options.put("rootTag", "books");
+options.put("path", "newbooks.xml");
+df.select("author", "id").save("com.databricks.spark.xml", SaveMode.ErrorIfExists, options)
 ```
 
 You can manually specify schema:
@@ -196,11 +228,15 @@ StructType customSchema = new StructType(
     new StructField("title", StringType, true));
 
 HashMap<String, String> options = new HashMap<String, String>();
-options.put("rootTag", "book");
+options.put("rowTag", "book");
 options.put("path", "books.xml");
-
 DataFrame df = sqlContext.load("com.databricks.spark.xml", customSchema, options);
-df.select("author", "id").collect();
+
+HashMap<String, String> options = new HashMap<String, String>();
+options.put("rowTag", "book");
+options.put("rootTag", "books");
+options.put("path", "newbooks.xml");
+df.select("author", "id").save("com.databricks.spark.xml", SaveMode.ErrorIfExists, options)
 ```
 
 ### Python API
@@ -211,7 +247,7 @@ __Spark 1.4+:__
 from pyspark.sql import SQLContext
 sqlContext = SQLContext(sc)
 
-df = sqlContext.read.format('com.databricks.spark.xml').options(rootTag='book').load('books.xml')
+df = sqlContext.read.format('com.databricks.spark.xml').options(rowTag='book').load('books.xml')
 df.select("author", "id").collect()
 ```
 
@@ -232,10 +268,13 @@ customSchema = StructType([ \
 
 df = sqlContext.read \
     .format('com.databricks.spark.xml') \
-    .options(rootTag='book') \
+    .options(rowTag='book') \
     .load('books.xml', schema = customSchema)
 
-df.select('year', 'model').collect()
+df.select("author", "id").write \
+    .format('com.databricks.spark.xml') \
+    .options(rowTag='book', rootTag='books') \
+    .save('newbooks.xml')
 ```
 
 
@@ -245,8 +284,8 @@ __Spark 1.3:__
 from pyspark.sql import SQLContext
 sqlContext = SQLContext(sc)
 
-df = sqlContext.load(source="com.databricks.spark.xml", rootTag = 'book', path = 'books.xml')
-df.select("author", "id").collect()
+df = sqlContext.load(source="com.databricks.spark.xml", rowTag = 'book', path = 'books.xml')
+df.select("author", "id").save('newbooks.xml', rootTag = 'books', rowTag = 'book', path = 'newbooks.xml')
 ```
 
 You can manually specify schema:
@@ -262,8 +301,8 @@ customSchema = StructType([ \
     StructField("orgment", StringType(), True), \
     StructField("blank", StringType(), True)])
 
-df = sqlContext.load(source="com.databricks.spark.xml", rootTag = 'book', schema = customSchema, path = 'books.xml')
-df.select("author", "id").collect()
+df = sqlContext.load(source="com.databricks.spark.xml", rowTag = 'book', schema = customSchema, path = 'books.xml')
+df.select("author", "id").save('newbooks.xml', rootTag = 'books', rowTag = 'book', path = 'newbooks.xml')
 ```
 
 ## Building From Source

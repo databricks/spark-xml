@@ -88,6 +88,22 @@ class TypeCastSuite extends FunSuite {
     assert(TypeCast.castTo("2015-01-01", DateType) == Date.valueOf("2015-01-01"))
   }
 
+  test("Types with sign are cast correctly") {
+    assert(TypeCast.signSafeToInt("+10") == 10)
+    assert(TypeCast.signSafeToLong("-10") == -10)
+    assert(TypeCast.signSafeToFloat("1.00") == 1.0)
+    assert(TypeCast.signSafeToDouble("-1.00") == -1.0)
+  }
+
+  test("Types with sign are checked correctly") {
+    assert(TypeCast.isBoolean("true"))
+    assert(TypeCast.isInteger("10"))
+    assert(TypeCast.isLong("10"))
+    assert(TypeCast.isDouble("+10.1"))
+    val timestamp = "2015-01-01 00:00:00"
+    assert(TypeCast.isTimestamp(timestamp))
+  }
+
   test("Float and Double Types are cast correctly with Locale") {
     val locale : Locale = new Locale("fr", "FR")
     Locale.setDefault(locale)

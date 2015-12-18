@@ -16,6 +16,8 @@
 package com.databricks.hadoop.mapreduce.lib.input;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 import com.google.common.io.Closeables;
 import org.apache.commons.io.Charsets;
@@ -47,12 +49,7 @@ public class XmlInputFormat extends TextInputFormat {
 
     @Override
     public RecordReader<LongWritable, Text> createRecordReader(InputSplit split, TaskAttemptContext context) {
-        try {
-            return new XmlRecordReader((FileSplit) split, context.getConfiguration());
-        } catch (IOException ioe) {
-            log.warn("Error while creating XmlRecordReader", ioe);
-            return null;
-        }
+        return new XmlRecordReader();
     }
 
     /**
@@ -62,25 +59,37 @@ public class XmlInputFormat extends TextInputFormat {
      */
     public static class XmlRecordReader extends RecordReader<LongWritable, Text> {
 
-        private final byte[] startTag;
-        private final byte[] endTag;
-        private final long start;
-        private final long end;
-        private final FSDataInputStream fsin;
-        private final DataOutputBuffer buffer = new DataOutputBuffer();
+        private byte[] startTag;
+        private byte[] endTag;
+        private long start;
+        private long end;
+        private FSDataInputStream fsin;
+        private DataOutputBuffer buffer = new DataOutputBuffer();
         private LongWritable currentKey;
         private Text currentValue;
 
-        public XmlRecordReader(FileSplit split, Configuration conf) throws IOException {
+        @Override
+        public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+            FileSplit fileSplit = (FileSplit) split;
+            // Use reflection to get the Configuration. This is necessary because
+            // TaskAttemptContext is a class in Hadoop 1.x and an interface in Hadoop 2.x.
+            Configuration conf;
+            Method method = null;
+            try {
+                method = context.getClass().getMethod("getConfiguration");
+                conf = (Configuration) method.invoke(context);
+            } catch (Exception e) {
+                throw new RuntimeException("Error while getting the configuration for XmlRecordReader.");
+            }
             startTag = conf.get(START_TAG_KEY).getBytes(Charsets.UTF_8);
             endTag = conf.get(END_TAG_KEY).getBytes(Charsets.UTF_8);
 
             // open the file and seek to the start of the split
-            start = split.getStart();
-            end = start + split.getLength();
-            Path file = split.getPath();
+            start = fileSplit.getStart();
+            end = start + fileSplit.getLength();
+            Path file = fileSplit.getPath();
             FileSystem fs = file.getFileSystem(conf);
-            fsin = fs.open(split.getPath());
+            fsin = fs.open(fileSplit.getPath());
             fsin.seek(start);
         }
 
@@ -155,10 +164,6 @@ public class XmlInputFormat extends TextInputFormat {
         @Override
         public Text getCurrentValue() throws IOException, InterruptedException {
             return currentValue;
-        }
-
-        @Override
-        public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
         }
 
         @Override

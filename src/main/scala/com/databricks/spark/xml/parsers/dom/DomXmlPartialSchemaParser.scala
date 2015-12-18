@@ -33,7 +33,7 @@ import com.databricks.spark.xml.util.InferSchema
  */
 
 private[xml] object DomXmlPartialSchemaParser {
-  def apply(xml: RDD[String],
+  def parse(xml: RDD[String],
             samplingRatio: Double,
             parseMode: String,
             excludeAttributeFlag: Boolean,
@@ -50,7 +50,7 @@ private[xml] object DomXmlPartialSchemaParser {
         val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
 
         // It does not have to skip for white space, since [[XmlInputFormat]]
-        // always finds the root tag without a heading space.
+        // always finds the row tag without a heading space.
         val childNode = builder.parse(new ByteArrayInputStream(xml.getBytes))
           .getChildNodes.item(0)
         val conf = DomConfiguration(excludeAttributeFlag, treatEmptyValuesAsNulls)
@@ -85,6 +85,9 @@ private[xml] object DomXmlPartialSchemaParser {
                          conf: DomConfiguration): DataType = {
     import com.databricks.spark.xml.parsers.dom.DomXmlParser._
     dataType match {
+      case INTEGER =>
+        LongType
+
       case LONG =>
         LongType
 
@@ -99,6 +102,9 @@ private[xml] object DomXmlPartialSchemaParser {
 
       case NULL =>
         NullType
+
+      case TIMESTAMP =>
+        TimestampType
 
       case OBJECT =>
         inferObject(new DomXmlParser(node, conf))

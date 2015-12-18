@@ -15,15 +15,18 @@
  */
 package com.databricks.spark.xml
 
+import java.io.File
 import java.nio.charset.UnsupportedCharsetException
 
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.sql.types._
 
 abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
+  val tempEmptyDir = "target/test/empty/"
+
   val agesFile = "src/test/resources/ages.xml"
   val agesFileTag = "ROW"
 
@@ -41,6 +44,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
   val booksComplicatedFile = "src/test/resources/books-complicated.xml"
   val booksComplicatedFileTag = "book"
+  val booksComplicatedFileRootTag = "books"
 
   val carsFile = "src/test/resources/cars.xml"
   val carsFileTag = "ROW"
@@ -62,7 +66,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    sqlContext = new SQLContext(new SparkContext("local[2]", "AvroSuite"))
+    sqlContext = new SQLContext(new SparkContext("local[2]", "XmlSuite"))
   }
 
   override protected def afterAll(): Unit = {
@@ -75,7 +79,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test") {
     val results = sqlContext
-      .xmlFile(carsFile, rootTag = carsFileTag)
+      .xmlFile(carsFile, rowTag = carsFileTag)
       .select("year")
       .collect()
 
@@ -85,7 +89,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DSL test bad charset name") {
     val exception = intercept[UnsupportedCharsetException] {
       val results = sqlContext
-        .xmlFile(carsFile, rootTag = carsFileTag, charset = "1-9588-osi")
+        .xmlFile(carsFile, rowTag = carsFileTag, charset = "1-9588-osi")
         .select("year")
         .collect()
     }
@@ -97,7 +101,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
       s"""
          |CREATE TEMPORARY TABLE carsTable
          |USING com.databricks.spark.xml
-         |OPTIONS (path "$carsFile", rootTag "$carsFileTag")
+         |OPTIONS (path "$carsFile", rowTag "$carsFileTag")
       """.stripMargin.replaceAll("\n", " "))
 
     assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
@@ -146,11 +150,10 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 //    assert(exception.getMessage.contains("Malformed line in FAILFAST mode: 2015,Chevy,Volt"))
 //  }
 
-
   test("DSL test with empty file and known schema") {
     val results = new XmlReader()
       .withSchema(StructType(List(StructField("column", StringType, false))))
-      .withRootTag(emptyFileTag)
+      .withRowTag(emptyFileTag)
       .xmlFile(sqlContext, emptyFile)
       .count()
 
@@ -168,7 +171,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     )
     val results = new XmlReader()
       .withSchema(stringSchema)
-      .withRootTag(carsUnbalancedFileTag)
+      .withRowTag(carsUnbalancedFileTag)
       .xmlFile(sqlContext, carsUnbalancedFile)
       .count()
 
@@ -180,15 +183,103 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
            |CREATE TEMPORARY TABLE carsTable
            |(year double, make string, model string, comments string, grp string)
            |USING com.databricks.spark.xml
-           |OPTIONS (path "$emptyFile", rootTag "$emptyFileTag")
+           |OPTIONS (path "$emptyFile", rowTag "$emptyFileTag")
       """.stripMargin.replaceAll("\n", " "))
 
     assert(sqlContext.sql("SELECT count(*) FROM carsTable").collect().head(0) === 0)
   }
 
+  test("SQL test insert overwrite") {
+    TestUtils.deleteRecursively(new File(tempEmptyDir))
+    new File(tempEmptyDir).mkdirs()
+    sqlContext.sql(
+      s"""
+         |CREATE TEMPORARY TABLE booksTableIO
+         |USING com.databricks.spark.xml
+         |OPTIONS (path "$booksFile", rowTag "$booksFileTag")
+      """.stripMargin.replaceAll("\n", " "))
+    sqlContext.sql(
+      s"""
+         |CREATE TEMPORARY TABLE booksTableEmpty
+         |(author string, description string, genre string,
+         |id string, price double, publish_date string, title string)
+         |USING com.databricks.spark.xml
+         |OPTIONS (path "$tempEmptyDir")
+      """.stripMargin.replaceAll("\n", " "))
+
+    assert(sqlContext.sql("SELECT * FROM booksTableIO").collect().size === numBooks)
+    assert(sqlContext.sql("SELECT * FROM booksTableEmpty").collect().isEmpty)
+
+    sqlContext.sql(
+      s"""
+         |INSERT OVERWRITE TABLE booksTableEmpty
+         |SELECT * FROM booksTableIO
+      """.stripMargin.replaceAll("\n", " "))
+    assert(sqlContext.sql("SELECT * FROM booksTableEmpty").collect().size == numBooks)
+  }
+
+  test("DSL save") {
+    // Create temp directory
+    TestUtils.deleteRecursively(new File(tempEmptyDir))
+    new File(tempEmptyDir).mkdirs()
+    val copyFilePath = tempEmptyDir + "books-copy.xml"
+
+    val books = sqlContext.xmlFile(booksComplicatedFile, rowTag = booksComplicatedFileTag)
+    books.saveAsXmlFile(copyFilePath,
+      Map("rootTag" -> booksComplicatedFileRootTag, "rowTag" -> booksComplicatedFileTag))
+
+    val booksCopy = sqlContext.xmlFile(copyFilePath + "/", rowTag = booksComplicatedFileTag)
+
+    assert(booksCopy.count == books.count)
+    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+  }
+
+  test("DSL save dataframe not read from a XML file") {
+    // Create temp directory
+    TestUtils.deleteRecursively(new File(tempEmptyDir))
+    new File(tempEmptyDir).mkdirs()
+    val copyFilePath = tempEmptyDir + "data-copy.xml"
+
+    val schema = StructType(
+      List(StructField("a", ArrayType(ArrayType(StringType)), nullable = true)))
+    val data = sqlContext.sparkContext.parallelize(
+      List(List(List("aa", "bb"), List("aa", "bb")))).map(Row(_))
+    val df = sqlContext.createDataFrame(data, schema)
+    df.saveAsXmlFile(copyFilePath)
+
+    // When [[ArrayType]] has [[ArrayType]] as elements, it is confusing what is the element
+    // name for XML file. Now, it is "item". So, "item" field is additionally added
+    // to wrap the element.
+    val schemaCopy = StructType(
+      List(StructField("a", ArrayType(
+        StructType(List(StructField("item", ArrayType(StringType), nullable = true)))),
+          nullable = true)))
+    val dfCopy = sqlContext.xmlFile(copyFilePath + "/")
+
+    assert(dfCopy.count == df.count)
+    assert(dfCopy.schema === schemaCopy)
+  }
+
   test("DSL test schema inferred correctly") {
     val results = sqlContext
-      .xmlFile(booksFile, rootTag = booksFileTag)
+      .xmlFile(booksFile, rowTag = booksFileTag)
+
+    assert(results.schema == StructType(List(
+      StructField("author", StringType, nullable = true),
+      StructField("description", StringType, nullable = true),
+      StructField("genre", StringType, nullable = true),
+      StructField("id", StringType, nullable = true),
+      StructField("price", DoubleType, nullable = true),
+      StructField("publish_date", StringType, nullable = true),
+      StructField("title", StringType, nullable = true))
+    ))
+
+    assert(results.collect().size === numBooks)
+  }
+
+  test("DSL test schema inferred correctly with sampling ratio") {
+    val results = sqlContext
+      .xmlFile(booksFile, rowTag = booksFileTag, samplingRatio = 0.5)
 
     assert(results.schema == StructType(List(
       StructField("author", StringType, nullable = true),
@@ -205,7 +296,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test schema (object) inferred correctly") {
     val results = sqlContext
-      .xmlFile(booksNestedObjectFile, rootTag = booksNestedObjectFileTag)
+      .xmlFile(booksNestedObjectFile, rowTag = booksNestedObjectFileTag)
 
     assert(results.schema == StructType(List(
       StructField("author", StringType, nullable = true),
@@ -223,7 +314,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test schema (array) inferred correctly") {
     val results = sqlContext
-      .xmlFile(booksNestedArrayFile, rootTag = booksNestedArrayFileTag)
+      .xmlFile(booksNestedArrayFile, rowTag = booksNestedArrayFileTag)
 
     assert(results.schema == StructType(List(
       StructField("author", StringType, nullable = true),
@@ -240,7 +331,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test schema (complicated) inferred correctly") {
     val results = sqlContext
-      .xmlFile(booksComplicatedFile, rootTag = booksComplicatedFileTag)
+      .xmlFile(booksComplicatedFile, rowTag = booksComplicatedFileTag)
 
     assert(results.schema == StructType(List(
       StructField("author", StringType, nullable = true),
@@ -267,7 +358,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DSL test schema (excluding tags) inferred correctly") {
     val results = new XmlReader()
       .withExcludeAttribute(true)
-      .withRootTag(booksFileTag)
+      .withRowTag(booksFileTag)
       .xmlFile(sqlContext, booksFile)
 
     val schema = StructType(List(
@@ -293,7 +384,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     )
     val results = new XmlReader()
       .withSchema(stringSchema)
-      .withRootTag(carsUnbalancedFileTag)
+      .withRowTag(carsUnbalancedFileTag)
       .xmlFile(sqlContext, carsUnbalancedFile)
       .count()
 
@@ -302,7 +393,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test inferred schema passed through") {
     val dataFrame = sqlContext
-      .xmlFile(carsFile, rootTag = carsFileTag)
+      .xmlFile(carsFile, rowTag = carsFileTag)
 
     val results = dataFrame
       .select("comment", "year")
@@ -316,7 +407,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     val results = new XmlReader()
       .withSchema(StructType(List(StructField("name", StringType, false),
                                   StructField("age", StringType, true))))
-      .withRootTag(nullNumbersFileTag)
+      .withRowTag(nullNumbersFileTag)
       .xmlFile(sqlContext, nullNumbersFile)
       .collect()
 
@@ -329,7 +420,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
     val results = new XmlReader()
       .withSchema(StructType(List(StructField("name", StringType, false),
       StructField("age", IntegerType, true))))
-      .withRootTag(nullNumbersFileTag)
+      .withRowTag(nullNumbersFileTag)
       .withTreatEmptyValuesAsNulls(true)
       .xmlFile(sqlContext, nullNumbersFile)
       .collect()

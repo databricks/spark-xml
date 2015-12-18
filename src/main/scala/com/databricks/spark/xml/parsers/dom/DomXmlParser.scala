@@ -112,11 +112,15 @@ private[xml] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfigura
     } else if (data == null) {
       NULL
     } else if (isLong(data)) {
+      INTEGER
+    } else if (isLong(data)) {
       LONG
     } else if (isDouble(data)) {
       DOUBLE
     } else if (isBoolean(data)) {
       BOOLEAN
+    } else if (isTimestamp(data)){
+      TIMESTAMP
     } else {
       STRING
     }
@@ -140,13 +144,15 @@ private[xml] object DomXmlParser {
   val FAIL: Int = -1
   val NULL: Int = 1
   val BOOLEAN: Int = 2
-  val LONG: Int = 3
-  val DOUBLE: Int = 4
-  val STRING: Int = 5
-  val OBJECT: Int = 6
-  val ARRAY: Int = 7
+  val INTEGER: Int = 3
+  val LONG: Int = 4
+  val DOUBLE: Int = 5
+  val STRING: Int = 6
+  val TIMESTAMP: Int = 7
+  val OBJECT: Int = 8
+  val ARRAY: Int = 9
 
-  def apply(xml: RDD[String],
+  def parse(xml: RDD[String],
             schema: StructType,
             parseMode: String,
             excludeAttributeFlag: Boolean,
@@ -156,7 +162,7 @@ private[xml] object DomXmlParser {
         val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
 
         // It does not have to skip for white space, since [[XmlInputFormat]]
-        // always finds the root tag without a heading space.
+        // always finds the row tag without a heading space.
         val childNode = builder.parse(new ByteArrayInputStream(xml.getBytes))
           .getChildNodes.item(0)
         val conf = DomConfiguration(excludeAttributeFlag, treatEmptyValuesAsNulls)
