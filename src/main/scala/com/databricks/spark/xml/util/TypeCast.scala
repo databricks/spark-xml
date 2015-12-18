@@ -21,6 +21,7 @@ import java.text.NumberFormat
 import java.util.Locale
 
 import scala.util.Try
+import scala.util.control.Exception._
 
 import org.apache.spark.sql.types._
 
@@ -114,13 +115,16 @@ object TypeCast {
     } else {
       value
     }
-    try {
-      signSafeValue.toDouble
-      true
-    } catch {
-      case e: NumberFormatException =>
-        false
+    (allCatch opt signSafeValue.toDouble).isDefined
+  }
+
+  private[xml] def isInteger(value: String): Boolean = {
+    val signSafeValue: String = if (value.startsWith("+") || value.startsWith("-")) {
+      value.substring(1)
+    } else {
+      value
     }
+    (allCatch opt signSafeValue.toInt).isDefined
   }
 
   private[xml] def isLong(value: String): Boolean = {
@@ -129,13 +133,11 @@ object TypeCast {
     } else {
       value
     }
-    try {
-      signSafeValue.toLong
-      true
-    } catch {
-      case e: NumberFormatException =>
-        false
-    }
+    (allCatch opt signSafeValue.toLong).isDefined
+  }
+
+  private[xml] def isTimestamp(value: String): Boolean = {
+    (allCatch opt Timestamp.valueOf(value)).isDefined
   }
 
   private[xml] def signSafeToLong(value: String): Long = {
