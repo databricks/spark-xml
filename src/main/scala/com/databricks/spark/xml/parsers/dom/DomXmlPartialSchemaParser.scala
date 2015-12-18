@@ -100,6 +100,9 @@ private[xml] object DomXmlPartialSchemaParser {
                          conf: DomConfiguration): DataType = {
     import com.databricks.spark.xml.parsers.dom.DomXmlParser._
     dataType match {
+      case INTEGER =>
+        LongType
+
       case LONG =>
         LongType
 
@@ -114,6 +117,9 @@ private[xml] object DomXmlPartialSchemaParser {
 
       case NULL =>
         NullType
+
+      case TIMESTAMP =>
+        TimestampType
 
       case OBJECT =>
         inferObject(new DomXmlParser(node, conf))

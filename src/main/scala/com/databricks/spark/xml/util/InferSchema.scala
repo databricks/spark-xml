@@ -20,15 +20,20 @@ import org.apache.spark.sql.types._
 
 private[xml] object InferSchema {
 
-  // Both vals below brought from HiveTypeCoercion just for version compatibility
-  private val numericPrecedence =
-    IndexedSeq(
+  /**
+   * Copied from internal Spark api
+   * [[org.apache.spark.sql.catalyst.analysis.HiveTypeCoercion]]
+   */
+  private val numericPrecedence: IndexedSeq[DataType] =
+    IndexedSeq[DataType](
       ByteType,
       ShortType,
       IntegerType,
       LongType,
       FloatType,
-      DoubleType)
+      DoubleType,
+      TimestampType,
+      DecimalType.Unlimited)
 
   val findTightestCommonTypeOfTwo: (DataType, DataType) => Option[DataType] = {
     case (t1, t2) if t1 == t2 => Some(t1)

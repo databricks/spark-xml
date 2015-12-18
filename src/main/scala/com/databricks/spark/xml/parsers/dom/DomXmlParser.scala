@@ -117,11 +117,15 @@ private[xml] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfigura
     } else if (data == null) {
       NULL
     } else if (isLong(data)) {
+      INTEGER
+    } else if (isLong(data)) {
       LONG
     } else if (isDouble(data)) {
       DOUBLE
     } else if (isBoolean(data)) {
       BOOLEAN
+    } else if (isTimestamp(data)){
+      TIMESTAMP
     } else {
       STRING
     }
@@ -146,11 +150,13 @@ private[xml] object DomXmlParser {
   val FAIL: Int = -1
   val NULL: Int = 1
   val BOOLEAN: Int = 2
-  val LONG: Int = 3
-  val DOUBLE: Int = 4
-  val STRING: Int = 5
-  val OBJECT: Int = 6
-  val ARRAY: Int = 7
+  val INTEGER: Int = 3
+  val LONG: Int = 4
+  val DOUBLE: Int = 5
+  val STRING: Int = 6
+  val TIMESTAMP: Int = 7
+  val OBJECT: Int = 8
+  val ARRAY: Int = 9
 
   def parse(xml: RDD[String],
             schema: StructType,

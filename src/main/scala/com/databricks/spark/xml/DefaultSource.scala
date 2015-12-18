@@ -67,10 +67,7 @@ class DefaultSource
 
     val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
 
-    val rootTag = parameters.getOrElse("rootTag", "").trim
-    if (rootTag == "") {
-      throw new Exception("root tag must be given.")
-    }
+    val rowTag = parameters.getOrElse("rowTag", XmlFile.DEFAULT_ROW_TAG)
 
     val failFast = parameters.getOrElse("failFast", "false")
     val failFastFlag = checkedCastToBoolean(failFast, "failFast")
@@ -83,7 +80,7 @@ class DefaultSource
       checkedCastToBoolean(treatEmptyValuesAsNulls, "treatEmptyValuesAsNulls")
 
     XmlRelation(
-      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rootTag),
+      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
       Some(path),
       samplingRatio,
       excludeAttributeFlag,

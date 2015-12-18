@@ -16,6 +16,10 @@ val testSparkVersion = settingKey[String]("The version of Spark to test against.
 
 testSparkVersion := sys.props.get("spark.testVersion").getOrElse(sparkVersion.value)
 
+val testHadoopVersion = settingKey[String]("The version of Hadoop to test against.")
+
+testHadoopVersion := sys.props.getOrElse("hadoop.testVersion", "2.2.0")
+
 sparkComponents := Seq("core", "sql")
 
 libraryDependencies ++= Seq(
@@ -25,8 +29,9 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.apache.spark" %% "spark-core" % testSparkVersion.value % "test" force(),
-  "org.apache.spark" %% "spark-sql" % testSparkVersion.value % "test" force(),
+  "org.apache.hadoop" % "hadoop-client" % testHadoopVersion.value % "test",
+  "org.apache.spark" %% "spark-core" % testSparkVersion.value % "test" force() exclude("org.apache.hadoop", "hadoop-client"),
+  "org.apache.spark" %% "spark-sql" % testSparkVersion.value % "test" force() exclude("org.apache.hadoop", "hadoop-client"),
   "org.scala-lang" % "scala-library" % scalaVersion.value % "compile"
 )
 
