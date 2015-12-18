@@ -17,7 +17,7 @@ package com.databricks.spark.xml.parsers.stax
 
 import scala.collection.Map
 
-import com.sun.xml.txw2.output.IndentingXMLStreamWriter
+import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
