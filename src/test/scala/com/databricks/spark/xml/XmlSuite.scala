@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 2014 Databricks
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -103,6 +102,20 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
          |CREATE TEMPORARY TABLE carsTable
          |USING com.databricks.spark.xml
          |OPTIONS (path "$carsFile", rowTag "$carsFileTag")
+      """.stripMargin.replaceAll("\n", " "))
+
+    assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
+  }
+
+  test("DDL test with alias name") {
+    assume(org.apache.spark.SPARK_VERSION.take(3) >= "1.5",
+      "Datasource alias feature was added in Spark 1.5")
+
+    sqlContext.sql(
+      s"""
+         |CREATE TEMPORARY TABLE carsTable
+         |USING xml
+         |OPTIONS (path "$carsFile", rootTag "$carsFileTag")
       """.stripMargin.replaceAll("\n", " "))
 
     assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
@@ -250,6 +263,23 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DSL test schema inferred correctly") {
     val results = sqlContext
       .xmlFile(booksFile, rowTag = booksFileTag)
+
+    assert(results.schema == StructType(List(
+      StructField("author", StringType, nullable = true),
+      StructField("description", StringType, nullable = true),
+      StructField("genre", StringType, nullable = true),
+      StructField("id", StringType, nullable = true),
+      StructField("price", DoubleType, nullable = true),
+      StructField("publish_date", StringType, nullable = true),
+      StructField("title", StringType, nullable = true))
+    ))
+
+    assert(results.collect().size === numBooks)
+  }
+
+  test("DSL test schema inferred correctly with sampling ratio") {
+    val results = sqlContext
+      .xmlFile(booksFile, rootTag = booksFileTag, samplingRatio = 0.5)
 
     assert(results.schema == StructType(List(
       StructField("author", StringType, nullable = true),

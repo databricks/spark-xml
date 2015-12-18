@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 2014 Databricks
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -113,11 +112,15 @@ private[xml] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfigura
     } else if (data == null) {
       NULL
     } else if (isLong(data)) {
+      INTEGER
+    } else if (isLong(data)) {
       LONG
     } else if (isDouble(data)) {
       DOUBLE
     } else if (isBoolean(data)) {
       BOOLEAN
+    } else if (isTimestamp(data)){
+      TIMESTAMP
     } else {
       STRING
     }
@@ -141,13 +144,15 @@ private[xml] object DomXmlParser {
   val FAIL: Int = -1
   val NULL: Int = 1
   val BOOLEAN: Int = 2
-  val LONG: Int = 3
-  val DOUBLE: Int = 4
-  val STRING: Int = 5
-  val OBJECT: Int = 6
-  val ARRAY: Int = 7
+  val INTEGER: Int = 3
+  val LONG: Int = 4
+  val DOUBLE: Int = 5
+  val STRING: Int = 6
+  val TIMESTAMP: Int = 7
+  val OBJECT: Int = 8
+  val ARRAY: Int = 9
 
-  def apply(xml: RDD[String],
+  def parse(xml: RDD[String],
             schema: StructType,
             parseMode: String,
             excludeAttributeFlag: Boolean,

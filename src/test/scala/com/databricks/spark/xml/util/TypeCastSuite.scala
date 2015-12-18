@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 2014 Databricks
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -87,6 +86,22 @@ class TypeCastSuite extends FunSuite {
     val timestamp = "2015-01-01 00:00:00"
     assert(TypeCast.castTo(timestamp, TimestampType) == Timestamp.valueOf(timestamp))
     assert(TypeCast.castTo("2015-01-01", DateType) == Date.valueOf("2015-01-01"))
+  }
+
+  test("Types with sign are cast correctly") {
+    assert(TypeCast.signSafeToInt("+10") == 10)
+    assert(TypeCast.signSafeToLong("-10") == -10)
+    assert(TypeCast.signSafeToFloat("1.00") == 1.0)
+    assert(TypeCast.signSafeToDouble("-1.00") == -1.0)
+  }
+
+  test("Types with sign are checked correctly") {
+    assert(TypeCast.isBoolean("true"))
+    assert(TypeCast.isInteger("10"))
+    assert(TypeCast.isLong("10"))
+    assert(TypeCast.isDouble("+10.1"))
+    val timestamp = "2015-01-01 00:00:00"
+    assert(TypeCast.isTimestamp(timestamp))
   }
 
   test("Float and Double Types are cast correctly with Locale") {
