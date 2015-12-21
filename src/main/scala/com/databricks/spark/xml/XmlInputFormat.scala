@@ -112,7 +112,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
    * Read until the given data are matched with `mat`.
    * When withinBlock is true, it saves the data came in.
    *
-   * @param mat file size
+   * @param mat bytes to match
    * @param withinBlock start offset
    * @return whether it finds the match successfully.
    */
