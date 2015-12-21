@@ -23,7 +23,7 @@ import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext
 import org.apache.hadoop.mapreduce.lib.input.{FileSplit, TextInputFormat}
 
 /**
- * Reads records that are delimited by a specific begin/end tag.
+ * Reads records that are delimited by a specific start/end tag.
  */
 class XmlInputFormat extends TextInputFormat {
 
@@ -36,9 +36,9 @@ class XmlInputFormat extends TextInputFormat {
 
 object XmlInputFormat {
 
-  /** configuration key for start-tag */
+  /** configuration key for start tag */
   val START_TAG_KEY: String = "xmlinput.start"
-  /** configuration key for end-tag */
+  /** configuration key for end tag */
   val END_TAG_KEY: String = "xmlinput.end"
 }
 
@@ -70,8 +70,8 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     val fs = fileSplit.getPath.getFileSystem(conf)
     startTag = conf.get(XmlInputFormat.START_TAG_KEY).getBytes(Charsets.UTF_8)
     endTag = conf.get(XmlInputFormat.END_TAG_KEY).getBytes(Charsets.UTF_8)
-    require(startTag != null, "The start-tag cannot be null.")
-    require(endTag != null, "The end-tag cannot be null.")
+    require(startTag != null, "The start tag cannot be null.")
+    require(endTag != null, "The end tag cannot be null.")
     start = fileSplit.getStart
     end = start + fileSplit.getLength
     fsin = fs.open(fileSplit.getPath)
