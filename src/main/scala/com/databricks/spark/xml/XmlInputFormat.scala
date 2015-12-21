@@ -67,13 +67,13 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       val method = context.getClass.getMethod("getConfiguration")
       method.invoke(context).asInstanceOf[Configuration]
     }
+    val fs = fileSplit.getPath.getFileSystem(conf)
     startTag = conf.get(XmlInputFormat.START_TAG_KEY).getBytes(Charsets.UTF_8)
     endTag = conf.get(XmlInputFormat.END_TAG_KEY).getBytes(Charsets.UTF_8)
     require(startTag != null, "The start-tag cannot be null.")
     require(endTag != null, "The end-tag cannot be null.")
     start = fileSplit.getStart
     end = start + fileSplit.getLength
-    val fs = fileSplit.getPath.getFileSystem(conf)
     fsin = fs.open(fileSplit.getPath)
     fsin.seek(start)
   }
