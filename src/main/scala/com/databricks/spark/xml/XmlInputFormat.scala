@@ -70,7 +70,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     startTag = conf.get(XmlInputFormat.START_TAG_KEY).getBytes(Charsets.UTF_8)
     endTag = conf.get(XmlInputFormat.END_TAG_KEY).getBytes(Charsets.UTF_8)
     require(startTag != null, "The start-tag cannot be null.")
-    require(endTag != null, "The end-tag cannot be the null.")
+    require(endTag != null, "The end-tag cannot be null.")
     start = fileSplit.getStart
     end = start + fileSplit.getLength
     val fs = fileSplit.getPath.getFileSystem(conf)
@@ -87,6 +87,10 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   /**
    * Finds the start of the next record.
    * It treats data from `startTag` and `endTag` as a record.
+   *
+   * @param key the current key that will be written
+   * @param value  the object that will be written
+   * @return whether it reads successfully
    */
   private def next(key: LongWritable, value: Text): Boolean = {
     if (fsin.getPos < end && readUntilMatch(startTag, withinBlock = false)) {
@@ -113,7 +117,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
    *
    * @param mat bytes to match
    * @param withinBlock start offset
-   * @return whether it finds the match successfully.
+   * @return whether it finds the match successfully
    */
   private def readUntilMatch(mat: Array[Byte], withinBlock: Boolean): Boolean = {
     var i: Int = 0
