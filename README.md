@@ -10,6 +10,31 @@ The structure and test tools are mostly copied from databricks/spark-csv.
 
 This library requires Spark 1.3+
 
+
+## Linking
+You can link against this library in your program at the following coordiates:
+
+### Scala 2.10
+```
+groupId: com.databricks
+artifactId: spark-xml_2.10
+version: 0.2.0
+```
+### Scala 2.11
+```
+groupId: com.databricks
+artifactId: spark-xml_2.11
+version: 0.2.0
+```
+
+
+## Using with Spark shell
+This package can be added to  Spark using the `--jars` command line option.  For example, to include it when starting the spark shell:
+
+```
+$ bin/spark-shell --packages com.databricks:spark-xml_2.11:0.2.0
+```
+
 ## Features
 This package allows reading XML files in local or distributed filesystem as [Spark DataFrames](https://spark.apache.org/docs/1.3.0/sql-programming-guide.html).
 When reading files the API accepts several options:
@@ -19,7 +44,6 @@ When reading files the API accepts several options:
 * `excludeAttribute` : Whether you want to exclude tags of elements as fields or not. Default is false.
 * `treatEmptyValuesAsNulls` : Whether you want to treat whitespaces as a null value. Default is false.
 * `failFast` : Whether you want to fail when it fails to parse malformed rows in XML files, instead of dropping the rows. Default is false.
-* `charset`: defaults to 'UTF-8' but can be set to other valid charset names. **This is under development. For now, UTF-8 is only supported by default.**
 
 When writing files the API accepts several options:
 * `path`: location of files. Similar to Spark can accept standard Hadoop globbing expressions.
