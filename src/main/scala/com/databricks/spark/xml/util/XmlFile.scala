@@ -21,7 +21,7 @@ import org.apache.hadoop.io.{Text, LongWritable}
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import com.databricks.hadoop.mapreduce.lib.input.XmlInputFormat
+import com.databricks.spark.xml.XmlInputFormat
 
 private[xml] object XmlFile {
   val DEFAULT_ROW_TAG = "ROW"
