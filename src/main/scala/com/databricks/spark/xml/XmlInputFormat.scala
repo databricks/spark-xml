@@ -84,7 +84,6 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     next(currentKey, currentValue)
   }
 
-
   /**
    * Finds the start of the next record.
    * It treats data from `startTag` and `endTag` as a record.
