@@ -288,7 +288,7 @@ customSchema = StructType([ \
     StructField("id", StringType(), True), \
     StructField("price", DoubleType(), True), \
     StructField("publish_date", StringType(), True), \
-    StructField("title", StringType(), True])) \
+    StructField("title", StringType(), True]))
 
 df = sqlContext.read \
     .format('com.databricks.spark.xml') \
@@ -319,14 +319,54 @@ from pyspark.sql.types import *
 
 sqlContext = SQLContext(sc)
 customSchema = StructType([ \
-    StructField("year", IntegerType(), True), \
-    StructField("make", StringType(), True), \
-    StructField("model", StringType(), True), \
-    StructField("orgment", StringType(), True), \
-    StructField("blank", StringType(), True)])
+    StructField("author", StringType(), True), \
+    StructField("description", StringType(), True), \
+    StructField("genre", StringType(), True), \
+    StructField("id", StringType(), True), \
+    StructField("price", DoubleType(), True), \
+    StructField("publish_date", StringType(), True), \
+    StructField("title", StringType(), True]))
 
 df = sqlContext.load(source="com.databricks.spark.xml", rowTag = 'book', schema = customSchema, path = 'books.xml')
 df.select("author", "id").save('newbooks.xml', rootTag = 'books', rowTag = 'book', path = 'newbooks.xml')
+```
+
+
+### R API
+__Spark 1.4+:__
+
+Automatically infer schema (data types)
+```R
+library(SparkR)
+
+Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-xml_2.10:1.3.0" "sparkr-shell"')
+sqlContext <- sparkRSQL.init(sc)
+
+df <- read.df(sqlContext, "books.xml", source = "com.databricks.spark.xml", rowTag = "book")
+
+# In this case, `rootTag` is set to "ROWS" and `rowTag` is set to "ROW".
+write.df(df, "newbooks.csv", "com.databricks.spark.xml", "overwrite")
+```
+
+You can manually specify schema:
+```R
+library(SparkR)
+
+Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:1.3.0" "sparkr-shell"')
+sqlContext <- sparkRSQL.init(sc)
+customSchema <- structType(
+    structField("author", "string"),
+    structField("description", "string"),
+    structField("genre", "string"),
+    structField("id", "string"),
+    structField("price", "double"),
+    structField("publish_date", "string"),
+    structField("title", "string"))
+
+df <- read.df(sqlContext, "books.xml", source = "com.databricks.spark.xml", rowTag = "book")
+
+# In this case, `rootTag` is set to "ROWS" and `rowTag` is set to "ROW".
+write.df(df, "newbooks.csv", "com.databricks.spark.xml", "overwrite")
 ```
 
 ## Building From Source
