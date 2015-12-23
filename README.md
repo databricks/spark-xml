@@ -193,14 +193,15 @@ import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.types.*;
 
 SQLContext sqlContext = new SQLContext(sc);
-StructType customSchema = new StructType(
-    new StructField("author", StringType, true),
-    new StructField("description", StringType, true),
-    new StructField("genre", StringType, true),
-    new StructField("id", StringType, true),
-    new StructField("price", DoubleType, true),
-    new StructField("publish_date", StringType, true),
-    new StructField("title", StringType, true));
+StructType customSchema = new StructType(new StructField[] {
+    new StructField("author", DataTypes.StringType, true, Metadata.empty()),
+    new StructField("description", DataTypes.StringType, true, Metadata.empty()),
+    new StructField("genre", DataTypes.StringType, true, Metadata.empty()),
+    new StructField("id", DataTypes.StringType, true, Metadata.empty()),
+    new StructField("price", DataTypes.DoubleType, true, Metadata.empty()),
+    new StructField("publish_date", DataTypes.StringType, true, Metadata.empty()),
+    new StructField("title", DataTypes.StringType, true, Metadata.empty())
+});
 
 DataFrame df = sqlContext.read()
     .format("com.databricks.spark.xml")
@@ -242,14 +243,15 @@ import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.types.*;
 
 SQLContext sqlContext = new SQLContext(sc);
-StructType customSchema = new StructType(
-    new StructField("author", StringType, true),
-    new StructField("description", StringType, true),
-    new StructField("genre", StringType, true),
-    new StructField("id", StringType, true),
-    new StructField("price", DoubleType, true),
-    new StructField("publish_date", StringType, true),
-    new StructField("title", StringType, true));
+StructType customSchema = new StructType(new StructField[] {
+    new StructField("author", DataTypes.StringType, true, Metadata.empty()),
+    new StructField("description", DataTypes.StringType, true, Metadata.empty()),
+    new StructField("genre", DataTypes.StringType, true, Metadata.empty()),
+    new StructField("id", DataTypes.StringType, true, Metadata.empty()),
+    new StructField("price", DataTypes.DoubleType, true, Metadata.empty()),
+    new StructField("publish_date", DataTypes.StringType, true, Metadata.empty()),
+    new StructField("title", DataTypes.StringType, true, Metadata.empty())
+});
 
 HashMap<String, String> options = new HashMap<String, String>();
 options.put("rowTag", "book");
