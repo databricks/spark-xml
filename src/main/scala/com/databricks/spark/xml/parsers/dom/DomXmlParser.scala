@@ -218,9 +218,6 @@ private[xml] object DomXmlParser {
         case StringType =>
           castTo(node.getTextContent, StringType)
 
-        case BinaryType =>
-          castTo(node.getTextContent, BinaryType)
-
         case DateType =>
           castTo(node.getTextContent, DateType)
 
@@ -238,6 +235,9 @@ private[xml] object DomXmlParser {
 
         case IntegerType =>
           signSafeToInt(node.getTextContent)
+
+        case dt: DecimalType =>
+          castTo(node.getTextContent, new DecimalType(None))
 
         case NullType =>
           null

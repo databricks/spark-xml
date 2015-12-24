@@ -87,6 +87,10 @@ private[xml] object StaxXmlGenerator {
                 writer.writeEndElement()
             }
         }
+
+      case (dt, v) =>
+        sys.error(
+          s"Failed to convert value $v (class of ${v.getClass}}) with the type of $dt to XML.")
     }
     writer.writeStartElement(tag)
     writeElement(rowSchema, row)
