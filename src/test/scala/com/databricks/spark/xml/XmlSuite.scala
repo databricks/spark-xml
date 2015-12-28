@@ -115,17 +115,17 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test for dropping malformed rows") {
-    val stringSchema = new StructType(
+    val schema = new StructType(
       Array(
-        StructField("year", DateType, true),
-        StructField("make", DoubleType, true),
-        StructField("model", IntegerType, true),
+        StructField("color", IntegerType, true),
+        StructField("make", TimestampType, true),
+        StructField("model", DoubleType, true),
         StructField("comment", StringType, true),
-        StructField("color", StringType, true)
+        StructField("year", DoubleType, true)
       )
     )
     val results = new XmlReader()
-      .withSchema(stringSchema)
+      .withSchema(schema)
       .xmlFile(sqlContext, carsUnbalancedFile)
       .count()
 
@@ -133,7 +133,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test for failing fast") {
-    // Inferring schema
+    // Fail fast in type inference
     val exceptionInSchema = intercept[SparkException] {
       new XmlReader()
         .withFailFast(true)
@@ -141,6 +141,24 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
         .printSchema()
     }
     assert(exceptionInSchema.getMessage.contains("Malformed row (failing fast)"))
+    // Fail fast in parsing data
+    val schema = new StructType(
+      Array(
+        StructField("color", IntegerType, true),
+        StructField("make", TimestampType, true),
+        StructField("model", DoubleType, true),
+        StructField("comment", StringType, true),
+        StructField("year", DoubleType, true)
+      )
+    )
+    val exceptionInParse = intercept[SparkException] {
+      new XmlReader()
+        .withFailFast(true)
+        .withSchema(schema)
+        .xmlFile(sqlContext, carsMalformedFile)
+        .collect()
+    }
+    assert(exceptionInParse.getMessage.contains("Malformed row (failing fast)"))
   }
 
   test("DSL test with empty file and known schema") {
