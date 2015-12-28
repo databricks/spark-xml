@@ -17,6 +17,7 @@ package com.databricks.spark.xml
 
 import java.io.File
 import java.nio.charset.UnsupportedCharsetException
+import java.sql.{Date, Timestamp}
 
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
@@ -24,7 +25,7 @@ import org.apache.spark.{SparkException, SparkContext}
 import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.sql.types._
 
-abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
+class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val tempEmptyDir = "target/test/empty/"
   val agesFile = "src/test/resources/ages.xml"
   val agesAttributeFile = "src/test/resources/ages-attribute.xml"
@@ -134,7 +135,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test with poorly formatted file and string schema") {
-    val stringSchema = new StructType(
+    val schema = new StructType(
       Array(
         StructField("year", LongType, true),
         StructField("make", StringType, true),
@@ -143,7 +144,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
       )
     )
     val results = new XmlReader()
-      .withSchema(stringSchema)
+      .withSchema(schema)
       .xmlFile(sqlContext, carsUnbalancedFile)
       .count()
 
@@ -230,6 +231,46 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
     assert(dfCopy.count == df.count)
     assert(dfCopy.schema === schemaCopy)
+  }
+
+  test("DSL save dataframe with data types correctly") {
+    // Create temp directory
+    TestUtils.deleteRecursively(new File(tempEmptyDir))
+    new File(tempEmptyDir).mkdirs()
+    val copyFilePath = tempEmptyDir + "data-copy.xml"
+
+    // Create the schema.
+    val dataTypes =
+      Seq(
+        StringType, NullType, BooleanType,
+        ByteType, ShortType, IntegerType, LongType,
+        FloatType, DoubleType, DecimalType(25, 3), DecimalType(6, 5),
+        DateType, TimestampType, MapType(StringType, StringType))
+    val fields = dataTypes.zipWithIndex.map { case (dataType, index) =>
+      StructField(s"col$index", dataType, nullable = true)
+    }
+    val schema = StructType(fields)
+
+    // Create the data
+    val timestamp = "2015-01-01 00:00:00"
+    val date = "2015-01-01"
+    val row =
+      Row(
+        "aa", null, true,
+        1.toByte, 1.toShort, 1, 1.toLong,
+        1.toFloat, 1.toDouble, Decimal(1, 25, 3), Decimal(1, 6, 5),
+        Date.valueOf(date), Timestamp.valueOf(timestamp), Map("a" -> "b"))
+    val data = sqlContext.sparkContext.parallelize(Seq(row))
+
+    val df = sqlContext.createDataFrame(data, schema)
+    df.saveAsXmlFile(copyFilePath)
+
+    val dfCopy = new XmlReader()
+            .withSchema(schema)
+            .xmlFile(sqlContext, copyFilePath + "/")
+
+    assert(dfCopy.collect() === df.collect())
+    assert(dfCopy.schema === df.schema)
   }
 
   test("DSL test schema inferred correctly") {
@@ -346,7 +387,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test with different data types") {
-    val stringSchema = new StructType(
+    val schema = new StructType(
       Array(
         StructField("year", IntegerType, true),
         StructField("make", StringType, true),
@@ -355,7 +396,7 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
       )
     )
     val results = new XmlReader()
-      .withSchema(stringSchema)
+      .withSchema(schema)
       .xmlFile(sqlContext, carsUnbalancedFile)
       .count()
 
@@ -396,7 +437,4 @@ abstract class AbstractXmlSuite extends FunSuite with BeforeAndAfterAll {
 
     assert(results(1).toSeq === Seq("bob", null))
   }
-}
-
-class XmlSuite extends AbstractXmlSuite {
 }

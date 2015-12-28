@@ -35,6 +35,21 @@ private[xml] object StaxXmlGenerator {
             tag: String,
             writer: IndentingXMLStreamWriter,
             nullValue: String)(row: Row): Unit = {
+    def writeChild(name: String, vt: DataType, v: Any): Unit = {
+      (vt, v) match {
+        case (ArrayType(ty, _), v: Seq[_]) =>
+          v.foreach { e =>
+            writer.writeStartElement(name)
+            writeElement(ty, e)
+            writer.writeEndElement()
+          }
+        case _ =>
+          writer.writeStartElement(name)
+          writeElement(vt, v)
+          writer.writeEndElement()
+      }
+    }
+
     def writeElement: (DataType, Any) => Unit = {
       case (_, null) | (NullType, _) => writer.writeCharacters(nullValue)
       case (StringType, v: String) => writer.writeCharacters(v.toString)
@@ -46,17 +61,9 @@ private[xml] object StaxXmlGenerator {
       case (LongType, v: Long) => writer.writeCharacters(v.toString)
       case (DecimalType(), v: java.math.BigDecimal) => writer.writeCharacters(v.toString)
       case (ByteType, v: Byte) => writer.writeCharacters(v.toString)
-      case (BinaryType, v: Array[Byte]) => writer.writeCharacters(v.toString)
       case (BooleanType, v: Boolean) => writer.writeCharacters(v.toString)
       case (DateType, v) => writer.writeCharacters(v.toString)
       case (udt: UserDefinedType[_], v) => writeElement(udt.sqlType, udt.serialize(v))
-
-      case (MapType(kv, vv, _), v: Map[_, _]) =>
-        v.foreach { p =>
-          writer.writeStartElement(p._1.toString)
-          writeElement(vv, p._2)
-          writer.writeEndElement()
-        }
 
       // For the case roundtrip in reading and writing XML files, [[ArrayType]] cannot have
       // [[ArrayType]] as element type. It always wraps the element with [[StructType]]. So,
@@ -64,29 +71,25 @@ private[xml] object StaxXmlGenerator {
       // When [[ArrayType]] has [[ArrayType]] as elements, it is confusing what is element name
       // for XML file. Now, it is "item" but this might have to be according the parent field name.
       case (ArrayType(ty, _), v: Seq[_]) =>
-        v.foreach { p =>
-          writer.writeStartElement("item")
-          writeElement(ty, p)
-          writer.writeEndElement()
+        v.foreach { e =>
+          writeChild("item", ty, e)
         }
 
-      case (StructType(ty), v: Row) =>
-        ty.zip(v.toSeq).foreach {
-          case (_, null) =>
-          case (field, v) =>
-            (field.dataType, v) match {
-              case (ArrayType(ty, _), v: Seq[_]) =>
-                v.foreach { p =>
-                  writer.writeStartElement(field.name)
-                  writeElement(ty, p)
-                  writer.writeEndElement()
-                }
-              case _ =>
-                writer.writeStartElement(field.name)
-                writeElement(field.dataType, v)
-                writer.writeEndElement()
-            }
+      case (MapType(kv, vt, _), mv: Map[_, _]) =>
+        mv.foreach {
+          case (k, v) =>
+            writeChild(k.toString, vt, v)
         }
+
+      case (StructType(ty), r: Row) =>
+        ty.zip(r.toSeq).foreach {
+          case (field, v) =>
+            writeChild(field.name, field.dataType, v)
+        }
+
+      case (dt, v) =>
+        sys.error(
+          s"Failed to convert value $v (class of ${v.getClass}}) with the type of $dt to XML.")
     }
     writer.writeStartElement(tag)
     writeElement(rowSchema, row)
