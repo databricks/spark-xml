@@ -243,7 +243,11 @@ private[xml] object DomXmlParser {
           null
 
         case ArrayType(st, _) =>
-          convertPartialArray(node, st, conf)
+          convertField(node, st, conf)
+
+        case MapType(StringType, vt, _) =>
+          val nestedParser = new DomXmlParser(node, conf)
+          convertMap(nestedParser, vt)
 
         case st: StructType =>
           val nestedParser = new DomXmlParser(node, conf)
@@ -259,17 +263,21 @@ private[xml] object DomXmlParser {
   }
 
   /**
-   * Parse an object as a array
+   * Parse an object as map.
    */
-  private def convertPartialArray(node: Node,
-                                  elementType: DataType,
-                                  conf: DomConfiguration): Any = {
-    convertField(node, elementType, conf)
+  private def convertMap(parser: DomXmlParser,
+                            valueType: DataType): Map[String, Any] = {
+    val keys = ArrayBuffer.empty[String]
+    val values = ArrayBuffer.empty[Any]
+    parser.foreach { node =>
+      keys += node.getNodeName
+      values += convertField(node, valueType, parser.getConf)
+    }
+    keys.zip(values).toMap
   }
 
   /**
    * Parse an object from the token stream into a new Row representing the schema.
-   *
    * Fields in the xml that are not defined in the requested schema will be dropped.
    */
   private def convertObject(parser: DomXmlParser,
@@ -280,16 +288,20 @@ private[xml] object DomXmlParser {
       val nameToIndex = schema.map(_.name).zipWithIndex.toMap
       nameToIndex.get(field) match {
         case Some(index) =>
-          // For XML, it can contains the same keys.
-          // So we need to manually merge them to an array.
           val dataType = schema(index).dataType
           dataType match {
+            // For XML, it can contains the same keys. So we need to manually merge them
+            // to an array. ArrayType is always wrapped with StructType. So, it is safe
+            // to convert here.
             case ArrayType(st, _) =>
-              val values = Option(row(index))
-                .map(_.asInstanceOf[ArrayBuffer[Any]])
-                .getOrElse(ArrayBuffer.empty[Any])
-              val newValue = convertField(node, dataType, parser.getConf)
-              row(index) = values :+ newValue
+              val elements = {
+                val values = Option(row(index))
+                  .map(_.asInstanceOf[ArrayBuffer[Any]])
+                  .getOrElse(ArrayBuffer.empty[Any])
+                val newValue = convertField(node, dataType, parser.getConf)
+                values :+ newValue
+              }
+              row(index) = elements
             case _ =>
               row(index) = convertField(node, dataType, parser.getConf)
           }

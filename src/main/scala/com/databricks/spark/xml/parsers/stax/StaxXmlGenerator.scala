@@ -62,6 +62,23 @@ private[xml] object StaxXmlGenerator {
           writer.writeEndElement()
         }
 
+      case (MapType(kv, vt, _), mv: Map[_, _]) =>
+        mv.foreach {
+          case (k, v) =>
+            (vt, v) match {
+              case (ArrayType(ty, _), v: Seq[_]) =>
+                v.foreach { p =>
+                  writer.writeStartElement(k.toString)
+                  writeElement(ty, p)
+                  writer.writeEndElement()
+                }
+              case _ =>
+                writer.writeStartElement(k.toString)
+                writeElement(vt, v)
+                writer.writeEndElement()
+            }
+        }
+
       case (StructType(ty), v: Row) =>
         ty.zip(v.toSeq).foreach {
           case (field, v) =>

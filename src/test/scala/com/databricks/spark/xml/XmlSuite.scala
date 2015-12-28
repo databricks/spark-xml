@@ -269,7 +269,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
         StringType, NullType, BooleanType,
         ByteType, ShortType, IntegerType, LongType,
         FloatType, DoubleType, DecimalType(25, 3), DecimalType(6, 5),
-        DateType, TimestampType)
+        DateType, TimestampType, MapType(StringType, StringType))
     val fields = dataTypes.zipWithIndex.map { case (dataType, index) =>
       StructField(s"col$index", dataType, nullable = true)
     }
@@ -283,7 +283,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
         "aa", null, true,
         1.toByte, 1.toShort, 1, 1.toLong,
         1.toFloat, 1.toDouble, Decimal(1, 25, 3), Decimal(1, 6, 5),
-        Date.valueOf(date), Timestamp.valueOf(timestamp))
+        Date.valueOf(date), Timestamp.valueOf(timestamp), Map("a" -> "b"))
     val data = sqlContext.sparkContext.parallelize(Seq(row))
 
     val df = sqlContext.createDataFrame(data, schema)
