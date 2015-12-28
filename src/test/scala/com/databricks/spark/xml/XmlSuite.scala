@@ -114,6 +114,24 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results === 1)
   }
 
+  test("DSL test for dropping malformed rows") {
+    val stringSchema = new StructType(
+      Array(
+        StructField("year", DateType, true),
+        StructField("make", DoubleType, true),
+        StructField("model", IntegerType, true),
+        StructField("comment", StringType, true),
+        StructField("color", StringType, true)
+      )
+    )
+    val results = new XmlReader()
+      .withSchema(stringSchema)
+      .xmlFile(sqlContext, carsUnbalancedFile)
+      .count()
+
+    assert(results === 0)
+  }
+
   test("DSL test for failing fast") {
     // Inferring schema
     val exceptionInSchema = intercept[SparkException] {
@@ -137,7 +155,8 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DSL test with poorly formatted file and string schema") {
     val schema = new StructType(
       Array(
-        StructField("year", LongType, true),
+        StructField("color", StringType, true),
+        StructField("year", StringType, true),
         StructField("make", StringType, true),
         StructField("model", StringType, true),
         StructField("comment", StringType, true)
@@ -386,13 +405,14 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.schema === schema)
   }
 
-  test("DSL test with different data types") {
+  test("DSL test with custom schema") {
     val schema = new StructType(
       Array(
-        StructField("year", IntegerType, true),
         StructField("make", StringType, true),
         StructField("model", StringType, true),
-        StructField("comment", StringType, true)
+        StructField("comment", StringType, true),
+        StructField("color", StringType, true),
+        StructField("year", IntegerType, true)
       )
     )
     val results = new XmlReader()

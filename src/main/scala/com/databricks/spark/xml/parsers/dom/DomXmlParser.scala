@@ -181,11 +181,23 @@ private[xml] object DomXmlParser {
           Some(convertObject(parser, schema))
         } catch {
           // Java library DOMParser throws SAXException when it fails.
+          case se: SAXException if failFast =>
+            throw new RuntimeException(s"Malformed row (failing fast): ${xml.replaceAll("\n", "")}")
           case se: SAXException if !failFast =>
             logger.warn(s"Dropping malformed row: ${xml.replaceAll("\n", "")}")
             None
-          case se: SAXException if failFast =>
-            throw new RuntimeException(s"Malformed row (failing fast): ${xml.replaceAll("\n", "")}")
+          case nfe: java.lang.NumberFormatException if !failFast =>
+            logger.warn("Number format exception. " +
+              s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
+            None
+          case pe: java.text.ParseException if !failFast =>
+            logger.warn("Parse exception. " +
+              s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
+            None
+          case pe: IllegalArgumentException if !failFast =>
+            logger.warn("IllegalArgument exception. " +
+              s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
+            None
         }
       }
     }
@@ -306,7 +318,6 @@ private[xml] object DomXmlParser {
               row(index) = convertField(node, dataType, parser.getConf)
           }
         case _ =>
-          // This case must not happen.
           throw new IndexOutOfBoundsException(s"The field ('$field') does not exist in schema")
       }
     }
