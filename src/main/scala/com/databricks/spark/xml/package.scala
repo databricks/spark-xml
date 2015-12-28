@@ -42,7 +42,6 @@ package object xml {
                  failFastFlag: Boolean = false,
                  charset: String = XmlFile.DEFAULT_CHARSET.name()): DataFrame = {
 
-
       val xmlRelation = XmlRelation(
         () => XmlFile.withCharset(sqlContext.sparkContext, filePath, charset, rowTag),
         location = Some(filePath),
