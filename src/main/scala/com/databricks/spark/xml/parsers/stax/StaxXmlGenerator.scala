@@ -64,7 +64,6 @@ private[xml] object StaxXmlGenerator {
 
       case (StructType(ty), v: Row) =>
         ty.zip(v.toSeq).foreach {
-          case (_, null) =>
           case (field, v) =>
             (field.dataType, v) match {
               case (ArrayType(ty, _), v: Seq[_]) =>
