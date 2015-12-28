@@ -194,6 +194,8 @@ private[xml] object DomXmlParser {
             logger.warn("Parse exception. " +
               s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
             None
+          // When the function `valueOf` in Timestamp or Date fails,
+          // this emits IllegalArgumentException.
           case pe: IllegalArgumentException if !failFast =>
             logger.warn("IllegalArgument exception. " +
               s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
