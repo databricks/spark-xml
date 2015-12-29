@@ -171,23 +171,17 @@ private[xml] object DomXmlParser {
           Some(convertObject(parser, schema))
         } catch {
           // Java library DOMParser throws SAXException when it fails.
-          case se: SAXException if failFast =>
+          case _: SAXException if failFast =>
             throw new RuntimeException(s"Malformed row (failing fast): ${xml.replaceAll("\n", "")}")
-          case se: SAXException if !failFast =>
+          case _: SAXException if !failFast =>
             logger.warn(s"Dropping malformed row: ${xml.replaceAll("\n", "")}")
             None
-          case nfe: java.lang.NumberFormatException if !failFast =>
+          case _: java.lang.NumberFormatException | _: IllegalArgumentException if !failFast =>
             logger.warn("Number format exception. " +
               s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
             None
-          case pe: java.text.ParseException if !failFast =>
+          case _: java.text.ParseException if !failFast =>
             logger.warn("Parse exception. " +
-              s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
-            None
-          // When the function `valueOf` in Timestamp or Date fails,
-          // this emits IllegalArgumentException.
-          case iae: IllegalArgumentException if !failFast =>
-            logger.warn("Illegal argument exception. " +
               s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
             None
         }
