@@ -39,7 +39,6 @@ private[xml] case class DomConfiguration(excludeAttributeFlag: Boolean = false,
 
 private[xml] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfiguration())
     extends Iterable[Node] {
-
   lazy val nodes = readChildNodes
   var index: Int = 0
 
@@ -50,20 +49,16 @@ private[xml] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfigura
    * Read all the event to infer datatypes.
    */
   private def readChildNodes: Array[Node] = {
-
     // Add all the nodes including attributes.
     val nodesBuffer: ArrayBuffer[Node] = ArrayBuffer.empty[Node]
-
     if (doc.hasChildNodes) {
       val childNodes = doc.getChildNodes
       nodesBuffer ++= (0 until childNodes.getLength).map(childNodes.item)
     }
-
     if (!conf.excludeAttributeFlag && doc.hasAttributes) {
       val attributeNodes = doc.getAttributes
       nodesBuffer ++= (0 until attributeNodes.getLength).map(attributeNodes.item)
     }
-
     // Filter the white spaces between tags.
     nodesBuffer.filterNot(_.getNodeType == Node.TEXT_NODE).toArray
   }
@@ -83,7 +78,7 @@ private[xml] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfigura
   }
 
   private def checkObjectType(node: Node): Boolean = {
-    lazy val isObject = (0 until node.getChildNodes.getLength)
+    val isObject = (0 until node.getChildNodes.getLength)
       .map(node.getChildNodes.item)
       .exists(_.getNodeType == Node.ELEMENT_NODE)
     isObject
@@ -136,17 +131,13 @@ private[xml] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfigura
   }
 }
 
-
 /**
- * Wraps parser to iteratoration process.
+ * Wraps parser to iteration process.
  */
 private[xml] object DomXmlParser {
-
   private val logger = LoggerFactory.getLogger(DomXmlParser.getClass)
 
-  /**
-   * This defines the possible types for XML.
-   */
+  // This defines the possible types for XML.
   val FAIL: Int = -1
   val NULL: Int = 1
   val BOOLEAN: Int = 2
@@ -168,7 +159,6 @@ private[xml] object DomXmlParser {
         // It does not have to skip for white space, since [[XmlInputFormat]]
         // always finds the root tag without a heading space.
         val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
-
         // We treats the exception explicitly below. So turn off the error handler.
         builder.setErrorHandler(null)
         try{
@@ -181,11 +171,19 @@ private[xml] object DomXmlParser {
           Some(convertObject(parser, schema))
         } catch {
           // Java library DOMParser throws SAXException when it fails.
-          case se: SAXException if !failFast =>
+          case _: SAXException if failFast =>
+            throw new RuntimeException(s"Malformed row (failing fast): ${xml.replaceAll("\n", "")}")
+          case _: SAXException if !failFast =>
             logger.warn(s"Dropping malformed row: ${xml.replaceAll("\n", "")}")
             None
-          case se: SAXException if failFast =>
-            throw new RuntimeException(s"Malformed row (failing fast): ${xml.replaceAll("\n", "")}")
+          case _: java.lang.NumberFormatException | _: IllegalArgumentException if !failFast =>
+            logger.warn("Number format exception. " +
+              s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
+            None
+          case _: java.text.ParseException if !failFast =>
+            logger.warn("Parse exception. " +
+              s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
+            None
         }
       }
     }
@@ -194,13 +192,11 @@ private[xml] object DomXmlParser {
   /**
    * Parse the current token (and related children) according to a desired schema
    */
-
   private[xml] def convertField(node: Node,
                                 dataType: DataType,
                                 conf: DomConfiguration ): Any = {
     val shouldBeNullValue = node.getTextContent == null ||
       node.getTextContent.size <= 0 && conf.treatEmptyValuesAsNulls
-
     if (shouldBeNullValue) {
       null
     }
@@ -306,7 +302,6 @@ private[xml] object DomXmlParser {
               row(index) = convertField(node, dataType, parser.getConf)
           }
         case _ =>
-          // This case must not happen.
           throw new IndexOutOfBoundsException(s"The field ('$field') does not exist in schema")
       }
     }
