@@ -406,7 +406,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.collect().size === numBooksComplicated)
   }
 
-  test("DSL test parsing and inferring attribute in non-nested elements") {
+  test("DSL test parsing and inferring attribute in elements having no child element") {
     val results = new XmlReader()
       .withRowTag(booksTag)
       .xmlFile(sqlContext, booksAttributesInNonNestedFile)
