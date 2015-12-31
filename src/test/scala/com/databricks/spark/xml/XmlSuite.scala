@@ -32,6 +32,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val booksFile = "src/test/resources/books.xml"
   val booksNestedObjectFile = "src/test/resources/books-nested-object.xml"
   val booksNestedArrayFile = "src/test/resources/books-nested-array.xml"
+  val booksAttributesInNonNestedFile = "src/test/resources/books-attributes-in-non-nested.xml"
   val booksComplicatedFile = "src/test/resources/books-complicated.xml"
   val carsFile = "src/test/resources/cars.xml"
   val carsUnbalancedFile = "src/test/resources/cars-unbalanced-elements.xml"
@@ -403,6 +404,26 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     ))
 
     assert(results.collect().size === numBooksComplicated)
+  }
+
+  test("DSL test parsing and inferring attribute in non-nested elements") {
+    val results = new XmlReader()
+      .withRowTag(booksTag)
+      .xmlFile(sqlContext, booksAttributesInNonNestedFile)
+
+    val schema = StructType(List(
+      StructField("author", StringType, nullable = true),
+      StructField("id", StringType, nullable = true),
+      StructField("price", StructType(
+        List(StructField("price", DoubleType, nullable = true),
+          StructField("unit", StringType, nullable = true))),
+        nullable = true),
+      StructField("publish_date", StringType, nullable = true),
+      StructField("title", StringType, nullable = true))
+    )
+
+    assert(results.schema === schema)
+    assert(results.count == numBooks)
   }
 
   test("DSL test schema (excluding tags) inferred correctly") {
