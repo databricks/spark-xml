@@ -39,28 +39,53 @@ private[xml] case class DomConfiguration(excludeAttributeFlag: Boolean = false,
 
 private[xml] class DomXmlParser(doc: Node, conf: DomConfiguration = DomConfiguration())
     extends Iterable[Node] {
-  lazy val nodes = readChildNodes
-  var index: Int = 0
+  private val nodes = readNodes
+  private lazy val elements: Array[Node] =
+    (0 until doc.getChildNodes.getLength).map(doc.getChildNodes.item)
+      .filterNot(_.getNodeType == Node.TEXT_NODE).toArray
+  private lazy val attributes: Array[Node] =
+    (0 until doc.getAttributes.getLength).map(doc.getAttributes.item)
+      .filterNot(_.getNodeType == Node.TEXT_NODE).toArray
 
   override def iterator: Iterator[Node] = nodes.iterator
+
   override def isEmpty: Boolean = nodes.isEmpty
 
-  /**
-   * Read all the event to infer datatypes.
-   */
-  private def readChildNodes: Array[Node] = {
-    // Add all the nodes including attributes.
-    val nodesBuffer: ArrayBuffer[Node] = ArrayBuffer.empty[Node]
-    if (doc.hasChildNodes) {
-      val childNodes = doc.getChildNodes
-      nodesBuffer ++= (0 until childNodes.getLength).map(childNodes.item)
+  private def readNodes: Array[Node] = {
+    val shouldIncludeAttributes = !conf.excludeAttributeFlag
+    if (shouldIncludeAttributes) {
+      (elements ++ attributes).map(wrapNonNestedElementWithAttributes)
+    } else {
+      elements
     }
-    if (!conf.excludeAttributeFlag && doc.hasAttributes) {
-      val attributeNodes = doc.getAttributes
-      nodesBuffer ++= (0 until attributeNodes.getLength).map(attributeNodes.item)
+  }
+
+  private def wrapNonNestedElementWithAttributes(node : Node): Node = {
+    val childNodes = (0 until node.getChildNodes.getLength).map(node.getChildNodes.item)
+    val isNonNestedElement = {
+      val childElementTypes = childNodes.map(_.getNodeType)
+      !childElementTypes.contains(Node.ELEMENT_NODE)
     }
-    // Filter the white spaces between tags.
-    nodesBuffer.filterNot(_.getNodeType == Node.TEXT_NODE).toArray
+    val shouldWrapWithObject = isNonNestedElement && node.hasAttributes
+    if (shouldWrapWithObject) {
+      val doc = DocumentBuilderFactory.newInstance.newDocumentBuilder.newDocument
+      val wrapperElement = doc.createElement(node.getNodeName)
+      val childElement = doc.createElement(node.getNodeName)
+      // Set attributes to the parent
+      val childAttributes = (0 until node.getAttributes.getLength).map(node.getAttributes.item)
+      childAttributes.foreach { attr =>
+        wrapperElement.setAttribute(attr.getNodeName, attr.getNodeValue)
+      }
+      // Copy text nodes
+      childNodes.foreach { element =>
+        val textNode = doc.createTextNode(element.getTextContent)
+        childElement.appendChild(textNode)
+      }
+      wrapperElement.appendChild(childElement)
+      wrapperElement
+    } else {
+      node
+    }
   }
 
   /**
@@ -279,7 +304,7 @@ private[xml] object DomXmlParser {
   private def convertObject(parser: DomXmlParser,
                             schema: StructType): Row = {
     val row = new Array[Any](schema.length)
-    parser.foreach{ node =>
+    parser.foreach { node =>
       val field = node.getNodeName
       val nameToIndex = schema.map(_.name).zipWithIndex.toMap
       nameToIndex.get(field) match {
