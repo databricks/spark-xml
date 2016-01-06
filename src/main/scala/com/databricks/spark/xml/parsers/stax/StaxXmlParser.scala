@@ -122,16 +122,20 @@ private[xml] object StaxXmlParser {
   private[xml] def convertField(parser: XMLEventReader,
                                  dataType: DataType,
                                  conf: StaxConfiguration): Any = {
+    def convertComplicatedType(dataType: DataType) = dataType match {
+      case dt: StructType =>
+        convertObject(parser, dt, conf)
+      case MapType(StringType, vt, _) =>
+        convertMap(parser, vt, conf)
+      case ArrayType(st, _) =>
+        convertField(parser, st, conf)
+      case udt: UserDefinedType[_] =>
+        convertField(parser, udt.sqlType, conf)
+    }
+
     val current = parser.peek
     (current, dataType) match {
-      case (_: StartElement, dt: StructType) =>
-        convertObject(parser, dt, conf)
-      case (_: StartElement, MapType(StringType, vt, _)) =>
-        convertMap(parser, vt, conf)
-      case (_: StartElement, ArrayType(st, _)) =>
-        convertField(parser, st, conf)
-      case (_: StartElement, udt: UserDefinedType[_]) =>
-        convertField(parser, udt.sqlType, conf)
+      case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
       case (_: EndElement, _: DataType) => null
       case (c: Characters, dt: DataType) if !c.isIgnorableWhiteSpace && c.isWhiteSpace =>
         val next = {
@@ -140,21 +144,8 @@ private[xml] object StaxXmlParser {
         }
         val data = c.asCharacters().getData
         (next, dataType) match {
-          case (_: EndElement, _) =>
-            // If this `Characters` is a read data, then infer type.
-            if (conf.treatEmptyValuesAsNulls) {
-              null
-            } else {
-              data
-            }
-          case (_: StartElement, dt: StructType) =>
-            convertObject(parser, dt, conf)
-          case (_: StartElement, MapType(StringType, vt, _)) =>
-            convertMap(parser, vt, conf)
-          case (_: StartElement, ArrayType(st, _)) =>
-            convertField(parser, st, conf)
-          case (_: StartElement, udt: UserDefinedType[_]) =>
-            convertField(parser, udt.sqlType, conf)
+          case (_: EndElement, _) => if (conf.treatEmptyValuesAsNulls) null else data
+          case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
         }
       case (c: Characters, ArrayType(st, _)) if !c.isIgnorableWhiteSpace && !c.isWhiteSpace =>
         convertStringTo(c.asCharacters().getData, st)
@@ -249,29 +240,33 @@ private[xml] object StaxXmlParser {
       }
     }
 
+    def writeAttribute(attributes: Seq[(String, String)], row: Array[Any]): Unit = {
+      attributes.foreach {
+        case (f, v) =>
+          schema.map(_.name).zipWithIndex.toMap.get(f) match {
+            case Some(i) =>
+              val dt = schema(i).dataType
+              row(i) = convertStringTo(v, dt)
+            case _ =>
+              // This will eventually emits `XMLStreamException`.
+              logger.error(s"The field ('$f') does not exist in schema")
+          }
+      }
+    }
+
     val row = new Array[Any](schema.length)
     var shouldStop = false
     while (!shouldStop) {
         parser.nextEvent match {
         case e: StartElement =>
-          // Set values for root-attributes first to the row.
-          val nameToIndex = schema.map(_.name).zipWithIndex.toMap
-          toFieldsZipValues(rootAttributes).foreach {
-            case (f, v) =>
-              nameToIndex.get(f) match {
-                case Some(i) =>
-                  val dt = schema(i).dataType
-                  row(i) = convertStringTo(v, dt)
-                case _ =>
-                  // This will eventually emits `XMLStreamException`.
-                  logger.error(s"The field ('$f') does not exist in schema")
-              }
-          }
           // If there are attributes, then we should process them first.
+          writeAttribute(toFieldsZipValues(rootAttributes), row)
           val fieldsZipValues = {
             val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
             toFieldsZipValues(attributes)
           }
+          // Set values for root-attributes first to the row.
+          val nameToIndex = schema.map(_.name).zipWithIndex.toMap
           // Set elements and other attributes to the row
           val field = e.asStartElement.getName.getLocalPart
           nameToIndex.get(field) match {
@@ -299,18 +294,11 @@ private[xml] object StaxXmlParser {
                     values :+ newValue
                   }
                   row(index) = elements
+                case _: StructType =>
+                  // If there are attributes, then we should process them first.
+                  writeAttribute(fieldsZipValues, row)
+                  row(index) = convertField(parser, dataType, conf)
                 case _ =>
-                  fieldsZipValues.foreach {
-                    case (f, v) =>
-                      nameToIndex.get(f) match {
-                        case Some(i) =>
-                          val dt = schema(i).dataType
-                          row(i) = convertStringTo(v, dt)
-                        case _ =>
-                          // This will eventually emits `XMLStreamException`.
-                          logger.error(s"The field ('$f') does not exist in schema")
-                      }
-                  }
                   row(index) = convertField(parser, dataType, conf)
               }
             case _ =>
