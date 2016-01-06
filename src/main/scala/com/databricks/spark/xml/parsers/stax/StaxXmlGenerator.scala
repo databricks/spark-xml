@@ -26,27 +26,40 @@ import org.apache.spark.sql.types._
 private[xml] object StaxXmlGenerator {
   /** Transforms a single Row to XML
     *
-    * @param rowSchema the schema object used for conversion
+    * @param schema the schema object used for conversion
     * @param row The row to convert
     * @param writer a XML writer object
     * @param nullValue replacement for null.
     */
-  def apply(rowSchema: StructType,
+  def apply(schema: StructType,
             tag: String,
             writer: IndentingXMLStreamWriter,
-            nullValue: String)(row: Row): Unit = {
+            nullValue: String,
+            attributePrefix: String,
+            valueTag: String)(row: Row): Unit = {
     def writeChild(name: String, vt: DataType, v: Any): Unit = {
-      (vt, v) match {
-        case (ArrayType(ty, _), v: Seq[_]) =>
-          v.foreach { e =>
+      if (name.startsWith(attributePrefix)) {
+        (vt, v) match {
+          case (_, null) | (NullType, _) =>
+            writer.writeAttribute(name.substring(1), nullValue)
+          case _ =>
+            writer.writeAttribute(name.substring(1), v.toString)
+        }
+      } else if (name == valueTag) {
+        writeElement(vt, v)
+      } else {
+        (vt, v) match {
+          case (ArrayType(ty, _), v: Seq[_]) =>
+            v.foreach { e =>
+              writer.writeStartElement(name)
+              writeElement(ty, e)
+              writer.writeEndElement()
+            }
+          case _ =>
             writer.writeStartElement(name)
-            writeElement(ty, e)
+            writeElement(vt, v)
             writer.writeEndElement()
-          }
-        case _ =>
-          writer.writeStartElement(name)
-          writeElement(vt, v)
-          writer.writeEndElement()
+        }
       }
     }
 
@@ -89,10 +102,23 @@ private[xml] object StaxXmlGenerator {
 
       case (dt, v) =>
         sys.error(
-          s"Failed to convert value $v (class of ${v.getClass}}) with the type of $dt to XML.")
+          s"Failed to convert value $v (class of ${v.getClass}}) in type $dt to XML.")
     }
+
+    val (attributes, elements) = schema.zip(row.toSeq).partition {
+      case (f, v) => f.name.startsWith(attributePrefix)
+    }
+    // Writing attributes
     writer.writeStartElement(tag)
-    writeElement(rowSchema, row)
+    attributes.foreach {
+      case (f, v) =>
+        writer.writeAttribute(f.name.substring(1), v.toString)
+    }
+    // Writing elements
+    val (names, values) = elements.unzip
+    val elementSchema = StructType(schema.filter(names.contains))
+    val elementRow = Row.fromSeq(row.toSeq.filter(values.contains))
+    writeElement(elementSchema, elementRow)
     writer.writeEndElement()
   }
 }
