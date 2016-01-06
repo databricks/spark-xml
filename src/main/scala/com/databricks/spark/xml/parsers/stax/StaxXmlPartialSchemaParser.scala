@@ -75,10 +75,7 @@ private[xml] object StaxXmlPartialSchemaParser {
     }
   }
 
-  /**
-   * Infer Spark-type from string value.
-   */
-  def inferTypeFromString(value: String): DataType = {
+  private def inferTypeFromString(value: String): DataType = {
     if (Option(value).isEmpty) {
       NullType
     } else if (isLong(value)) {
@@ -132,16 +129,16 @@ private[xml] object StaxXmlPartialSchemaParser {
   /**
    * Infer the type of a xml document from the parser's token stream
    */
-  def inferObject(parser: XMLEventReader,
+  private def inferObject(parser: XMLEventReader,
                   conf: StaxConfiguration,
                   rootAttributes: Array[Attribute] = Array()): DataType = {
-    def toFieldsZipValues(attributes: Array[Attribute]): Seq[(String, String)] = {
+    def toValuesMap(attributes: Array[Attribute]): Map[String, String] = {
       if (conf.excludeAttributeFlag){
-        Seq()
+        Map.empty[String, String]
       } else {
         val attrFields = attributes.map(conf.attributePrefix + _.getName.getLocalPart)
         val attrDataTypes = attributes.map(_.getValue)
-        attrFields.zip(attrDataTypes)
+        attrFields.zip(attrDataTypes).toMap
       }
     }
 
@@ -152,13 +149,13 @@ private[xml] object StaxXmlPartialSchemaParser {
       parser.nextEvent match {
         case e: StartElement =>
           // If there are attributes, then we should process them first.
-          toFieldsZipValues(rootAttributes).foreach {
+          toValuesMap(rootAttributes).foreach {
             case (f, v) =>
               nameToDataTypes += (f -> ArrayBuffer(inferTypeFromString(v)))
           }
-          val fieldsZipValues = {
+          val valuesMap = {
             val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
-            toFieldsZipValues(attributes)
+            toValuesMap(attributes)
           }
           val field = e.asStartElement.getName.getLocalPart
           val inferredType = inferField(parser, conf)
@@ -166,17 +163,17 @@ private[xml] object StaxXmlPartialSchemaParser {
             case st: StructType =>
               val nestedBuilder = Seq.newBuilder[StructField]
               nestedBuilder ++= st.fields
-              fieldsZipValues.foreach {
+              valuesMap.foreach {
                 case (f, v) =>
                   nestedBuilder += StructField(f, inferTypeFromString(v), nullable = true)
               }
               val dataTypes = nameToDataTypes.getOrElse(field, ArrayBuffer.empty[DataType])
               dataTypes += StructType(nestedBuilder.result().sortBy(_.name))
               nameToDataTypes += (field -> dataTypes)
-            case _ if fieldsZipValues.nonEmpty =>
+            case _ if valuesMap.nonEmpty =>
               // We need to wrap the attributes with a wrapper.
               val nestedBuilder = Seq.newBuilder[StructField]
-              fieldsZipValues.foreach {
+              valuesMap.foreach {
                 case (f, v) =>
                   nestedBuilder += StructField(f, inferTypeFromString(v), nullable = true)
               }

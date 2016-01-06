@@ -223,6 +223,26 @@ private[xml] object StaxXmlParser {
   }
 
   /**
+   * Convert string values to required data type.
+   */
+  private def convertValues(valuesMap: Map[String, String],
+                            schema: StructType): Map[String, Any] = {
+    val target = collection.mutable.Map.empty[String, Any]
+    valuesMap.foreach {
+      case (f, v) =>
+        val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+        nameToIndex.get(f) match {
+          case Some(i) =>
+            target(f) = convertStringTo(v, schema(i).dataType)
+          case _ =>
+            // This will eventually emits `XMLStreamException`.
+            logger.error(s"The field ('$f') does not exist in schema")
+        }
+    }
+    Map(target.toSeq: _*)
+  }
+
+  /**
    * Parse an object from the token stream into a new Row representing the schema.
    * Fields in the xml that are not defined in the requested schema will be dropped.
    */
@@ -230,27 +250,13 @@ private[xml] object StaxXmlParser {
                             schema: StructType,
                             conf: StaxConfiguration,
                             rootAttributes: Array[Attribute] = Array()): Row = {
-    def toFieldsZipValues(attributes: Array[Attribute]): Seq[(String, String)] = {
+    def toValuesMap(attributes: Array[Attribute]): Map[String, String] = {
       if (conf.excludeAttributeFlag) {
-        Seq()
+        Map.empty[String, String]
       } else {
         val attrFields = attributes.map(conf.attributePrefix + _.getName.getLocalPart)
         val attrValues = attributes.map(_.getValue)
-        attrFields.zip(attrValues)
-      }
-    }
-
-    def writeAttribute(attributes: Seq[(String, String)], row: Array[Any]): Unit = {
-      attributes.foreach {
-        case (f, v) =>
-          schema.map(_.name).zipWithIndex.toMap.get(f) match {
-            case Some(i) =>
-              val dt = schema(i).dataType
-              row(i) = convertStringTo(v, dt)
-            case _ =>
-              // This will eventually emits `XMLStreamException`.
-              logger.error(s"The field ('$f') does not exist in schema")
-          }
+        attrFields.zip(attrValues).toMap
       }
     }
 
@@ -259,14 +265,13 @@ private[xml] object StaxXmlParser {
     while (!shouldStop) {
         parser.nextEvent match {
         case e: StartElement =>
-          // If there are attributes, then we should process them first.
-          writeAttribute(toFieldsZipValues(rootAttributes), row)
-          val fieldsZipValues = {
-            val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
-            toFieldsZipValues(attributes)
-          }
-          // Set values for root-attributes first to the row.
           val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+          // If there are attributes, then we process them first.
+          convertValues(toValuesMap(rootAttributes), schema).toSeq.foreach {
+            case (f, v) =>
+              row(nameToIndex(f)) = v
+          }
+          val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           // Set elements and other attributes to the row
           val field = e.asStartElement.getName.getLocalPart
           nameToIndex.get(field) match {
@@ -278,9 +283,11 @@ private[xml] object StaxXmlParser {
                   // So, we first need to find the field name that has the real value and then push
                   // the value.
                   row(index) = {
-                    val valuesMap = createValuesMap(st, fieldsZipValues)
-                    val dataType = st.find(_.name == conf.valueTag).get.dataType
-                    val value = convertField(parser, dataType, conf)
+                    val valuesMap = convertValues(toValuesMap(attributes), st)
+                    val value = {
+                      val dataType = st.filter(_.name == conf.valueTag).head.dataType
+                      convertField(parser, dataType, conf)
+                    }
                     // The attributes are sorted therefore `TreeMap` is used.
                     val row = (TreeMap(conf.valueTag -> value) ++ valuesMap).values.toSeq
                     Row.fromSeq(row)
@@ -295,8 +302,11 @@ private[xml] object StaxXmlParser {
                   }
                   row(index) = elements
                 case _: StructType =>
-                  // If there are attributes, then we should process them first.
-                  writeAttribute(fieldsZipValues, row)
+                  // If there are attributes, then we process them first.
+                  convertValues(toValuesMap(attributes), schema).toSeq.foreach {
+                    case (f, v) =>
+                      row(nameToIndex(f)) = v
+                  }
                   row(index) = convertField(parser, dataType, conf)
                 case _ =>
                   row(index) = convertField(parser, dataType, conf)
@@ -312,22 +322,5 @@ private[xml] object StaxXmlParser {
       }
     }
     Row.fromSeq(row)
-  }
-
-  private def createValuesMap(schema: StructType,
-                              fieldsZipValues: Seq[(String, String)]): Map[String, Any] = {
-    val valuesMap = collection.mutable.Map.empty[String, Any]
-    fieldsZipValues.foreach {
-      case (f, v) =>
-        val nestedNameToIndex = schema.map(_.name).zipWithIndex.toMap
-        nestedNameToIndex.get(f) match {
-          case Some(i) =>
-            valuesMap(f) = convertStringTo(v, schema(i).dataType)
-          case _ =>
-            // This will eventually emits `XMLStreamException`.
-            logger.error(s"The field ('$f') does not exist in schema")
-        }
-    }
-    Map(valuesMap.toSeq: _*)
   }
 }
