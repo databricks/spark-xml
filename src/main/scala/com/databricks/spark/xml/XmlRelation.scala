@@ -17,6 +17,7 @@ package com.databricks.spark.xml
 
 import java.io.IOException
 
+import com.databricks.spark.xml.parsers.stax.{StaxXmlParser, StaxConfiguration, StaxXmlPartialSchemaParser}
 import org.apache.hadoop.fs.Path
 import org.slf4j.LoggerFactory
 
@@ -24,7 +25,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.sources.{InsertableRelation, BaseRelation, TableScan}
 import org.apache.spark.sql.types._
-import com.databricks.spark.xml.parsers.dom._
 import com.databricks.spark.xml.util.InferSchema
 
 case class XmlRelation protected[spark] (
@@ -34,6 +34,8 @@ case class XmlRelation protected[spark] (
     excludeAttributeFlag: Boolean,
     treatEmptyValuesAsNulls: Boolean,
     failFastFlag: Boolean,
+    attributePrefix: String,
+    valueTag: String,
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
   extends BaseRelation
   with InsertableRelation
@@ -41,16 +43,18 @@ case class XmlRelation protected[spark] (
 
   private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
-  private val parseConf = DomConfiguration(
+  private val parseConf = StaxConfiguration(
     excludeAttributeFlag,
     treatEmptyValuesAsNulls,
-    failFastFlag
+    failFastFlag,
+    attributePrefix,
+    valueTag
   )
 
   override val schema: StructType = {
     Option(userSchema).getOrElse {
       InferSchema.infer(
-        DomXmlPartialSchemaParser.parse(
+        StaxXmlPartialSchemaParser.parse(
           baseRDD(),
           samplingRatio,
           parseConf))
@@ -58,7 +62,7 @@ case class XmlRelation protected[spark] (
   }
 
   override def buildScan: RDD[Row] = {
-    DomXmlParser.parse(
+    StaxXmlParser.parse(
       baseRDD(),
       schema,
       parseConf)

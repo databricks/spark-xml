@@ -69,6 +69,9 @@ class DefaultSource
 
     val rowTag = parameters.getOrElse("rowTag", XmlFile.DEFAULT_ROW_TAG)
 
+    val attributePrevix = parameters.getOrElse("attributePrefix", XmlFile.DEFAULT_ATTRIBUTE_PREFIX)
+    val valueTag = parameters.getOrElse("valueTag", XmlFile.DEFAULT_VALUE_TAG)
+
     val failFast = parameters.getOrElse("failFast", "false")
     val failFastFlag = checkedCastToBoolean(failFast, "failFast")
 
@@ -86,6 +89,8 @@ class DefaultSource
       excludeAttributeFlag,
       treatEmptyValuesAsNullsFlag,
       failFastFlag,
+      attributePrevix,
+      valueTag,
       schema)(sqlContext)
   }
 
@@ -115,7 +120,6 @@ class DefaultSource
       // Only save data when the save mode is not ignore.
       data.saveAsXmlFile(path, parameters)
     }
-
     createRelation(sqlContext, parameters, data.schema)
   }
 }
