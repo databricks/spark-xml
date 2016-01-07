@@ -210,12 +210,9 @@ private[xml] object StaxXmlParser {
     valuesMap.foreach {
       case (f, v) =>
         val nameToIndex = schema.map(_.name).zipWithIndex.toMap
-        nameToIndex.get(f) match {
-          case Some(i) =>
+        nameToIndex.get(f).foreach {
+          case i =>
             target(f) = convertStringTo(v, schema(i).dataType)
-          case _ =>
-            // This will eventually emits `XMLStreamException`.
-            logger.error(s"The field ('$f') does not exist in schema")
         }
     }
     Map(target.toSeq: _*)
@@ -253,8 +250,8 @@ private[xml] object StaxXmlParser {
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           // Set elements and other attributes to the row
           val field = e.asStartElement.getName.getLocalPart
-          nameToIndex.get(field) match {
-            case Some(index) =>
+          nameToIndex.get(field).foreach {
+            case index =>
               val dataType = schema(index).dataType
               dataType match {
                 case st: StructType if st.exists(_.name == conf.valueTag) =>
@@ -290,9 +287,6 @@ private[xml] object StaxXmlParser {
                 case _ =>
                   row(index) = convertField(parser, dataType, conf)
               }
-            case _ =>
-              // This will eventually emits `XMLStreamException`.
-              logger.error(s"The field ('$field') does not exist in schema")
           }
         case _: EndElement =>
           shouldStop = checkEndElement(parser, conf)

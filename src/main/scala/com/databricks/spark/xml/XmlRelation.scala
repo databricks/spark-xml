@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
-import org.apache.spark.sql.sources.{InsertableRelation, BaseRelation, TableScan}
+import org.apache.spark.sql.sources.{PrunedScan, InsertableRelation, BaseRelation, TableScan}
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.InferSchema
 import com.databricks.spark.xml.parsers.{StaxXmlParser, StaxConfiguration}
@@ -39,7 +39,8 @@ case class XmlRelation protected[spark] (
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
   extends BaseRelation
   with InsertableRelation
-  with TableScan {
+  with TableScan
+  with PrunedScan {
 
   private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
@@ -64,6 +65,22 @@ case class XmlRelation protected[spark] (
     StaxXmlParser.parse(
       baseRDD(),
       schema,
+      parseConf)
+  }
+
+
+  override def buildScan(requiredColumns: Array[String]): RDD[Row] = {
+    val requiredFields = StructType(requiredColumns.map(schema(_))).fields
+    val safeRequiredFields = if (!parseConf.failFastFlag) {
+      // If `parseConf` is disabled, then it needs to parse all the values
+      // so that we can decide which row is malformed.
+      requiredFields ++ schema.fields.filterNot(requiredFields.contains(_))
+    } else {
+      requiredFields
+    }
+    StaxXmlParser.parse(
+      baseRDD(),
+      StructType(safeRequiredFields),
       parseConf)
   }
 
