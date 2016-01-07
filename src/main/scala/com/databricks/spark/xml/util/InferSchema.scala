@@ -28,8 +28,8 @@ import scala.collection.JavaConversions._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.TypeCast._
-import com.databricks.spark.xml.parsers.stax.StaxXmlParser._
-import com.databricks.spark.xml.parsers.stax.StaxConfiguration
+import com.databricks.spark.xml.parsers.StaxConfiguration
+import com.databricks.spark.xml.parsers.StaxXmlParser._
 
 private[xml] object InferSchema {
   private val logger = LoggerFactory.getLogger(InferSchema.getClass)
@@ -117,30 +117,23 @@ private[xml] object InferSchema {
   }
 
   private def inferTypeFromString(value: String): DataType = {
-    if (Option(value).isEmpty) {
-      NullType
-    } else if (isLong(value)) {
-      LongType
-    } else if (isInteger(value)) {
-      IntegerType
-    } else if (isDouble(value)) {
-      DoubleType
-    } else if (isBoolean(value)) {
-      BooleanType
-    } else if (isTimestamp(value)) {
-      TimestampType
-    } else {
-      StringType
+    Option(value) match {
+      case Some(v) if v.isEmpty => NullType
+      case Some(v) if isLong(v) => LongType
+      case Some(v) if isInteger(v) => IntegerType
+      case Some(v) if isDouble(v) => DoubleType
+      case Some(v) if isBoolean(v) => BooleanType
+      case Some(v) if isTimestamp(v) => TimestampType
+      case Some(v) => StringType
+      case None => NullType
     }
   }
 
   private def inferField(parser: XMLEventReader, conf: StaxConfiguration): DataType = {
     val current = parser.peek
     current match {
-      case _: EndElement =>
-        NullType
-      case _: StartElement =>
-        inferObject(parser, conf)
+      case _: EndElement => NullType
+      case _: StartElement => inferObject(parser, conf)
       case c: Characters if !c.isIgnorableWhiteSpace && c.isWhiteSpace =>
         // When `Characters` is found, we need to look further to decide
         // if this is really data or space between other elements.
@@ -149,14 +142,9 @@ private[xml] object InferSchema {
           parser.peek
         }
         next match {
-          case _: EndElement =>
-            if (conf.treatEmptyValuesAsNulls) {
-              NullType
-            } else {
-              StringType
-            }
-          case _: StartElement =>
-            inferObject(parser, conf)
+          case _: EndElement if conf.treatEmptyValuesAsNulls => NullType
+          case _: EndElement => StringType
+          case _: StartElement => inferObject(parser, conf)
         }
       case c: Characters if !c.isIgnorableWhiteSpace && !c.isWhiteSpace =>
         // This means data exists

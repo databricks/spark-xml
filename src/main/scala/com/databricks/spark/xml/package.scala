@@ -18,13 +18,14 @@ package com.databricks.spark
 import java.io.CharArrayWriter
 import javax.xml.stream.XMLOutputFactory
 
+import com.databricks.spark.xml.parsers.StaxXmlGenerator
+
 import scala.collection.Map
 
 import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter
 import org.apache.hadoop.io.compress.CompressionCodec
 
 import org.apache.spark.sql.{DataFrame, SQLContext}
-import com.databricks.spark.xml.parsers.stax.StaxXmlGenerator
 import com.databricks.spark.xml.util.XmlFile
 
 package object xml {

@@ -17,7 +17,6 @@ package com.databricks.spark.xml
 
 import java.io.IOException
 
-import com.databricks.spark.xml.parsers.stax.{StaxXmlParser, StaxConfiguration}
 import org.apache.hadoop.fs.Path
 import org.slf4j.LoggerFactory
 
@@ -26,6 +25,7 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.sources.{InsertableRelation, BaseRelation, TableScan}
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.InferSchema
+import com.databricks.spark.xml.parsers.{StaxXmlParser, StaxConfiguration}
 
 case class XmlRelation protected[spark] (
     baseRDD: () => RDD[String],

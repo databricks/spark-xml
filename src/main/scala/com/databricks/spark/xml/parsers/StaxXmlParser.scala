@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.databricks.spark.xml.parsers.stax
+package com.databricks.spark.xml.parsers
 
 import java.io.ByteArrayInputStream
 import javax.xml.stream.events.{Attribute, XMLEvent}
@@ -124,15 +124,11 @@ private[xml] object StaxXmlParser {
   private[xml] def convertField(parser: XMLEventReader,
                                  dataType: DataType,
                                  conf: StaxConfiguration): Any = {
-    def convertComplicatedType(dataType: DataType) = dataType match {
-      case dt: StructType =>
-        convertObject(parser, dt, conf)
-      case MapType(StringType, vt, _) =>
-        convertMap(parser, vt, conf)
-      case ArrayType(st, _) =>
-        convertField(parser, st, conf)
-      case udt: UserDefinedType[_] =>
-        convertField(parser, udt.sqlType, conf)
+    def convertComplicatedType: DataType => Any = {
+      case dt: StructType => convertObject(parser, dt, conf)
+      case MapType(StringType, vt, _) => convertMap(parser, vt, conf)
+      case ArrayType(st, _) => convertField(parser, st, conf)
+      case udt: UserDefinedType[_] => convertField(parser, udt.sqlType, conf)
     }
 
     val current = parser.peek
@@ -160,42 +156,18 @@ private[xml] object StaxXmlParser {
 
   private def convertStringTo(value: String, dataType: DataType): Any = {
     dataType match {
-      case LongType =>
-        signSafeToLong(value)
-
-      case DoubleType =>
-        signSafeToDouble(value)
-
-      case BooleanType =>
-        castTo(value, BooleanType)
-
-      case StringType =>
-        castTo(value, StringType)
-
-      case DateType =>
-        castTo(value, DateType)
-
-      case TimestampType =>
-        castTo(value, TimestampType)
-
-      case FloatType =>
-        signSafeToFloat(value)
-
-      case ByteType =>
-        castTo(value, ByteType)
-
-      case ShortType =>
-        castTo(value, ShortType)
-
-      case IntegerType =>
-        signSafeToInt(value)
-
-      case dt: DecimalType =>
-        castTo(value, new DecimalType(None))
-
-      case NullType =>
-        null
-
+      case LongType => signSafeToLong(value)
+      case DoubleType => signSafeToDouble(value)
+      case BooleanType => castTo(value, BooleanType)
+      case StringType => castTo(value, StringType)
+      case DateType => castTo(value, DateType)
+      case TimestampType => castTo(value, TimestampType)
+      case FloatType => signSafeToFloat(value)
+      case ByteType => castTo(value, ByteType)
+      case ShortType => castTo(value, ShortType)
+      case IntegerType => signSafeToInt(value)
+      case dt: DecimalType => castTo(value, new DecimalType(None))
+      case NullType => null
       case dataType =>
         sys.error(s"Failed to parse a value for data type $dataType.")
     }
