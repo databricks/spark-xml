@@ -17,7 +17,7 @@ package com.databricks.spark.xml
 
 import java.io.IOException
 
-import com.databricks.spark.xml.parsers.stax.{StaxXmlParser, StaxConfiguration, StaxXmlPartialSchemaParser}
+import com.databricks.spark.xml.parsers.stax.{StaxXmlParser, StaxConfiguration}
 import org.apache.hadoop.fs.Path
 import org.slf4j.LoggerFactory
 
@@ -48,16 +48,15 @@ case class XmlRelation protected[spark] (
     treatEmptyValuesAsNulls,
     failFastFlag,
     attributePrefix,
-    valueTag
+    valueTag,
+    samplingRatio
   )
 
   override val schema: StructType = {
     Option(userSchema).getOrElse {
       InferSchema.infer(
-        StaxXmlPartialSchemaParser.parse(
-          baseRDD(),
-          samplingRatio,
-          parseConf))
+        baseRDD(),
+        parseConf)
     }
   }
 

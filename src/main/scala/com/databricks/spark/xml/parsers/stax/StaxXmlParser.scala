@@ -20,7 +20,6 @@ import javax.xml.stream.events.{Attribute, XMLEvent}
 import javax.xml.stream.events._
 import javax.xml.stream.{XMLStreamException, XMLStreamConstants, XMLEventReader, XMLInputFactory}
 
-import scala.collection.Seq
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConversions._
@@ -41,7 +40,8 @@ private[xml] case class StaxConfiguration(
   treatEmptyValuesAsNulls: Boolean = false,
   failFastFlag: Boolean = false,
   attributePrefix: String = XmlFile.DEFAULT_ATTRIBUTE_PREFIX,
-  valueTag: String = XmlFile.DEFAULT_VALUE_TAG)
+  valueTag: String = XmlFile.DEFAULT_VALUE_TAG,
+  samplingRatio: Double = 1.0)
 
 /**
  * Wraps parser to iteration process.
