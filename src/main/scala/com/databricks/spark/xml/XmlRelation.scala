@@ -76,8 +76,8 @@ case class XmlRelation protected[spark] (
       buildScan
     } else {
       val safeRequiredFields = if (!parseConf.failFastFlag) {
-        // If `parseConf` is disabled, then it needs to parse all the values
-        // so that we can decide which row is malformed.
+        // If `failFast` is disabled, then it needs to parse all the values
+        // so that we can drop malformed rows.
         requiredFields ++ schemaFields.filterNot(requiredFields.contains(_))
       } else {
         requiredFields
