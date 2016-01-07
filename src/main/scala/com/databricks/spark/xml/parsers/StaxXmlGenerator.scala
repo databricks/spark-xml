@@ -39,28 +39,27 @@ private[xml] object StaxXmlGenerator {
             attributePrefix: String,
             valueTag: String)(row: Row): Unit = {
     def writeChild(name: String, vt: DataType, v: Any): Unit = {
-      if (name.startsWith(attributePrefix)) {
-        (vt, v) match {
-          case (_, null) | (NullType, _) =>
-            writer.writeAttribute(name.substring(1), nullValue)
-          case _ =>
-            writer.writeAttribute(name.substring(1), v.toString)
-        }
-      } else if (name == valueTag) {
-        writeElement(vt, v)
-      } else {
-        (vt, v) match {
-          case (ArrayType(ty, _), v: Seq[_]) =>
-            v.foreach { e =>
-              writer.writeStartElement(name)
-              writeElement(ty, e)
-              writer.writeEndElement()
-            }
-          case _ =>
+      (vt, v) match {
+        // If this is meant to be attribute, write an attribute
+        case (_, null) | (NullType, _) if name.startsWith(attributePrefix) =>
+          writer.writeAttribute(name.substring(1), nullValue)
+        case _ if name.startsWith(attributePrefix) =>
+          writer.writeAttribute(name.substring(1), v.toString)
+        // If this is meant to be value but in no child, write only a value
+        case _ if name == valueTag =>
+          writeElement(vt, v)
+        // For ArrayType, we just need to write each as XML element.
+        case (ArrayType(ty, _), v: Seq[_]) =>
+          v.foreach { e =>
             writer.writeStartElement(name)
-            writeElement(vt, v)
+            writeElement(ty, e)
             writer.writeEndElement()
-        }
+          }
+        // For other datatypes, we just write normal elements.
+        case _ =>
+          writer.writeStartElement(name)
+          writeElement(vt, v)
+          writer.writeEndElement()
       }
     }
 

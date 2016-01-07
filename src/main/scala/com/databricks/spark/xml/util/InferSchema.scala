@@ -220,7 +220,8 @@ private[xml] object InferSchema {
           shouldStop = shouldStop && parser.hasNext
       }
     }
-    // We need to manually merges all the [[ArrayType]]s.
+    // We need to manually merges the fields having the sames so that
+    // This can be inferred as ArrayType.
     nameToDataTypes.foreach{
       case (field, dataTypes) if dataTypes.length > 1 =>
         val elementType = dataTypes.reduceLeft(InferSchema.compatibleType)
