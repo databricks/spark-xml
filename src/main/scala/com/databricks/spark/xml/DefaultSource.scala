@@ -64,12 +64,9 @@ class DefaultSource
 
     // TODO Support different encoding types.
     val charset = parameters.getOrElse("charset", XmlFile.DEFAULT_CHARSET.name())
-
     val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
-
     val rowTag = parameters.getOrElse("rowTag", XmlFile.DEFAULT_ROW_TAG)
-
-    val attributePrevix = parameters.getOrElse("attributePrefix", XmlFile.DEFAULT_ATTRIBUTE_PREFIX)
+    val attributePrefix = parameters.getOrElse("attributePrefix", XmlFile.DEFAULT_ATTRIBUTE_PREFIX)
     val valueTag = parameters.getOrElse("valueTag", XmlFile.DEFAULT_VALUE_TAG)
 
     val failFast = parameters.getOrElse("failFast", "false")
@@ -89,7 +86,7 @@ class DefaultSource
       excludeAttributeFlag,
       treatEmptyValuesAsNullsFlag,
       failFastFlag,
-      attributePrevix,
+      attributePrefix,
       valueTag,
       schema)(sqlContext)
   }
