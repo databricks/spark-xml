@@ -70,18 +70,23 @@ case class XmlRelation protected[spark] (
 
 
   override def buildScan(requiredColumns: Array[String]): RDD[Row] = {
+    val schemaFields = schema.fields
     val requiredFields = StructType(requiredColumns.map(schema(_))).fields
-    val safeRequiredFields = if (!parseConf.failFastFlag) {
-      // If `parseConf` is disabled, then it needs to parse all the values
-      // so that we can decide which row is malformed.
-      requiredFields ++ schema.fields.filterNot(requiredFields.contains(_))
+    if (schemaFields.deep == requiredFields.deep) {
+      buildScan
     } else {
-      requiredFields
+      val safeRequiredFields = if (!parseConf.failFastFlag) {
+        // If `parseConf` is disabled, then it needs to parse all the values
+        // so that we can decide which row is malformed.
+        requiredFields ++ schemaFields.filterNot(requiredFields.contains(_))
+      } else {
+        requiredFields
+      }
+      StaxXmlParser.parse(
+        baseRDD(),
+        StructType(safeRequiredFields),
+        parseConf)
     }
-    StaxXmlParser.parse(
-      baseRDD(),
-      StructType(safeRequiredFields),
-      parseConf)
   }
 
   // The function below was borrowed from JSONRelation
