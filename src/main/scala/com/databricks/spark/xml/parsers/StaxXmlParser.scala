@@ -105,6 +105,9 @@ private[xml] object StaxXmlParser {
       case _: EndElement => true
       case _: StartElement => false
       case _: Characters =>
+        // When `Characters` is found here, we need to look further to decide
+        // if this is really `EndElement` because this can be whitespace between
+        // `EndElement` and `StartElement`.
         val next = {
           parser.nextEvent
           parser.peek
@@ -136,6 +139,8 @@ private[xml] object StaxXmlParser {
       case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
       case (_: EndElement, _: DataType) => null
       case (c: Characters, dt: DataType) if !c.isIgnorableWhiteSpace && c.isWhiteSpace =>
+        // When `Characters` is found, we need to look further to decide
+        // if this is really data or space between other elements.
         val next = {
           parser.nextEvent
           parser.peek
