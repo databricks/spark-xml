@@ -62,12 +62,12 @@ class DefaultSource
 
     val path = checkPath(parameters)
 
+    // TODO Support different encoding types.
     val charset = parameters.getOrElse("charset", XmlFile.DEFAULT_CHARSET.name())
-    // TODO validate charset?
-
     val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
-
     val rowTag = parameters.getOrElse("rowTag", XmlFile.DEFAULT_ROW_TAG)
+    val attributePrefix = parameters.getOrElse("attributePrefix", XmlFile.DEFAULT_ATTRIBUTE_PREFIX)
+    val valueTag = parameters.getOrElse("valueTag", XmlFile.DEFAULT_VALUE_TAG)
 
     val failFast = parameters.getOrElse("failFast", "false")
     val failFastFlag = checkedCastToBoolean(failFast, "failFast")
@@ -86,6 +86,8 @@ class DefaultSource
       excludeAttributeFlag,
       treatEmptyValuesAsNullsFlag,
       failFastFlag,
+      attributePrefix,
+      valueTag,
       schema)(sqlContext)
   }
 
@@ -115,7 +117,6 @@ class DefaultSource
       // Only save data when the save mode is not ignore.
       data.saveAsXmlFile(path, parameters)
     }
-
     createRelation(sqlContext, parameters, data.schema)
   }
 }

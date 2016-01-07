@@ -18,13 +18,14 @@ package com.databricks.spark
 import java.io.CharArrayWriter
 import javax.xml.stream.XMLOutputFactory
 
+import com.databricks.spark.xml.parsers.StaxXmlGenerator
+
 import scala.collection.Map
 
 import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter
 import org.apache.hadoop.io.compress.CompressionCodec
 
 import org.apache.spark.sql.{DataFrame, SQLContext}
-import com.databricks.spark.xml.parsers.stax.StaxXmlGenerator
 import com.databricks.spark.xml.util.XmlFile
 
 package object xml {
@@ -40,6 +41,8 @@ package object xml {
                  excludeAttributeFlag: Boolean = false,
                  treatEmptyValuesAsNulls: Boolean = false,
                  failFastFlag: Boolean = false,
+                 attributePrefix: String = XmlFile.DEFAULT_ATTRIBUTE_PREFIX,
+                 valueTag: String = XmlFile.DEFAULT_VALUE_TAG,
                  charset: String = XmlFile.DEFAULT_CHARSET.name()): DataFrame = {
 
       val xmlRelation = XmlRelation(
@@ -48,7 +51,9 @@ package object xml {
         samplingRatio = samplingRatio,
         excludeAttributeFlag = excludeAttributeFlag,
         treatEmptyValuesAsNulls = treatEmptyValuesAsNulls,
-        failFastFlag = failFastFlag)(sqlContext)
+        failFastFlag = failFastFlag,
+        attributePrefix = attributePrefix,
+        valueTag = valueTag)(sqlContext)
       sqlContext.baseRelationToDataFrame(xmlRelation)
     }
   }
@@ -76,6 +81,9 @@ package object xml {
       val nullValue = parameters.getOrElse("nullValue", "null")
       val rootTag = parameters.getOrElse("rootTag", XmlFile.DEFAULT_ROOT_TAG)
       val rowTag = parameters.getOrElse("rowTag", XmlFile.DEFAULT_ROW_TAG)
+      val attributePrefix =
+        parameters.getOrElse("attributePrefix", XmlFile.DEFAULT_ATTRIBUTE_PREFIX)
+      val valueTag = parameters.getOrElse("valueTag", XmlFile.DEFAULT_VALUE_TAG)
       val startElement = s"<$rootTag>"
       val endElement = s"</$rootTag>"
       val rowSchema = dataFrame.schema
@@ -102,7 +110,9 @@ package object xml {
                   rowSchema,
                   rowTag,
                   indentingXmlWriter,
-                  nullValue)(iter.next())
+                  nullValue,
+                  attributePrefix,
+                  valueTag)(iter.next())
                 writer.toString
               }
               writer.reset()

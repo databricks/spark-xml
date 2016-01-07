@@ -25,7 +25,6 @@ import scala.util.control.Exception._
 
 import org.apache.spark.sql.types._
 
-
 /**
  * Utility functions for type casting
  */

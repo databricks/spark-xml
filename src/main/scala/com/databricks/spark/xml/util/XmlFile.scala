@@ -26,6 +26,8 @@ import com.databricks.spark.xml.XmlInputFormat
 private[xml] object XmlFile {
   val DEFAULT_ROW_TAG = "ROW"
   val DEFAULT_ROOT_TAG = "ROWS"
+  val DEFAULT_ATTRIBUTE_PREFIX = "@"
+  val DEFAULT_VALUE_TAG = "#VALUE"
   val DEFAULT_INDENT = "    "
   val DEFAULT_CHARSET = Charset.forName("UTF-8")
   val DEFAULT_ROW_SEPARATOR = "\n"

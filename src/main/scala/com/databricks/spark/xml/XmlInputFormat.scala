@@ -35,7 +35,6 @@ class XmlInputFormat extends TextInputFormat {
 }
 
 object XmlInputFormat {
-
   /** configuration key for start tag */
   val START_TAG_KEY: String = "xmlinput.start"
   /** configuration key for end tag */

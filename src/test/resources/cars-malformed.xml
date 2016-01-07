@@ -4,12 +4,12 @@
         <year>2012</year>
         <make>Tesla</make>
         <model>>S
-        <comment>No orgment</comment>
+        <comment>No comment</comment>
     </ROW>
     <ROW>
         </year>
         <make>Ford</make>
-        <model>E350</model>
+        <model>E350</model>model></model>
         <comment>Go get one now they are going fast</comment>
     </ROW>
     <ROW>

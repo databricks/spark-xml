@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.databricks.spark.xml.parsers.stax
+package com.databricks.spark.xml.parsers
 
 import scala.collection.Map
 
@@ -24,25 +24,38 @@ import org.apache.spark.sql.types._
 
 // This class is borrowed from Spark json datasource.
 private[xml] object StaxXmlGenerator {
+
   /** Transforms a single Row to XML
     *
-    * @param rowSchema the schema object used for conversion
+    * @param schema the schema object used for conversion
     * @param row The row to convert
     * @param writer a XML writer object
     * @param nullValue replacement for null.
     */
-  def apply(rowSchema: StructType,
+  def apply(schema: StructType,
             tag: String,
             writer: IndentingXMLStreamWriter,
-            nullValue: String)(row: Row): Unit = {
+            nullValue: String,
+            attributePrefix: String,
+            valueTag: String)(row: Row): Unit = {
     def writeChild(name: String, vt: DataType, v: Any): Unit = {
       (vt, v) match {
+        // If this is meant to be attribute, write an attribute
+        case (_, null) | (NullType, _) if name.startsWith(attributePrefix) =>
+          writer.writeAttribute(name.substring(attributePrefix.size), nullValue)
+        case _ if name.startsWith(attributePrefix) =>
+          writer.writeAttribute(name.substring(attributePrefix.size), v.toString)
+        // If this is meant to be value but in no child, write only a value
+        case _ if name == valueTag =>
+          writeElement(vt, v)
+        // For ArrayType, we just need to write each as XML element.
         case (ArrayType(ty, _), v: Seq[_]) =>
           v.foreach { e =>
             writer.writeStartElement(name)
             writeElement(ty, e)
             writer.writeEndElement()
           }
+        // For other datatypes, we just write normal elements.
         case _ =>
           writer.writeStartElement(name)
           writeElement(vt, v)
@@ -89,10 +102,23 @@ private[xml] object StaxXmlGenerator {
 
       case (dt, v) =>
         sys.error(
-          s"Failed to convert value $v (class of ${v.getClass}}) with the type of $dt to XML.")
+          s"Failed to convert value $v (class of ${v.getClass}}) in type $dt to XML.")
     }
+
+    val (attributes, elements) = schema.zip(row.toSeq).partition {
+      case (f, v) => f.name.startsWith(attributePrefix)
+    }
+    // Writing attributes
     writer.writeStartElement(tag)
-    writeElement(rowSchema, row)
+    attributes.foreach {
+      case (f, v) =>
+        writer.writeAttribute(f.name.substring(attributePrefix.size), v.toString)
+    }
+    // Writing elements
+    val (names, values) = elements.unzip
+    val elementSchema = StructType(schema.filter(names.contains))
+    val elementRow = Row.fromSeq(row.toSeq.filter(values.contains))
+    writeElement(elementSchema, elementRow)
     writer.writeEndElement()
   }
 }

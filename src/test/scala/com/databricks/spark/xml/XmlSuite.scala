@@ -24,6 +24,7 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite}
 import org.apache.spark.{SparkException, SparkContext}
 import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.sql.types._
+import com.databricks.spark.xml.util.XmlFile._
 
 class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val tempEmptyDir = "target/test/empty/"
@@ -34,6 +35,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val booksNestedArrayFile = "src/test/resources/books-nested-array.xml"
   val booksComplicatedFile = "src/test/resources/books-complicated.xml"
   val carsFile = "src/test/resources/cars.xml"
+  val booksAttributesInNoChild = "src/test/resources/books-attributes-in-no-child.xml"
   val carsUnbalancedFile = "src/test/resources/cars-unbalanced-elements.xml"
   val carsMalformedFile = "src/test/resources/cars-malformed.xml"
   val nullNumbersFile = "src/test/resources/null-numbers.xml"
@@ -109,9 +111,8 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val results = new XmlReader()
       .withFailFast(false)
       .xmlFile(sqlContext, carsMalformedFile)
-      .count()
 
-    assert(results === 1)
+    assert(results.count() === 1)
   }
 
   test("DSL test for dropping malformed rows") {
@@ -141,14 +142,15 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
         .printSchema()
     }
     assert(exceptionInSchema.getMessage.contains("Malformed row (failing fast)"))
+
     // Fail fast in parsing data
     val schema = new StructType(
       Array(
-        StructField("color", IntegerType, true),
-        StructField("make", TimestampType, true),
-        StructField("model", DoubleType, true),
+        StructField("color", StringType, true),
+        StructField("make", StringType, true),
+        StructField("model", StringType, true),
         StructField("comment", StringType, true),
-        StructField("year", DoubleType, true)
+        StructField("year", StringType, true)
       )
     )
     val exceptionInParse = intercept[SparkException] {
@@ -239,7 +241,6 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       Map("rootTag" -> booksRootTag, "rowTag" -> booksTag))
 
     val booksCopy = sqlContext.xmlFile(copyFilePath + "/", rowTag = booksTag)
-
     assert(booksCopy.count == books.count)
     assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
   }
@@ -315,10 +316,10 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xmlFile(booksFile, rowTag = booksTag)
 
     assert(results.schema == StructType(List(
+      StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}id", StringType, nullable = true),
       StructField("author", StringType, nullable = true),
       StructField("description", StringType, nullable = true),
       StructField("genre", StringType, nullable = true),
-      StructField("id", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
       StructField("publish_date", StringType, nullable = true),
       StructField("title", StringType, nullable = true))
@@ -332,10 +333,10 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xmlFile(booksFile, rowTag = booksTag, samplingRatio = 0.5)
 
     assert(results.schema == StructType(List(
+      StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}id", StringType, nullable = true),
       StructField("author", StringType, nullable = true),
       StructField("description", StringType, nullable = true),
       StructField("genre", StringType, nullable = true),
-      StructField("id", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
       StructField("publish_date", StringType, nullable = true),
       StructField("title", StringType, nullable = true))
@@ -349,10 +350,10 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xmlFile(booksNestedObjectFile, rowTag = booksTag)
 
     assert(results.schema == StructType(List(
+      StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}id", StringType, nullable = true),
       StructField("author", StringType, nullable = true),
       StructField("description", StringType, nullable = true),
       StructField("genre", StringType, nullable = true),
-      StructField("id", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
       StructField("publish_dates", StructType(
         List(StructField("publish_date", StringType))), nullable = true),
@@ -367,10 +368,10 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xmlFile(booksNestedArrayFile, rowTag = booksTag)
 
     assert(results.schema == StructType(List(
+      StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}id", StringType, nullable = true),
       StructField("author", StringType, nullable = true),
       StructField("description", StringType, nullable = true),
       StructField("genre", StringType, nullable = true),
-      StructField("id", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
       StructField("publish_date", ArrayType(StringType), nullable = true),
       StructField("title", StringType, nullable = true))
@@ -384,25 +385,49 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xmlFile(booksComplicatedFile, rowTag = booksTag)
 
     assert(results.schema == StructType(List(
+      StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}id", StringType, nullable = true),
       StructField("author", StringType, nullable = true),
       StructField("genre", StructType(
         List(StructField("genreid", LongType),
           StructField("name", StringType))),
         nullable = true),
-      StructField("id", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
       StructField("publish_dates", StructType(
         List(StructField("publish_date",
             ArrayType(StructType(
-                List(StructField("day", LongType, nullable = true),
+                List(StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}tag", StringType, nullable = true),
+                  StructField("day", LongType, nullable = true),
                   StructField("month", LongType, nullable = true),
-                  StructField("tag", StringType, nullable = true),
                   StructField("year", LongType, nullable = true))))))),
         nullable = true),
       StructField("title", StringType, nullable = true))
     ))
 
     assert(results.collect().size === numBooksComplicated)
+  }
+
+  test("DSL test parsing and inferring attribute in elements having no child element") {
+    val attributePrefix = "@#"
+    val valueTag = "#@@value"
+    val results = new XmlReader()
+      .withRowTag(booksTag)
+      .withAttributePrefix(attributePrefix)
+      .withValueTag(valueTag)
+      .xmlFile(sqlContext, booksAttributesInNoChild)
+
+    val schema = StructType(List(
+      StructField(s"${attributePrefix}id", StringType, nullable = true),
+      StructField("author", StringType, nullable = true),
+      StructField("price", StructType(
+        List(StructField(valueTag, DoubleType, nullable = true),
+          StructField(s"${attributePrefix}unit", StringType, nullable = true))),
+        nullable = true),
+      StructField("publish_date", StringType, nullable = true),
+      StructField("title", StringType, nullable = true))
+    )
+
+    assert(results.schema === schema)
+    assert(results.count == numBooks)
   }
 
   test("DSL test schema (excluding tags) inferred correctly") {
@@ -461,7 +486,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .collect()
 
     assert(results.head.toSeq === Seq("alice", "35"))
-    assert(results(1).toSeq === Seq("bob", ""))
+    assert(results(1).toSeq === Seq("bob", "    "))
     assert(results(2).toSeq === Seq("coc", "24"))
   }
 

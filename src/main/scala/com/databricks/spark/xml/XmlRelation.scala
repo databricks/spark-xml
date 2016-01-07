@@ -24,8 +24,8 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.sources.{InsertableRelation, BaseRelation, TableScan}
 import org.apache.spark.sql.types._
-import com.databricks.spark.xml.parsers.dom._
 import com.databricks.spark.xml.util.InferSchema
+import com.databricks.spark.xml.parsers.{StaxXmlParser, StaxConfiguration}
 
 case class XmlRelation protected[spark] (
     baseRDD: () => RDD[String],
@@ -34,6 +34,8 @@ case class XmlRelation protected[spark] (
     excludeAttributeFlag: Boolean,
     treatEmptyValuesAsNulls: Boolean,
     failFastFlag: Boolean,
+    attributePrefix: String,
+    valueTag: String,
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
   extends BaseRelation
   with InsertableRelation
@@ -41,24 +43,25 @@ case class XmlRelation protected[spark] (
 
   private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
-  private val parseConf = DomConfiguration(
+  private val parseConf = StaxConfiguration(
+    samplingRatio,
     excludeAttributeFlag,
     treatEmptyValuesAsNulls,
-    failFastFlag
+    failFastFlag,
+    attributePrefix,
+    valueTag
   )
 
   override val schema: StructType = {
     Option(userSchema).getOrElse {
       InferSchema.infer(
-        DomXmlPartialSchemaParser.parse(
-          baseRDD(),
-          samplingRatio,
-          parseConf))
+        baseRDD(),
+        parseConf)
     }
   }
 
   override def buildScan: RDD[Row] = {
-    DomXmlParser.parse(
+    StaxXmlParser.parse(
       baseRDD(),
       schema,
       parseConf)
