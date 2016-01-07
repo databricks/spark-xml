@@ -171,7 +171,7 @@ private[xml] object StaxXmlParser {
       case ByteType => castTo(value, ByteType)
       case ShortType => castTo(value, ShortType)
       case IntegerType => signSafeToInt(value)
-      case dt: DecimalType => castTo(value, new DecimalType(None))
+      case _: DecimalType => castTo(value, new DecimalType(None))
       case NullType => null
       case dataType =>
         sys.error(s"Failed to parse a value for data type $dataType.")
