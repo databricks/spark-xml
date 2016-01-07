@@ -36,18 +36,20 @@ import com.databricks.spark.xml.util.XmlFile
  *  Configuration used during parsing.
  */
 private[xml] case class StaxConfiguration(
+  samplingRatio: Double = 1.0,
   excludeAttributeFlag: Boolean = false,
   treatEmptyValuesAsNulls: Boolean = false,
   failFastFlag: Boolean = false,
   attributePrefix: String = XmlFile.DEFAULT_ATTRIBUTE_PREFIX,
-  valueTag: String = XmlFile.DEFAULT_VALUE_TAG,
-  samplingRatio: Double = 1.0)
+  valueTag: String = XmlFile.DEFAULT_VALUE_TAG
+)
 
 /**
  * Wraps parser to iteration process.
  */
 private[xml] object StaxXmlParser {
   private val logger = LoggerFactory.getLogger(StaxXmlParser.getClass)
+
   def parse(xml: RDD[String],
             schema: StructType,
             conf: StaxConfiguration): RDD[Row] = {

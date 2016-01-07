@@ -62,8 +62,8 @@ class DefaultSource
 
     val path = checkPath(parameters)
 
+    // TODO Support different encoding types.
     val charset = parameters.getOrElse("charset", XmlFile.DEFAULT_CHARSET.name())
-    // TODO validate charset?
 
     val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
 

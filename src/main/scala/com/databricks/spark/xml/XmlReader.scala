@@ -24,15 +24,14 @@ import com.databricks.spark.xml.util.XmlFile
  * A collection of static functions for working with XML files in Spark SQL
  */
 class XmlReader extends Serializable {
-
   private var charset: String = XmlFile.DEFAULT_CHARSET.name()
   private var rowTag: String = XmlFile.DEFAULT_ROW_TAG
-  private var attributePrefix: String = XmlFile.DEFAULT_ATTRIBUTE_PREFIX
-  private var valueTag: String = XmlFile.DEFAULT_VALUE_TAG
   private var samplingRatio: Double = 1.0
   private var excludeAttributeFlag: Boolean = false
   private var treatEmptyValuesAsNulls: Boolean = false
   private var failFastFlag: Boolean = false
+  private var attributePrefix: String = XmlFile.DEFAULT_ATTRIBUTE_PREFIX
+  private var valueTag: String = XmlFile.DEFAULT_VALUE_TAG
   private var schema: StructType = null
 
   def withCharset(charset: String): XmlReader = {
@@ -42,16 +41,6 @@ class XmlReader extends Serializable {
 
   def withRowTag(rowTag: String): XmlReader = {
     this.rowTag = rowTag
-    this
-  }
-
-  def withAttributePrefix(attributePrefix: String): XmlReader = {
-    this.attributePrefix = attributePrefix
-    this
-  }
-
-  def withValueTag(valueTag: String): XmlReader = {
-    this.valueTag = valueTag
     this
   }
 
@@ -72,6 +61,16 @@ class XmlReader extends Serializable {
 
   def withFailFast(failFast: Boolean): XmlReader = {
     this.failFastFlag = failFast
+    this
+  }
+
+  def withAttributePrefix(attributePrefix: String): XmlReader = {
+    this.attributePrefix = attributePrefix
+    this
+  }
+
+  def withValueTag(valueTag: String): XmlReader = {
+    this.valueTag = valueTag
     this
   }
 

@@ -24,6 +24,7 @@ import org.apache.spark.sql.types._
 
 // This class is borrowed from Spark json datasource.
 private[xml] object StaxXmlGenerator {
+
   /** Transforms a single Row to XML
     *
     * @param schema the schema object used for conversion

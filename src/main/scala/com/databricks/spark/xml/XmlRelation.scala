@@ -44,12 +44,12 @@ case class XmlRelation protected[spark] (
   private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
   private val parseConf = StaxConfiguration(
+    samplingRatio,
     excludeAttributeFlag,
     treatEmptyValuesAsNulls,
     failFastFlag,
     attributePrefix,
-    valueTag,
-    samplingRatio
+    valueTag
   )
 
   override val schema: StructType = {
