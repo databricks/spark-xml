@@ -187,7 +187,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xmlFile(sqlContext, carsUnbalancedFile)
       .count()
 
-    assert(results === 3)
+    assert(results === numCars)
   }
 
   test("DDL test with empty file") {
@@ -463,7 +463,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xmlFile(sqlContext, carsUnbalancedFile)
       .count()
 
-    assert(results === 3)
+    assert(results === numCars)
   }
 
   test("DSL test inferred schema passed through") {

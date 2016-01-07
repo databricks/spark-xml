@@ -206,16 +206,16 @@ private[xml] object StaxXmlParser {
    */
   private def convertValues(valuesMap: Map[String, String],
                             schema: StructType): Map[String, Any] = {
-    val target = collection.mutable.Map.empty[String, Any]
+    val convertedValuesMap = collection.mutable.Map.empty[String, Any]
     valuesMap.foreach {
       case (f, v) =>
         val nameToIndex = schema.map(_.name).zipWithIndex.toMap
         nameToIndex.get(f).foreach {
           case i =>
-            target(f) = convertStringTo(v, schema(i).dataType)
+            convertedValuesMap(f) = convertStringTo(v, schema(i).dataType)
         }
     }
-    Map(target.toSeq: _*)
+    Map(convertedValuesMap.toSeq: _*)
   }
 
   /**
