@@ -186,34 +186,32 @@ private[xml] object InferSchema {
             val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
             toValuesMap(attributes)
           }
-          val field = e.asStartElement.getName.getLocalPart
-          val inferredType = inferField(parser, conf)
-          inferredType match {
+          val inferredType = inferField(parser, conf) match {
             case st: StructType =>
+              // Merge attributes to the field
               val nestedBuilder = Seq.newBuilder[StructField]
               nestedBuilder ++= st.fields
               valuesMap.foreach {
                 case (f, v) =>
                   nestedBuilder += StructField(f, inferTypeFromString(v), nullable = true)
               }
-              val dataTypes = nameToDataTypes.getOrElse(field, ArrayBuffer.empty[DataType])
-              dataTypes += StructType(nestedBuilder.result().sortBy(_.name))
-              nameToDataTypes += (field -> dataTypes)
-            case _ if valuesMap.nonEmpty =>
-              // We need to wrap the attributes with a wrapper.
+              StructType(nestedBuilder.result().sortBy(_.name))
+            case dt: DataType if valuesMap.nonEmpty =>
+              // We need to manually add the field for value.
               val nestedBuilder = Seq.newBuilder[StructField]
+              nestedBuilder += StructField(conf.valueTag, dt, nullable = true)
               valuesMap.foreach {
                 case (f, v) =>
                   nestedBuilder += StructField(f, inferTypeFromString(v), nullable = true)
               }
-              nestedBuilder += StructField(conf.valueTag, inferredType, nullable = true)
-              nameToDataTypes +=
-                (field -> ArrayBuffer(StructType(nestedBuilder.result().sortBy(_.name))))
-            case _ =>
-              val dataTypes = nameToDataTypes.getOrElse(field, ArrayBuffer.empty[DataType])
-              dataTypes += inferredType
-              nameToDataTypes += (field -> dataTypes)
+              StructType(nestedBuilder.result().sortBy(_.name))
+            case dt: DataType => dt
           }
+          // Add the field and datatypes so that we can check if this is ArrayType.
+          val field = e.asStartElement.getName.getLocalPart
+          val dataTypes = nameToDataTypes.getOrElse(field, ArrayBuffer.empty[DataType])
+          dataTypes += inferredType
+          nameToDataTypes += (field -> dataTypes)
         case _: EndElement =>
           shouldStop = checkEndElement(parser, conf)
         case _ =>

@@ -42,9 +42,9 @@ private[xml] object StaxXmlGenerator {
       (vt, v) match {
         // If this is meant to be attribute, write an attribute
         case (_, null) | (NullType, _) if name.startsWith(attributePrefix) =>
-          writer.writeAttribute(name.substring(1), nullValue)
+          writer.writeAttribute(name.substring(attributePrefix.size), nullValue)
         case _ if name.startsWith(attributePrefix) =>
-          writer.writeAttribute(name.substring(1), v.toString)
+          writer.writeAttribute(name.substring(attributePrefix.size), v.toString)
         // If this is meant to be value but in no child, write only a value
         case _ if name == valueTag =>
           writeElement(vt, v)
@@ -112,7 +112,7 @@ private[xml] object StaxXmlGenerator {
     writer.writeStartElement(tag)
     attributes.foreach {
       case (f, v) =>
-        writer.writeAttribute(f.name.substring(1), v.toString)
+        writer.writeAttribute(f.name.substring(attributePrefix.size), v.toString)
     }
     // Writing elements
     val (names, values) = elements.unzip
