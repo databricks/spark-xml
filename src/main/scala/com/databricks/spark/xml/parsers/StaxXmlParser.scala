@@ -271,7 +271,14 @@ private[xml] object StaxXmlParser {
                     val row = (TreeMap(conf.valueTag -> value) ++ valuesMap).values.toSeq
                     Row.fromSeq(row)
                   }
-                case ArrayType(st, _) =>
+                case _: StructType =>
+                  // If there are attributes, then we process them first.
+                  convertValues(toValuesMap(attributes), schema).toSeq.foreach {
+                    case (f, v) =>
+                      row(nameToIndex(f)) = v
+                  }
+                  row(index) = convertField(parser, dataType, conf)
+                case _: ArrayType =>
                   val elements = {
                     val values = Option(row(index))
                       .map(_.asInstanceOf[ArrayBuffer[Any]])
@@ -280,13 +287,6 @@ private[xml] object StaxXmlParser {
                     values :+ newValue
                   }
                   row(index) = elements
-                case _: StructType =>
-                  // If there are attributes, then we process them first.
-                  convertValues(toValuesMap(attributes), schema).toSeq.foreach {
-                    case (f, v) =>
-                      row(nameToIndex(f)) = v
-                  }
-                  row(index) = convertField(parser, dataType, conf)
                 case _ =>
                   row(index) = convertField(parser, dataType, conf)
               }

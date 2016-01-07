@@ -187,7 +187,7 @@ private[xml] object InferSchema {
             toValuesMap(attributes)
           }
           val inferredType = inferField(parser, conf) match {
-            case st: StructType =>
+            case st: StructType if valuesMap.nonEmpty =>
               // Merge attributes to the field
               val nestedBuilder = Seq.newBuilder[StructField]
               nestedBuilder ++= st.fields
