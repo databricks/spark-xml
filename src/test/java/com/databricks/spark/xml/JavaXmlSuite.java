@@ -18,6 +18,7 @@ package com.databricks.spark.xml;
 import java.io.File;
 import java.util.HashMap;
 
+import com.databricks.spark.xml.util.XmlFile;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -25,7 +26,6 @@ import org.junit.Test;
 
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.*;
-import com.databricks.spark.xml.util.XmlFile;
 
 public class JavaXmlSuite {
     private transient SQLContext sqlContext;
