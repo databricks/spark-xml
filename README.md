@@ -62,7 +62,7 @@ Currently it supports the shorten name useage. You can use just `xml` instead of
 Due to the structure differences between `DataFrame` and XML files, there are some conversion rules from XML data to `DataFrame` and from `DataFrame` to XML data. Note that hanlding attributes can be disbaled with the option `excludeAttribute`.
 
 
-### Reading from XML to `DataFrame`
+### Conversion from XML to `DataFrame`
 
 - __Attributes__: Attributes are converted as fields with heading prefix `attributePrefix`.
 
@@ -102,7 +102,7 @@ Due to the structure differences between `DataFrame` and XML files, there are so
      |-- three: string (nullable = true)
     ```
 
-### Writing from `DataFrame` to XML
+### Conversion from `DataFrame` to XML
 
 - __Array as an element in an array__:  Writing a XML file from `DataFrame` having a field `ArrayType` with its element as `ArrayType` would have an additional nested field for the element. This would not happen in reading and writing XML data but writing a `DataFrame` read from other sources. Therefore, roundtrip in reading and writing XML files has the same structure but writing a `DataFrame` read from other sources is possible to have a different structure.
 
