@@ -63,6 +63,85 @@ These examples use a XML file available for download [here](https://github.com/d
 $ wget https://github.com/databricks/spark-xml/raw/master/src/test/resources/books.xml
 ```
 
+
+## Structure Conversion
+
+Due to the structure differences between `DataFrame` and XML files, there are some conversion rules from XML data to `DataFrame` and from `DataFrame` to XML data. Note that the attributes hanlding can be disbaled with the option `excludeAttribute`.
+
+
+### Reading from XML to `DataFrame`
+
+- __Attributes__: Attributes are converted as fields with heading prefix `attributePrefix`.
+
+    ```xml
+    ...
+    <one myOneAttrib="AAAA">
+        <two>two</two>
+        <three>three</three>
+    </one>
+    ...
+    ```
+    produces the schema below:
+
+    ```
+    root
+     |-- @myOneAttrib: string (nullable = true)
+     |-- two: string (nullable = true)
+     |-- three: string (nullable = true)
+    ```
+
+- __Value in element that has no child elements but attributes__: The value is put in a separate field `valueTag`.
+
+    ```xml
+    ...
+    <one>
+        <two myTwoAttrib="BBBBB">two</two>
+        <three>three</three>
+    </one>
+    ...
+    ```
+    produces the schema below:
+    ```
+    root
+     |-- two: struct (nullable = true)
+     |    |-- #VALUE: string (nullable = true)
+     |    |-- @myTwoAttrib: string (nullable = true)
+     |-- three: string (nullable = true)
+    ```
+
+### Writing from `DataFrame` to XML
+
+- __Array as an element in an array__:  Writing a XML file from `DataFrame` having a field `ArrayType` with its element as `ArrayType` would have an additional nested field for the element. This would not happen in reading and writing XML data but writing a `DataFrame` read from other sources. Therefore, roundtrip in reading and writing XML files has the same structure but writing a `DataFrame` read from other sources is possible to have a different structure.
+
+    `DataFrame` with the schema below:
+    ```
+     |-- a: array (nullable = true)
+     |    |-- element: array (containsNull = true)
+     |    |    |-- element: string (containsNull = true)
+    ```
+
+    with the data below:
+    ```
+    +--------------------+
+    |                   a|
+    +--------------------+
+    |[WrappedArray(aa,bb)|
+    +--------------------+
+    ```
+
+    produces a XML file below:
+    ```xml
+    ...
+    <a>
+        <item>aa</item>
+        <item>bb</item>
+    </a>
+    ...
+    ```
+
+
+## Examples
+
 ### SQL API
 
 Spark-xml can infer data types:
