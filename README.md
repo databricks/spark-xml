@@ -40,7 +40,7 @@ This package allows reading XML files in local or distributed filesystem as [Spa
 When reading files the API accepts several options:
 * `path`: Location of files. Similar to Spark can accept standard Hadoop globbing expressions.
 * `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
-* `samplingRatio`: Sampling ratio for inferring schema (0.0 ~ 1). Default is 1. Possible types are `StructType`, `ArrayType`, `StringType`, `LongType`, `DoubleType` and `NullType`, unless user provides a schema for this.
+* `samplingRatio`: Sampling ratio for inferring schema (0.0 ~ 1). Default is 1. Possible types are `StructType`, `ArrayType`, `StringType`, `LongType`, `DoubleType`, `BooleanType`, `TimestampType` and `NullType`, unless user provides a schema for this.
 * `excludeAttribute` : Whether you want to exclude tags of elements as fields or not. Default is false.
 * `treatEmptyValuesAsNulls` : Whether you want to treat whitespaces as a null value. Default is false.
 * `failFast` : Whether you want to fail when it fails to parse malformed rows in XML files, instead of dropping the rows. Default is false.
@@ -56,6 +56,86 @@ When writing files the API accepts several options:
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `#VALUE`.
 
 Currently it supports the shorten name useage. You can use just `xml` instead of `com.databricks.spark.xml` from Spark 1.5.0+
+
+## Structure Conversion
+
+Due to the structure differences between `DataFrame` and XML, there are some conversion rules from XML data to `DataFrame` and from `DataFrame` to XML data. Note that hanlding attributes can be disbaled with the option `excludeAttribute`.
+
+
+### Conversion from XML to `DataFrame`
+
+- __Attributes__: Attributes are converted as fields with the heading prefix, `attributePrefix`.
+
+    ```xml
+    ...
+    <one myOneAttrib="AAAA">
+        <two>two</two>
+        <three>three</three>
+    </one>
+    ...
+    ```
+    produces a schema below:
+
+    ```
+    root
+     |-- @myOneAttrib: string (nullable = true)
+     |-- two: string (nullable = true)
+     |-- three: string (nullable = true)
+    ```
+
+- __Value in an element that has no child elements but attributes__: The value is put in a separate field, `valueTag`.
+
+    ```xml
+    ...
+    <one>
+        <two myTwoAttrib="BBBBB">two</two>
+        <three>three</three>
+    </one>
+    ...
+    ```
+    produces a schema below:
+    ```
+    root
+     |-- two: struct (nullable = true)
+     |    |-- #VALUE: string (nullable = true)
+     |    |-- @myTwoAttrib: string (nullable = true)
+     |-- three: string (nullable = true)
+    ```
+
+### Conversion from `DataFrame` to XML
+
+- __Element as an array in an array__:  Writing a XML file from `DataFrame` having a field `ArrayType` with its element as `ArrayType` would have an additional nested field for the element. This would not happen in reading and writing XML data but writing a `DataFrame` read from other sources. Therefore, roundtrip in reading and writing XML files has the same structure but writing a `DataFrame` read from other sources is possible to have a different structure.
+
+    `DataFrame` with a schema below:
+    ```
+     |-- a: array (nullable = true)
+     |    |-- element: array (containsNull = true)
+     |    |    |-- element: string (containsNull = true)
+    ```
+
+    with data below:
+    ```
+    +------------------------------------+
+    |                                   a|
+    +------------------------------------+
+    |[WrappedArray(aa), WrappedArray(bb)]|
+    +------------------------------------+
+    ```
+
+    produces a XML file below:
+    ```xml
+    ...
+    <a>
+        <item>aa</item>
+    </a>
+    <a>
+        <item>bb</item>
+    </a>
+    ...
+    ```
+
+
+## Examples
 
 These examples use a XML file available for download [here](https://github.com/databricks/spark-xml/raw/master/src/test/resources/books.xml):
 
