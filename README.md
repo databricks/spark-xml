@@ -93,7 +93,7 @@ Due to the structure differences between `DataFrame` and XML, there are some con
     </one>
     ...
     ```
-    produces the schema below:
+    produces a schema below:
     ```
     root
      |-- two: struct (nullable = true)
