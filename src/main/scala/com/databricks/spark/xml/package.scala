@@ -45,10 +45,10 @@ package object xml {
 
       val parameters = Map(
         "rowTag" -> rowTag,
-        "samplingRatio" -> samplingRatio,
-        "excludeAttribute" -> excludeAttributeFlag,
-        "treatEmptyValuesAsNulls" -> treatEmptyValuesAsNulls,
-        "failFast" -> failFastFlag,
+        "samplingRatio" -> samplingRatio.toString,
+        "excludeAttribute" -> excludeAttributeFlag.toString,
+        "treatEmptyValuesAsNulls" -> treatEmptyValuesAsNulls.toString,
+        "failFast" -> failFastFlag.toString,
         "attributePrefix" -> attributePrefix,
         "valueTag" -> valueTag,
         "charset" -> charset)

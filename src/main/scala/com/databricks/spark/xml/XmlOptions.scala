@@ -39,21 +39,18 @@ private[xml] object XmlOptions {
   val DEFAULT_CHARSET = "UTF-8"
   val DEFAULT_NULL_VALUE = "null"
 
-  def createFromConfigMap(confMap: Map[String, Any]): XmlOptions = {
-    val parameters = confMap.map(pair => pair._1 -> pair._2.toString)
-    XmlOptions(
-      // TODO Support different encoding types.
-      charset = parameters.getOrElse("charset", DEFAULT_CHARSET),
-      rowTag = parameters.getOrElse("rowTag", DEFAULT_ROW_TAG),
-      rootTag = parameters.getOrElse("rootTag", DEFAULT_ROOT_TAG),
-      samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0),
-      excludeAttributeFlag = parameters.get("excludeAttribute").map(_.toBoolean).getOrElse(false),
-      treatEmptyValuesAsNulls =
-        parameters.get("treatEmptyValuesAsNulls").map(_.toBoolean).getOrElse(false),
-      failFastFlag = parameters.get("failFast").map(_.toBoolean).getOrElse(false),
-      attributePrefix = parameters.getOrElse("attributePrefix", DEFAULT_ATTRIBUTE_PREFIX),
-      valueTag = parameters.getOrElse("valueTag", DEFAULT_VALUE_TAG),
-      nullValue = parameters.getOrElse("nullValue", DEFAULT_NULL_VALUE)
-    )
-  }
+  def createFromConfigMap(parameters: Map[String, String]): XmlOptions = XmlOptions(
+    // TODO Support different encoding types.
+    charset = parameters.getOrElse("charset", DEFAULT_CHARSET),
+    rowTag = parameters.getOrElse("rowTag", DEFAULT_ROW_TAG),
+    rootTag = parameters.getOrElse("rootTag", DEFAULT_ROOT_TAG),
+    samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0),
+    excludeAttributeFlag = parameters.get("excludeAttribute").map(_.toBoolean).getOrElse(false),
+    treatEmptyValuesAsNulls =
+      parameters.get("treatEmptyValuesAsNulls").map(_.toBoolean).getOrElse(false),
+    failFastFlag = parameters.get("failFast").map(_.toBoolean).getOrElse(false),
+    attributePrefix = parameters.getOrElse("attributePrefix", DEFAULT_ATTRIBUTE_PREFIX),
+    valueTag = parameters.getOrElse("valueTag", DEFAULT_VALUE_TAG),
+    nullValue = parameters.getOrElse("nullValue", DEFAULT_NULL_VALUE)
+  )
 }

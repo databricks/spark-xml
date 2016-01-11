@@ -30,7 +30,7 @@ import com.databricks.spark.xml.parsers.StaxXmlParser
 case class XmlRelation protected[spark] (
     baseRDD: () => RDD[String],
     location: Option[String],
-    parameters: Map[String, Any],
+    parameters: Map[String, String],
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
   extends BaseRelation
   with InsertableRelation

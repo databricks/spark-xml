@@ -24,7 +24,7 @@ import com.databricks.spark.xml.util.XmlFile
  * A collection of static functions for working with XML files in Spark SQL
  */
 class XmlReader extends Serializable {
-  private var parameters = collection.mutable.Map.empty[String, Any]
+  private var parameters = collection.mutable.Map.empty[String, String]
   private var schema: StructType = null
 
   def withCharset(charset: String): XmlReader = {
@@ -38,22 +38,22 @@ class XmlReader extends Serializable {
   }
 
   def withSamplingRatio(samplingRatio: Double): XmlReader = {
-    parameters += ("samplingRatio" -> samplingRatio)
+    parameters += ("samplingRatio" -> samplingRatio.toString)
     this
   }
 
   def withExcludeAttribute(exclude: Boolean): XmlReader = {
-    parameters += ("excludeAttribute" -> exclude)
+    parameters += ("excludeAttribute" -> exclude.toString)
     this
   }
 
   def withTreatEmptyValuesAsNulls(treatAsNull: Boolean): XmlReader = {
-    parameters += ("treatEmptyValuesAsNulls" -> treatAsNull)
+    parameters += ("treatEmptyValuesAsNulls" -> treatAsNull.toString)
     this
   }
 
   def withFailFast(failFast: Boolean): XmlReader = {
-    parameters += ("failFast" -> failFast)
+    parameters += ("failFast" -> failFast.toString)
     this
   }
 
@@ -75,8 +75,8 @@ class XmlReader extends Serializable {
   /** Returns a Schema RDD for the given XML path. */
   @throws[RuntimeException]
   def xmlFile(sqlContext: SQLContext, path: String): DataFrame = {
-    val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET).toString
-    val rowTag = parameters.getOrElse("rowTag", XmlOptions.DEFAULT_ROW_TAG).toString
+    val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
+    val rowTag = parameters.getOrElse("rowTag", XmlOptions.DEFAULT_ROW_TAG)
     val relation: XmlRelation = XmlRelation(
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
       Some(path),
