@@ -70,7 +70,8 @@ private[xml] object InferSchema {
    */
   def infer(xml: RDD[String],
             options: XmlOptions): StructType = {
-    require(options.samplingRatio > 0, s"samplingRatio ($options.samplingRatio) should be greater than 0")
+    require(options.samplingRatio > 0,
+      s"samplingRatio ($options.samplingRatio) should be greater than 0")
     val schemaData = if (options.samplingRatio > 0.99) {
       xml
     } else {
