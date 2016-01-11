@@ -25,7 +25,7 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.sources.{InsertableRelation, BaseRelation, TableScan}
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.InferSchema
-import com.databricks.spark.xml.parsers.{StaxXmlParser, StaxConfiguration}
+import com.databricks.spark.xml.parsers.{StaxXmlParser, XmlOptions}
 
 case class XmlRelation protected[spark] (
     baseRDD: () => RDD[String],
@@ -43,7 +43,7 @@ case class XmlRelation protected[spark] (
 
   private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
-  private val parseConf = StaxConfiguration(
+  private val parseConf = XmlOptions(
     samplingRatio,
     excludeAttributeFlag,
     treatEmptyValuesAsNulls,

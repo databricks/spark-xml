@@ -30,19 +30,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.TypeCast._
-import com.databricks.spark.xml.util.XmlFile
-
-/**
- *  Configuration used during parsing.
- */
-private[xml] case class StaxConfiguration(
-  samplingRatio: Double = 1.0,
-  excludeAttributeFlag: Boolean = false,
-  treatEmptyValuesAsNulls: Boolean = false,
-  failFastFlag: Boolean = false,
-  attributePrefix: String = XmlFile.DEFAULT_ATTRIBUTE_PREFIX,
-  valueTag: String = XmlFile.DEFAULT_VALUE_TAG
-)
 
 /**
  * Wraps parser to iteration process.
@@ -52,7 +39,7 @@ private[xml] object StaxXmlParser {
 
   def parse(xml: RDD[String],
             schema: StructType,
-            conf: StaxConfiguration): RDD[Row] = {
+            conf: XmlOptions): RDD[Row] = {
     val failFast = conf.failFastFlag
     xml.mapPartitions { iter =>
       iter.flatMap { xml =>
@@ -99,7 +86,7 @@ private[xml] object StaxXmlParser {
   /**
    * Check if current event points the EndElement.
    */
-  def checkEndElement(parser: XMLEventReader, conf: StaxConfiguration): Boolean = {
+  def checkEndElement(parser: XMLEventReader, conf: XmlOptions): Boolean = {
     val current = parser.peek
     current match {
       case _: EndElement => true
@@ -126,7 +113,7 @@ private[xml] object StaxXmlParser {
    */
   private[xml] def convertField(parser: XMLEventReader,
                                  dataType: DataType,
-                                 conf: StaxConfiguration): Any = {
+                                 conf: XmlOptions): Any = {
     def convertComplicatedType: DataType => Any = {
       case dt: StructType => convertObject(parser, dt, conf)
       case MapType(StringType, vt, _) => convertMap(parser, vt, conf)
@@ -183,7 +170,7 @@ private[xml] object StaxXmlParser {
    */
   private def convertMap(parser: XMLEventReader,
                          valueType: DataType,
-                         conf: StaxConfiguration): Map[String, Any] = {
+                         conf: XmlOptions): Map[String, Any] = {
     val keys = ArrayBuffer.empty[String]
     val values = ArrayBuffer.empty[Any]
     var shouldStop = false
@@ -227,7 +214,7 @@ private[xml] object StaxXmlParser {
    */
   private def convertObject(parser: XMLEventReader,
                             schema: StructType,
-                            conf: StaxConfiguration,
+                            conf: XmlOptions,
                             rootAttributes: Array[Attribute] = Array()): Row = {
     def toValuesMap(attributes: Array[Attribute]): Map[String, String] = {
       if (conf.excludeAttributeFlag) {

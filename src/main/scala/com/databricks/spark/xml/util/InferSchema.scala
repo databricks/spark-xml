@@ -28,7 +28,7 @@ import scala.collection.JavaConversions._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.TypeCast._
-import com.databricks.spark.xml.parsers.StaxConfiguration
+import com.databricks.spark.xml.parsers.XmlOptions
 import com.databricks.spark.xml.parsers.StaxXmlParser._
 
 private[xml] object InferSchema {
@@ -69,7 +69,7 @@ private[xml] object InferSchema {
    *   3. Replace any remaining null fields with string, the top type
    */
   def infer(xml: RDD[String],
-            conf: StaxConfiguration): StructType = {
+            conf: XmlOptions): StructType = {
     require(conf.samplingRatio > 0, s"samplingRatio ($conf.samplingRatio) should be greater than 0")
     val schemaData = if (conf.samplingRatio > 0.99) {
       xml
@@ -129,7 +129,7 @@ private[xml] object InferSchema {
     }
   }
 
-  private def inferField(parser: XMLEventReader, conf: StaxConfiguration): DataType = {
+  private def inferField(parser: XMLEventReader, conf: XmlOptions): DataType = {
     val current = parser.peek
     current match {
       case _: EndElement => NullType
@@ -159,7 +159,7 @@ private[xml] object InferSchema {
    * Infer the type of a xml document from the parser's token stream
    */
   private def inferObject(parser: XMLEventReader,
-                          conf: StaxConfiguration,
+                          conf: XmlOptions,
                           rootAttributes: Array[Attribute] = Array()): DataType = {
     def toValuesMap(attributes: Array[Attribute]): Map[String, String] = {
       if (conf.excludeAttributeFlag){
