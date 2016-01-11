@@ -51,43 +51,14 @@ class DefaultSource
       sqlContext: SQLContext,
       parameters: Map[String, String],
       schema: StructType): XmlRelation = {
-    def checkedCastToBoolean(value: String, name: String): Boolean = {
-      if (TypeCast.isBoolean(value)) {
-        value.toBoolean
-      }
-      else {
-        throw new Exception(s"$name can be only true or false")
-      }
-    }
-
     val path = checkPath(parameters)
-
-    // TODO Support different encoding types.
-    val charset = parameters.getOrElse("charset", XmlFile.DEFAULT_CHARSET.name())
-    val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
-    val rowTag = parameters.getOrElse("rowTag", XmlFile.DEFAULT_ROW_TAG)
-    val attributePrefix = parameters.getOrElse("attributePrefix", XmlFile.DEFAULT_ATTRIBUTE_PREFIX)
-    val valueTag = parameters.getOrElse("valueTag", XmlFile.DEFAULT_VALUE_TAG)
-
-    val failFast = parameters.getOrElse("failFast", "false")
-    val failFastFlag = checkedCastToBoolean(failFast, "failFast")
-
-    val excludeAttribute = parameters.getOrElse("excludeAttribute", "false")
-    val excludeAttributeFlag = checkedCastToBoolean(excludeAttribute, "excludeAttribute")
-
-    val treatEmptyValuesAsNulls = parameters.getOrElse("treatEmptyValuesAsNulls", "false")
-    val treatEmptyValuesAsNullsFlag =
-      checkedCastToBoolean(treatEmptyValuesAsNulls, "treatEmptyValuesAsNulls")
+    val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
+    val rowTag = parameters.getOrElse("rowTag", XmlOptions.DEFAULT_ROW_TAG)
 
     XmlRelation(
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
       Some(path),
-      samplingRatio,
-      excludeAttributeFlag,
-      treatEmptyValuesAsNullsFlag,
-      failFastFlag,
-      attributePrefix,
-      valueTag,
+      parameters,
       schema)(sqlContext)
   }
 

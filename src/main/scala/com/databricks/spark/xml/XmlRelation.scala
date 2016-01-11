@@ -25,17 +25,12 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.sources.{InsertableRelation, BaseRelation, TableScan}
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.InferSchema
-import com.databricks.spark.xml.parsers.{StaxXmlParser, XmlOptions}
+import com.databricks.spark.xml.parsers.StaxXmlParser
 
 case class XmlRelation protected[spark] (
     baseRDD: () => RDD[String],
     location: Option[String],
-    samplingRatio: Double,
-    excludeAttributeFlag: Boolean,
-    treatEmptyValuesAsNulls: Boolean,
-    failFastFlag: Boolean,
-    attributePrefix: String,
-    valueTag: String,
+    parameters: Map[String, String],
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
   extends BaseRelation
   with InsertableRelation
@@ -43,14 +38,7 @@ case class XmlRelation protected[spark] (
 
   private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
-  private val parseConf = XmlOptions(
-    samplingRatio,
-    excludeAttributeFlag,
-    treatEmptyValuesAsNulls,
-    failFastFlag,
-    attributePrefix,
-    valueTag
-  )
+  private val parseConf = XmlOptions.createFromConfigMap(parameters)
 
   override val schema: StructType = {
     Option(userSchema).getOrElse {

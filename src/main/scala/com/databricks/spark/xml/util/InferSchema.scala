@@ -28,8 +28,8 @@ import scala.collection.JavaConversions._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.TypeCast._
-import com.databricks.spark.xml.parsers.XmlOptions
 import com.databricks.spark.xml.parsers.StaxXmlParser._
+import com.databricks.spark.xml.XmlOptions
 
 private[xml] object InferSchema {
   private val logger = LoggerFactory.getLogger(InferSchema.getClass)

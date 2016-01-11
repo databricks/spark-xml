@@ -18,7 +18,6 @@ package com.databricks.spark.xml;
 import java.io.File;
 import java.util.HashMap;
 
-import com.databricks.spark.xml.util.XmlFile;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -26,6 +25,7 @@ import org.junit.Test;
 
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.*;
+import com.databricks.spark.xml.XmlOptions;
 
 public class JavaXmlSuite {
     private transient SQLContext sqlContext;
@@ -50,7 +50,7 @@ public class JavaXmlSuite {
     @Test
     public void testXmlParser() {
         DataFrame df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(sqlContext, booksFile);
-        String prefix = XmlFile.DEFAULT_ATTRIBUTE_PREFIX();
+        String prefix = XmlOptions.DEFAULT_ATTRIBUTE_PREFIX();
         int result = df.select(prefix + "id").collect().length;
         Assert.assertEquals(result, numBooks);
     }

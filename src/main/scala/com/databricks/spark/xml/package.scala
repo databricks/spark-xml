@@ -18,8 +18,6 @@ package com.databricks.spark
 import java.io.CharArrayWriter
 import javax.xml.stream.XMLOutputFactory
 
-import com.databricks.spark.xml.parsers.StaxXmlGenerator
-
 import scala.collection.Map
 
 import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter
@@ -27,6 +25,7 @@ import org.apache.hadoop.io.compress.CompressionCodec
 
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import com.databricks.spark.xml.util.XmlFile
+import com.databricks.spark.xml.parsers.StaxXmlGenerator
 
 package object xml {
   /**
@@ -36,24 +35,28 @@ package object xml {
     def xmlFile(
                  filePath: String,
                  mode: String = "PERMISSIVE",
-                 rowTag: String = XmlFile.DEFAULT_ROW_TAG,
+                 rowTag: String = XmlOptions.DEFAULT_ROW_TAG,
                  samplingRatio: Double = 1.0,
                  excludeAttributeFlag: Boolean = false,
                  treatEmptyValuesAsNulls: Boolean = false,
                  failFastFlag: Boolean = false,
-                 attributePrefix: String = XmlFile.DEFAULT_ATTRIBUTE_PREFIX,
-                 valueTag: String = XmlFile.DEFAULT_VALUE_TAG,
-                 charset: String = XmlFile.DEFAULT_CHARSET.name()): DataFrame = {
+                 attributePrefix: String = XmlOptions.DEFAULT_ATTRIBUTE_PREFIX,
+                 valueTag: String = XmlOptions.DEFAULT_VALUE_TAG,
+                 charset: String = XmlOptions.DEFAULT_CHARSET): DataFrame = {
 
+      val parameters: Map[String, String] = Map(
+        "rowTag" -> rowTag,
+        "samplingRatio" -> samplingRatio.toString,
+        "excludeAttribute" -> excludeAttributeFlag.toString,
+        "treatEmptyValuesAsNulls" -> treatEmptyValuesAsNulls.toString,
+        "failFast"-> failFastFlag.toString,
+        "attributePrefix"-> attributePrefix,
+        "valueTag" -> valueTag,
+        "charset" -> charset)
       val xmlRelation = XmlRelation(
         () => XmlFile.withCharset(sqlContext.sparkContext, filePath, charset, rowTag),
         location = Some(filePath),
-        samplingRatio = samplingRatio,
-        excludeAttributeFlag = excludeAttributeFlag,
-        treatEmptyValuesAsNulls = treatEmptyValuesAsNulls,
-        failFastFlag = failFastFlag,
-        attributePrefix = attributePrefix,
-        valueTag = valueTag)(sqlContext)
+        parameters.toMap)(sqlContext)
       sqlContext.baseRelationToDataFrame(xmlRelation)
     }
   }
@@ -79,11 +82,11 @@ package object xml {
     def saveAsXmlFile(path: String, parameters: Map[String, String] = Map(),
                       compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
       val nullValue = parameters.getOrElse("nullValue", "null")
-      val rootTag = parameters.getOrElse("rootTag", XmlFile.DEFAULT_ROOT_TAG)
-      val rowTag = parameters.getOrElse("rowTag", XmlFile.DEFAULT_ROW_TAG)
+      val rootTag = parameters.getOrElse("rootTag", XmlOptions.DEFAULT_ROOT_TAG)
+      val rowTag = parameters.getOrElse("rowTag", XmlOptions.DEFAULT_ROW_TAG)
       val attributePrefix =
-        parameters.getOrElse("attributePrefix", XmlFile.DEFAULT_ATTRIBUTE_PREFIX)
-      val valueTag = parameters.getOrElse("valueTag", XmlFile.DEFAULT_VALUE_TAG)
+        parameters.getOrElse("attributePrefix", XmlOptions.DEFAULT_ATTRIBUTE_PREFIX)
+      val valueTag = parameters.getOrElse("valueTag", XmlOptions.DEFAULT_VALUE_TAG)
       val startElement = s"<$rootTag>"
       val endElement = s"</$rootTag>"
       val rowSchema = dataFrame.schema

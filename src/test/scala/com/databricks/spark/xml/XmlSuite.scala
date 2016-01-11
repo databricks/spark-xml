@@ -24,7 +24,7 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite}
 import org.apache.spark.{SparkException, SparkContext}
 import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.sql.types._
-import com.databricks.spark.xml.util.XmlFile._
+import XmlOptions._
 
 class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val tempEmptyDir = "target/test/empty/"
