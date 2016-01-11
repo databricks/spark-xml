@@ -38,7 +38,7 @@ $ bin/spark-shell --packages com.databricks:spark-xml_2.11:0.2.0
 ## Features
 This package allows reading XML files in local or distributed filesystem as [Spark DataFrames](https://spark.apache.org/docs/1.3.0/sql-programming-guide.html).
 When reading files the API accepts several options:
-* `path`: location of files. Similar to Spark can accept standard Hadoop globbing expressions.
+* `path`: Location of files. Similar to Spark can accept standard Hadoop globbing expressions.
 * `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
 * `samplingRatio`: Sampling ratio for inferring schema (0.0 ~ 1). Default is 1. Possible types are `StructType`, `ArrayType`, `StringType`, `LongType`, `DoubleType` and `NullType`, unless user provides a schema for this.
 * `excludeAttribute` : Whether you want to exclude tags of elements as fields or not. Default is false.
@@ -48,7 +48,7 @@ When reading files the API accepts several options:
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `#VALUE`.
 
 When writing files the API accepts several options:
-* `path`: location of files. Similar to Spark can accept standard Hadoop globbing expressions.
+* `path`: Location to write files.
 * `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
 * `rootTag`: The root tag of your xml files to treat as the root. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `books`. Default is `ROWS`.
 * `nullValue`: The value to write `null` value. Default is string `null`.
