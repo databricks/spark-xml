@@ -55,7 +55,7 @@ package object xml {
       val xmlRelation = XmlRelation(
         () => XmlFile.withCharset(sqlContext.sparkContext, filePath, charset, rowTag),
         location = Some(filePath),
-        parameters.toMap)(sqlContext)
+        parameters = parameters.toMap)(sqlContext)
       sqlContext.baseRelationToDataFrame(xmlRelation)
     }
   }
