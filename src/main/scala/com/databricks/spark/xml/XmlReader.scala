@@ -80,7 +80,7 @@ class XmlReader extends Serializable {
     val relation: XmlRelation = XmlRelation(
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
       Some(path),
-      Map(parameters.toSeq: _*),
+      parameters.toMap,
       schema)(sqlContext)
     sqlContext.baseRelationToDataFrame(relation)
   }
@@ -89,7 +89,7 @@ class XmlReader extends Serializable {
     val relation: XmlRelation = XmlRelation(
       () => xmlRDD,
       None,
-      Map(parameters.toSeq: _*),
+      parameters.toMap,
       schema)(sqlContext)
     sqlContext.baseRelationToDataFrame(relation)
   }
