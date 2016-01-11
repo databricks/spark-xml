@@ -69,14 +69,14 @@ private[xml] object InferSchema {
    *   3. Replace any remaining null fields with string, the top type
    */
   def infer(xml: RDD[String],
-            conf: XmlOptions): StructType = {
-    require(conf.samplingRatio > 0, s"samplingRatio ($conf.samplingRatio) should be greater than 0")
-    val schemaData = if (conf.samplingRatio > 0.99) {
+            options: XmlOptions): StructType = {
+    require(options.samplingRatio > 0, s"samplingRatio ($options.samplingRatio) should be greater than 0")
+    val schemaData = if (options.samplingRatio > 0.99) {
       xml
     } else {
-      xml.sample(withReplacement = false, conf.samplingRatio, 1)
+      xml.sample(withReplacement = false, options.samplingRatio, 1)
     }
-    val failFast = conf.failFastFlag
+    val failFast = options.failFastFlag
     // perform schema inference on each row and merge afterwards
     val rootType = schemaData.mapPartitions { iter =>
       iter.flatMap { xml =>
@@ -89,7 +89,7 @@ private[xml] object InferSchema {
           val rootEvent = skipUntil(parser, XMLStreamConstants.START_ELEMENT)
           val rootAttributes = rootEvent.asStartElement.getAttributes
             .map(_.asInstanceOf[Attribute]).toArray
-          Some(inferObject(parser, conf, rootAttributes))
+          Some(inferObject(parser, options, rootAttributes))
         } catch {
           case _: java.lang.NumberFormatException | _: IllegalArgumentException if !failFast =>
             logger.warn("Number format exception. " +
@@ -129,11 +129,11 @@ private[xml] object InferSchema {
     }
   }
 
-  private def inferField(parser: XMLEventReader, conf: XmlOptions): DataType = {
+  private def inferField(parser: XMLEventReader, options: XmlOptions): DataType = {
     val current = parser.peek
     current match {
       case _: EndElement => NullType
-      case _: StartElement => inferObject(parser, conf)
+      case _: StartElement => inferObject(parser, options)
       case c: Characters if !c.isIgnorableWhiteSpace && c.isWhiteSpace =>
         // When `Characters` is found, we need to look further to decide
         // if this is really data or space between other elements.
@@ -142,9 +142,9 @@ private[xml] object InferSchema {
           parser.peek
         }
         next match {
-          case _: EndElement if conf.treatEmptyValuesAsNulls => NullType
+          case _: EndElement if options.treatEmptyValuesAsNulls => NullType
           case _: EndElement => StringType
-          case _: StartElement => inferObject(parser, conf)
+          case _: StartElement => inferObject(parser, options)
         }
       case c: Characters if !c.isIgnorableWhiteSpace && !c.isWhiteSpace =>
         // This means data exists
@@ -159,13 +159,13 @@ private[xml] object InferSchema {
    * Infer the type of a xml document from the parser's token stream
    */
   private def inferObject(parser: XMLEventReader,
-                          conf: XmlOptions,
+                          options: XmlOptions,
                           rootAttributes: Array[Attribute] = Array()): DataType = {
     def toValuesMap(attributes: Array[Attribute]): Map[String, String] = {
-      if (conf.excludeAttributeFlag){
+      if (options.excludeAttributeFlag){
         Map.empty[String, String]
       } else {
-        val attrFields = attributes.map(conf.attributePrefix + _.getName.getLocalPart)
+        val attrFields = attributes.map(options.attributePrefix + _.getName.getLocalPart)
         val attrDataTypes = attributes.map(_.getValue)
         attrFields.zip(attrDataTypes).toMap
       }
@@ -186,7 +186,7 @@ private[xml] object InferSchema {
             val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
             toValuesMap(attributes)
           }
-          val inferredType = inferField(parser, conf) match {
+          val inferredType = inferField(parser, options) match {
             case st: StructType if valuesMap.nonEmpty =>
               // Merge attributes to the field
               val nestedBuilder = Seq.newBuilder[StructField]
@@ -199,7 +199,7 @@ private[xml] object InferSchema {
             case dt: DataType if valuesMap.nonEmpty =>
               // We need to manually add the field for value.
               val nestedBuilder = Seq.newBuilder[StructField]
-              nestedBuilder += StructField(conf.valueTag, dt, nullable = true)
+              nestedBuilder += StructField(options.valueTag, dt, nullable = true)
               valuesMap.foreach {
                 case (f, v) =>
                   nestedBuilder += StructField(f, inferTypeFromString(v), nullable = true)
@@ -213,7 +213,7 @@ private[xml] object InferSchema {
           dataTypes += inferredType
           nameToDataTypes += (field -> dataTypes)
         case _: EndElement =>
-          shouldStop = checkEndElement(parser, conf)
+          shouldStop = checkEndElement(parser, options)
         case _ =>
           shouldStop = shouldStop && parser.hasNext
       }

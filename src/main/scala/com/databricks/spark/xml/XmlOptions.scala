@@ -44,7 +44,8 @@ private[xml] object XmlOptions {
     rootTag = parameters.getOrElse("rootTag", DEFAULT_ROOT_TAG),
     samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0),
     excludeAttributeFlag = parameters.get("excludeAttribute").map(_.toBoolean).getOrElse(false),
-    treatEmptyValuesAsNulls = parameters.get("treatEmptyValuesAsNulls").map(_.toBoolean).getOrElse(false),
+    treatEmptyValuesAsNulls =
+      parameters.get("treatEmptyValuesAsNulls").map(_.toBoolean).getOrElse(false),
     failFastFlag = parameters.get("failFast").map(_.toBoolean).getOrElse(false),
     attributePrefix = parameters.getOrElse("attributePrefix", DEFAULT_ATTRIBUTE_PREFIX),
     valueTag = parameters.getOrElse("valueTag", DEFAULT_VALUE_TAG)

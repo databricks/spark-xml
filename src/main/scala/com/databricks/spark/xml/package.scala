@@ -49,8 +49,8 @@ package object xml {
         "samplingRatio" -> samplingRatio.toString,
         "excludeAttribute" -> excludeAttributeFlag.toString,
         "treatEmptyValuesAsNulls" -> treatEmptyValuesAsNulls.toString,
-        "failFast"-> failFastFlag.toString,
-        "attributePrefix"-> attributePrefix,
+        "failFast" -> failFastFlag.toString,
+        "attributePrefix" -> attributePrefix,
         "valueTag" -> valueTag,
         "charset" -> charset)
       val xmlRelation = XmlRelation(

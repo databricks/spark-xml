@@ -38,13 +38,13 @@ case class XmlRelation protected[spark] (
 
   private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
-  private val parseConf = XmlOptions.createFromConfigMap(parameters)
+  private val options = XmlOptions.createFromConfigMap(parameters)
 
   override val schema: StructType = {
     Option(userSchema).getOrElse {
       InferSchema.infer(
         baseRDD(),
-        parseConf)
+        options)
     }
   }
 
@@ -52,7 +52,7 @@ case class XmlRelation protected[spark] (
     StaxXmlParser.parse(
       baseRDD(),
       schema,
-      parseConf)
+      options)
   }
 
   // The function below was borrowed from JSONRelation
