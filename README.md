@@ -66,7 +66,7 @@ $ wget https://github.com/databricks/spark-xml/raw/master/src/test/resources/boo
 
 ## Structure Conversion
 
-Due to the structure differences between `DataFrame` and XML files, there are some conversion rules from XML data to `DataFrame` and from `DataFrame` to XML data. Note that the attributes hanlding can be disbaled with the option `excludeAttribute`.
+Due to the structure differences between `DataFrame` and XML files, there are some conversion rules from XML data to `DataFrame` and from `DataFrame` to XML data. Note that hanlding attributes can be disbaled with the option `excludeAttribute`.
 
 
 ### Reading from XML to `DataFrame`
@@ -134,6 +134,8 @@ Due to the structure differences between `DataFrame` and XML files, there are so
     ...
     <a>
         <item>aa</item>
+    </a>
+    <a>
         <item>bb</item>
     </a>
     ...

@@ -72,6 +72,8 @@ package object xml {
     //
     //   <fieldA>
     //       <item>data1</item>
+    //   </fieldA>
+    //   <fieldA>
     //       <item>data2</item>
     //   </fieldA>
     //
