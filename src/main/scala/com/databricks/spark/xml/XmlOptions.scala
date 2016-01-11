@@ -19,16 +19,16 @@ package com.databricks.spark.xml
  * Options for the XML data source.
  */
 private[xml] case class XmlOptions(
-  charset: String,
-  rowTag: String,
-  rootTag: String,
-  samplingRatio: Double,
-  excludeAttributeFlag: Boolean,
-  treatEmptyValuesAsNulls: Boolean,
-  failFastFlag: Boolean,
-  attributePrefix: String,
-  valueTag: String,
-  nullValue: String
+  charset: String = XmlOptions.DEFAULT_CHARSET,
+  rowTag: String = XmlOptions.DEFAULT_ROW_TAG,
+  rootTag: String = XmlOptions.DEFAULT_ROOT_TAG,
+  samplingRatio: Double = 1.0,
+  excludeAttributeFlag: Boolean = false,
+  treatEmptyValuesAsNulls: Boolean = false,
+  failFastFlag: Boolean = false,
+  attributePrefix: String = XmlOptions.DEFAULT_ATTRIBUTE_PREFIX,
+  valueTag: String = XmlOptions.DEFAULT_VALUE_TAG,
+  nullValue: String = XmlOptions.DEFAULT_NULL_VALUE
 )
 
 private[xml] object XmlOptions {

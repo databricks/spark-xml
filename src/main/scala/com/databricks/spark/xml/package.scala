@@ -18,6 +18,8 @@ package com.databricks.spark
 import java.io.CharArrayWriter
 import javax.xml.stream.XMLOutputFactory
 
+import scala.collection.Map
+
 import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter
 import org.apache.hadoop.io.compress.CompressionCodec
 
@@ -53,7 +55,7 @@ package object xml {
       val xmlRelation = XmlRelation(
         () => XmlFile.withCharset(sqlContext.sparkContext, filePath, charset, rowTag),
         location = Some(filePath),
-        parameters)(sqlContext)
+        parameters.toMap)(sqlContext)
       sqlContext.baseRelationToDataFrame(xmlRelation)
     }
   }
