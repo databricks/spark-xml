@@ -122,11 +122,11 @@ Due to the structure differences between `DataFrame` and XML files, there are so
 
     with the data below:
     ```
-    +--------------------+
-    |                   a|
-    +--------------------+
-    |[WrappedArray(aa,bb)|
-    +--------------------+
+    +------------------------------------+
+    |                                   a|
+    +------------------------------------+
+    |[WrappedArray(aa), WrappedArray(bb)]|
+    +------------------------------------+
     ```
 
     produces a XML file below:
