@@ -41,6 +41,7 @@ private[xml] object XmlOptions {
 
   def createFromConfigMap(parameters: Map[String, String]): XmlOptions = XmlOptions(
     // TODO Support different encoding types.
+    // TODO validate encoidng types. maybe with Charset.forname()
     charset = parameters.getOrElse("charset", DEFAULT_CHARSET),
     rowTag = parameters.getOrElse("rowTag", DEFAULT_ROW_TAG),
     rootTag = parameters.getOrElse("rootTag", DEFAULT_ROOT_TAG),

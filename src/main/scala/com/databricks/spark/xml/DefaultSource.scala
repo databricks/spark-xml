@@ -52,8 +52,11 @@ class DefaultSource
       parameters: Map[String, String],
       schema: StructType): XmlRelation = {
     val path = checkPath(parameters)
-    val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
-    val rowTag = parameters.getOrElse("rowTag", XmlOptions.DEFAULT_ROW_TAG)
+    // We need the `charset` and `rowTag` before creating the relation.
+    val (charset, rowTag) = {
+      val options = XmlOptions.createFromConfigMap(parameters)
+      (options.charset, options.rowTag)
+    }
 
     XmlRelation(
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),

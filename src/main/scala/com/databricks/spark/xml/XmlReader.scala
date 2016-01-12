@@ -75,8 +75,11 @@ class XmlReader extends Serializable {
   /** Returns a Schema RDD for the given XML path. */
   @throws[RuntimeException]
   def xmlFile(sqlContext: SQLContext, path: String): DataFrame = {
-    val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
-    val rowTag = parameters.getOrElse("rowTag", XmlOptions.DEFAULT_ROW_TAG)
+    // We need the `charset` and `rowTag` before creating the relation.
+    val (charset, rowTag) = {
+      val options = XmlOptions.createFromConfigMap(parameters.toMap)
+      (options.charset, options.rowTag)
+    }
     val relation: XmlRelation = XmlRelation(
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
       Some(path),
