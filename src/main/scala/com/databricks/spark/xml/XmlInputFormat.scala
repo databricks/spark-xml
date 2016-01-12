@@ -15,9 +15,12 @@
  */
 package com.databricks.spark.xml
 
+import java.io.{InputStream, IOException}
+
 import org.apache.commons.io.Charsets
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FSDataInputStream
+import org.apache.hadoop.fs.Seekable
+import org.apache.hadoop.io.compress._
 import org.apache.hadoop.io.{DataOutputBuffer, LongWritable, Text}
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
 import org.apache.hadoop.mapreduce.lib.input.{FileSplit, TextInputFormat}
@@ -48,13 +51,19 @@ object XmlInputFormat {
 private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private var startTag: Array[Byte] = _
   private var endTag: Array[Byte] = _
+  private var space: Byte = _
+
+  private var start: Long = _
+  private var end: Long = _
 
   private var currentKey: LongWritable = _
   private var currentValue: Text = _
 
-  private var start: Long = _
-  private var end: Long = _
-  private var fsin: FSDataInputStream = _
+  private var in: InputStream = _
+  private var filePosition: Seekable = _
+  private var isCompressedInput: Boolean = _
+  private var decompressor: Decompressor = _
+
 
   private val buffer: DataOutputBuffer = new DataOutputBuffer
 
@@ -66,15 +75,67 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       val method = context.getClass.getMethod("getConfiguration")
       method.invoke(context).asInstanceOf[Configuration]
     }
-    val fs = fileSplit.getPath.getFileSystem(conf)
     startTag = conf.get(XmlInputFormat.START_TAG_KEY).getBytes(Charsets.UTF_8)
     endTag = conf.get(XmlInputFormat.END_TAG_KEY).getBytes(Charsets.UTF_8)
+    space = ' '
     require(startTag != null, "The start tag cannot be null.")
     require(endTag != null, "The end tag cannot be null.")
     start = fileSplit.getStart
     end = start + fileSplit.getLength
-    fsin = fs.open(fileSplit.getPath)
-    fsin.seek(start)
+
+    // open the file and seek to the start of the split
+    val path = fileSplit.getPath
+    val fs = path.getFileSystem(conf)
+    val fsin = fs.open(fileSplit.getPath)
+
+    val codec = new CompressionCodecFactory(conf).getCodec(path)
+    if (null != codec) {
+      isCompressedInput = true
+      decompressor = CodecPool.getDecompressor(codec)
+
+      // Use reflection to get the splittable compression stream. This is necessary
+      // because SplitCompressionInputStream does not exist in Hadoop 1.0.x.
+      def isSplitCompressionCodec(obj: Any) = {
+        val splittableClassName = "org.apache.hadoop.io.compress.SplitCompressionInputStream"
+        splittableClassName.equals(obj.getClass.getName)
+      }
+      codec match {
+        case c: CompressionCodec if isSplitCompressionCodec(c) =>
+          val cIn = {
+            val method = c.getClass.getMethod("getAdjustedStart",
+              classOf[InputStream],
+              classOf[Decompressor],
+              classOf[Long],
+              classOf[Long],
+              classOf[SplittableCompressionCodec.READ_MODE])
+            method.invoke(c, fsin, decompressor, start.asInstanceOf[AnyRef],
+              end.asInstanceOf[AnyRef], SplittableCompressionCodec.READ_MODE.BYBLOCK)
+          }.asInstanceOf[CompressionInputStream]
+          start = {
+            val method = cIn.getClass.getMethod("getAdjustedStart")
+            method.invoke(cIn).asInstanceOf[Long]
+          }
+          end = {
+            val method = cIn.getClass.getMethod("getAdjustedEnd")
+            method.invoke(cIn).asInstanceOf[Long]
+          }
+          in = cIn
+          filePosition = cIn
+        case c: CompressionCodec =>
+          if (start != 0) {
+            // So we have a split that is only part of a file stored using
+            // a Compression codec that cannot be split.
+            throw new IOException("Cannot seek in " +
+              codec.getClass.getSimpleName + " compressed stream")
+          }
+          in = c.createInputStream(fsin, decompressor)
+          filePosition = fsin
+      }
+    } else {
+      in = fsin
+      filePosition = fsin
+      filePosition.seek(start)
+    }
   }
 
   override def nextKeyValue: Boolean = {
@@ -92,11 +153,11 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
    * @return whether it reads successfully
    */
   private def next(key: LongWritable, value: Text): Boolean = {
-    if (fsin.getPos < end && readUntilMatch(startTag, withinBlock = false)) {
+    if (readUntilMatch(startTag, withinBlock = false)) {
       try {
         buffer.write(startTag)
         if (readUntilMatch(endTag, withinBlock = true)) {
-          key.set(fsin.getPos)
+          key.set(filePosition.getPos)
           value.set(buffer.getData, 0, buffer.getLength)
           true
         } else {
@@ -121,7 +182,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private def readUntilMatch(mat: Array[Byte], withinBlock: Boolean): Boolean = {
     var i: Int = 0
     while (true) {
-      val b: Int = fsin.read
+      val b: Int = in.read
       if (b == -1) {
         return false
       }
@@ -136,25 +197,36 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       }
       else {
         if (i == (mat.length - 1)) {
-          if (b == ' ' && !withinBlock) {
-            startTag(startTag.length - 1) = ' '
+          if (b == space && !withinBlock) {
+            startTag(startTag.length - 1) = space
             return true
           }
         }
         i = 0
       }
-      if (!withinBlock && i == 0 && fsin.getPos >= end) {
+      if (!withinBlock && i == 0 && filePosition.getPos > end) {
         return false
       }
     }
     false
   }
 
-  override def getProgress: Float = (fsin.getPos - start) / (end - start).toFloat
+  override def getProgress: Float = (filePosition.getPos - start) / (end - start).toFloat
 
   override def getCurrentKey: LongWritable = currentKey
 
   override def getCurrentValue: Text = currentValue
 
-  def close(): Unit = fsin.close()
+  def close(): Unit = {
+    try {
+      if (in != null) {
+        in.close()
+      }
+    } finally {
+      if (decompressor != null) {
+        CodecPool.returnDecompressor(decompressor);
+        decompressor = null
+      }
+    }
+  }
 }

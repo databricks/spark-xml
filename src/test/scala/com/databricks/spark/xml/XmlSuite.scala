@@ -35,6 +35,8 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val booksNestedArrayFile = "src/test/resources/books-nested-array.xml"
   val booksComplicatedFile = "src/test/resources/books-complicated.xml"
   val carsFile = "src/test/resources/cars.xml"
+  val carsFileGzip = "src/test/resources/cars.xml.gz"
+  val carsFileBzip2 = "src/test/resources/cars.xml.bz2"
   val booksAttributesInNoChild = "src/test/resources/books-attributes-in-no-child.xml"
   val carsUnbalancedFile = "src/test/resources/cars-unbalanced-elements.xml"
   val carsMalformedFile = "src/test/resources/cars-malformed.xml"
@@ -66,6 +68,24 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DSL test") {
     val results = sqlContext
       .xmlFile(carsFile)
+      .select("year")
+      .collect()
+
+    assert(results.size === numCars)
+  }
+
+  test("DSL test compressed file") {
+    val results = sqlContext
+      .xmlFile(carsFileGzip)
+      .select("year")
+      .collect()
+
+    assert(results.size === numCars)
+  }
+
+  test("DSL test splittable compressed file") {
+    val results = sqlContext
+      .xmlFile(carsFileBzip2)
       .select("year")
       .collect()
 
