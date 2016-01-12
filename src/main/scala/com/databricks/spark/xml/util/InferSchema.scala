@@ -92,11 +92,11 @@ private[xml] object InferSchema {
             .map(_.asInstanceOf[Attribute]).toArray
           Some(inferObject(parser, options, rootAttributes))
         } catch {
-          case _: java.lang.NumberFormatException | _: IllegalArgumentException if !failFast =>
+          case _: java.lang.NumberFormatException if !failFast =>
             logger.warn("Number format exception. " +
               s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
             None
-          case _: java.text.ParseException if !failFast =>
+          case _: java.text.ParseException | _: IllegalArgumentException if !failFast =>
             logger.warn("Parse exception. " +
               s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
             None
