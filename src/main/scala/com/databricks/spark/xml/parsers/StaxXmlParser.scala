@@ -53,25 +53,7 @@ private[xml] object StaxXmlParser {
   def parse(xml: RDD[String],
             schema: StructType,
             conf: StaxConfiguration): RDD[Row] = {
-    parse(xml, schema, schema, conf)
-  }
-
-  def parse(xml: RDD[String],
-            schema: StructType,
-            requestedSchema: StructType,
-            conf: StaxConfiguration): RDD[Row] = {
     val failFast = conf.failFastFlag
-    val rowSize = requestedSchema.size
-    val shouldSlice = schema.size != rowSize
-    val safeSchema = if (!failFast) {
-      // If `failFast` is disabled, then it needs to parse all the values
-      // so that we can drop malformed rows.
-      StructType(requestedSchema.fields ++
-        schema.fields.filterNot(requestedSchema.fields.contains(_)))
-    } else {
-      StructType(requestedSchema.fields)
-    }
-
     xml.mapPartitions { iter =>
       iter.flatMap { xml =>
         // It does not have to skip for white space, since `XmlInputFormat`
@@ -85,12 +67,7 @@ private[xml] object StaxXmlParser {
             rootEvent.asStartElement.getAttributes
               .map(_.asInstanceOf[Attribute]).toArray
           }
-          val row = convertObject(parser, safeSchema, conf, rootAttributes)
-          if (shouldSlice) {
-            Some(row)
-          } else {
-            Some(Row.fromSeq(row.toSeq.take(rowSize)))
-          }
+          Some(convertObject(parser, schema, conf, rootAttributes))
         } catch {
           case _: java.lang.NumberFormatException if !failFast =>
             logger.warn("Number format exception. " +
