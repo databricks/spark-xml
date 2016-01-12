@@ -53,19 +53,44 @@ private[xml] object StaxXmlParser {
   def parse(xml: RDD[String],
             schema: StructType,
             conf: StaxConfiguration): RDD[Row] = {
+    parse(xml, schema, schema, conf)
+  }
+
+  def parse(xml: RDD[String],
+            schema: StructType,
+            requestedSchema: StructType,
+            conf: StaxConfiguration): RDD[Row] = {
     val failFast = conf.failFastFlag
+    val rowSize = requestedSchema.size
+    val shouldSlice = schema.size != rowSize
+    val safeSchema = if (!failFast) {
+      // If `failFast` is disabled, then it needs to parse all the values
+      // so that we can drop malformed rows.
+      StructType(requestedSchema.fields ++
+        schema.fields.filterNot(requestedSchema.fields.contains(_)))
+    } else {
+      StructType(requestedSchema.fields)
+    }
+
     xml.mapPartitions { iter =>
       iter.flatMap { xml =>
-        // It does not have to skip for white space, since [[XmlInputFormat]]
+        // It does not have to skip for white space, since `XmlInputFormat`
         // always finds the root tag without a heading space.
         val factory = XMLInputFactory.newInstance()
         val reader = new ByteArrayInputStream(xml.getBytes)
         val parser = factory.createXMLEventReader(reader)
         try {
-          val rootEvent = skipUntil(parser, XMLStreamConstants.START_ELEMENT)
-          val rootAttributes = rootEvent.asStartElement.getAttributes
-            .map(_.asInstanceOf[Attribute]).toArray
-          Some(convertObject(parser, schema, conf, rootAttributes))
+          val rootAttributes = {
+            val rootEvent = skipUntil(parser, XMLStreamConstants.START_ELEMENT)
+            rootEvent.asStartElement.getAttributes
+              .map(_.asInstanceOf[Attribute]).toArray
+          }
+          val row = convertObject(parser, safeSchema, conf, rootAttributes)
+          if (shouldSlice) {
+            Some(row)
+          } else {
+            Some(Row.fromSeq(row.toSeq.take(rowSize)))
+          }
         } catch {
           case _: java.lang.NumberFormatException if !failFast =>
             logger.warn("Number format exception. " +
@@ -245,7 +270,7 @@ private[xml] object StaxXmlParser {
           // If there are attributes, then we process them first.
           convertValues(toValuesMap(rootAttributes), schema).toSeq.foreach {
             case (f, v) =>
-              row(nameToIndex(f)) = v
+              nameToIndex.get(f).foreach(row.update(_, v))
           }
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           // Set elements and other attributes to the row
@@ -272,7 +297,7 @@ private[xml] object StaxXmlParser {
                   // If there are attributes, then we process them first.
                   convertValues(toValuesMap(attributes), schema).toSeq.foreach {
                     case (f, v) =>
-                      row(nameToIndex(f)) = v
+                      nameToIndex.get(f).foreach(row.update(_, v))
                   }
                   row(index) = convertField(parser, dataType, conf)
                 case _: ArrayType =>
