@@ -53,17 +53,14 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private var endTag: Array[Byte] = _
   private var space: Byte = _
 
-  private var start: Long = _
-  private var end: Long = _
-
   private var currentKey: LongWritable = _
   private var currentValue: Text = _
 
+  private var start: Long = _
+  private var end: Long = _
   private var in: InputStream = _
   private var filePosition: Seekable = _
-  private var isCompressedInput: Boolean = _
   private var decompressor: Decompressor = _
-
 
   private val buffer: DataOutputBuffer = new DataOutputBuffer
 
@@ -90,11 +87,9 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
 
     val codec = new CompressionCodecFactory(conf).getCodec(path)
     if (null != codec) {
-      isCompressedInput = true
       decompressor = CodecPool.getDecompressor(codec)
-
       // Use reflection to get the splittable compression stream. This is necessary
-      // because SplitCompressionInputStream does not exist in Hadoop 1.0.x.
+      // because SplittableCompressionCodec does not exist in Hadoop 1.0.x.
       def isSplitCompressionCodec(obj: Any) = {
         val splittableClassName = "org.apache.hadoop.io.compress.SplittableCompressionCodec"
         val test = obj.getClass.getInterfaces.map(_.getName)
