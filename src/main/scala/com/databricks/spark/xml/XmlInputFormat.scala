@@ -103,7 +103,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       codec match {
         case c: CompressionCodec if isSplitCompressionCodec(c) =>
           val cIn = {
-            val method = c.getClass.getMethod("getAdjustedStart",
+            val method = c.getClass.getMethod("createInputStream",
               classOf[InputStream],
               classOf[Decompressor],
               classOf[Long],
