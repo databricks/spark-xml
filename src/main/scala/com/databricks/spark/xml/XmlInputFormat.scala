@@ -96,8 +96,9 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       // Use reflection to get the splittable compression stream. This is necessary
       // because SplitCompressionInputStream does not exist in Hadoop 1.0.x.
       def isSplitCompressionCodec(obj: Any) = {
-        val splittableClassName = "org.apache.hadoop.io.compress.SplitCompressionInputStream"
-        splittableClassName.equals(obj.getClass.getName)
+        val splittableClassName = "org.apache.hadoop.io.compress.SplittableCompressionCodec"
+        val test = obj.getClass.getInterfaces.map(_.getName)
+        obj.getClass.getInterfaces.map(_.getName).contains(splittableClassName)
       }
       codec match {
         case c: CompressionCodec if isSplitCompressionCodec(c) =>
