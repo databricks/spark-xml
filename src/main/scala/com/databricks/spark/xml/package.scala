@@ -35,7 +35,6 @@ package object xml {
   implicit class XmlContext(sqlContext: SQLContext) extends Serializable {
     def xmlFile(
                  filePath: String,
-                 mode: String = "PERMISSIVE",
                  rowTag: String = XmlFile.DEFAULT_ROW_TAG,
                  samplingRatio: Double = 1.0,
                  excludeAttributeFlag: Boolean = false,
