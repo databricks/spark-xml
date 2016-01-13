@@ -106,7 +106,8 @@ case class XmlRelation protected[spark] (
               + s" to INSERT OVERWRITE a XML table:\n${e.toString}")
       }
       // Write the data. We assume that schema isn't changed, and we won't update it.
-      data.saveAsXmlFile(filesystemPath.toString)
+      val codecClass = compressionCodecClass(options.codec)
+      data.saveAsXmlFile(filesystemPath.toString, parameters, codecClass)
     } else {
       sys.error("XML tables only support INSERT OVERWRITE for now.")
     }

@@ -21,8 +21,10 @@ import java.sql.{Date, Timestamp}
 
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
+import org.apache.hadoop.io.compress.GzipCodec
+
 import org.apache.spark.{SparkException, SparkContext}
-import org.apache.spark.sql.{Row, SQLContext}
+import org.apache.spark.sql.{SaveMode, Row, SQLContext}
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions._
 
@@ -248,6 +250,25 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
          |SELECT * FROM booksTableIO
       """.stripMargin.replaceAll("\n", " "))
     assert(sqlContext.sql("SELECT * FROM booksTableEmpty").collect().size == numBooks)
+  }
+
+  test("DSL save with gzip compression codec") {
+    // Create temp directory
+    TestUtils.deleteRecursively(new File(tempEmptyDir))
+    new File(tempEmptyDir).mkdirs()
+    val copyFilePath = tempEmptyDir + "cars-copy.xml"
+
+    val cars = sqlContext.xmlFile(carsFile)
+    cars.save("com.databricks.spark.xml", SaveMode.Overwrite,
+      Map("path" -> copyFilePath, "codec" -> classOf[GzipCodec].getName))
+    val carsCopyPartFile = new File(copyFilePath, "part-00000.gz")
+    // Check that the part file has a .gz extension
+    assert(carsCopyPartFile.exists())
+
+    val carsCopy = sqlContext.xmlFile(copyFilePath + "/")
+
+    assert(carsCopy.count == cars.count)
+    assert(carsCopy.collect.map(_.toString).toSet == cars.collect.map(_.toString).toSet)
   }
 
   test("DSL save") {

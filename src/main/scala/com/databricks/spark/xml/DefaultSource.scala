@@ -89,7 +89,8 @@ class DefaultSource
     }
     if (doSave) {
       // Only save data when the save mode is not ignore.
-      data.saveAsXmlFile(path, parameters)
+      val codecClass = compressionCodecClass(XmlOptions.createFromConfigMap(parameters).codec)
+      data.saveAsXmlFile(filesystemPath.toString, parameters, codecClass)
     }
     createRelation(sqlContext, parameters, data.schema)
   }
