@@ -54,6 +54,7 @@ When writing files the API accepts several options:
 * `nullValue`: The value to write `null` value. Default is string `null`.
 * `attributePrefix`: The prefix for attributes so that we can differentiating attributes and elements. This will be the prefix for field names. Default is `@`.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `#VALUE`.
+* `codec`: compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec`. Defaults to no compression when a codec is not specified.
 
 Currently it supports the shorten name useage. You can use just `xml` instead of `com.databricks.spark.xml` from Spark 1.5.0+
 
@@ -208,7 +209,6 @@ selectedData.write
     .option("rowTag", "book")
     .save("newbooks.xml")
 ```
-
 
 __Spark 1.3:__
 
