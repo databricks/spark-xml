@@ -16,8 +16,8 @@
 package com.databricks.spark.xml
 
 import java.io.{InputStream, IOException}
+import java.nio.charset.Charset
 
-import org.apache.commons.io.Charsets
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Seekable
 import org.apache.hadoop.io.compress._
@@ -42,6 +42,8 @@ object XmlInputFormat {
   val START_TAG_KEY: String = "xmlinput.start"
   /** configuration key for end tag */
   val END_TAG_KEY: String = "xmlinput.end"
+  /** configuration key for encoding type */
+  val ENCODING_KEY: String = "xmlinput.encoding"
 }
 
 /**
@@ -50,8 +52,10 @@ object XmlInputFormat {
  */
 private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private var startTag: Array[Byte] = _
+  private var currentStartTag: Array[Byte] = _
   private var endTag: Array[Byte] = _
-  private var space: Byte = _
+  private var space: Array[Byte] = _
+  private var angleBracket: Array[Byte] = _
 
   private var currentKey: LongWritable = _
   private var currentValue: Text = _
@@ -64,7 +68,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
 
   private val buffer: DataOutputBuffer = new DataOutputBuffer
 
-  def initialize(split: InputSplit, context: TaskAttemptContext): Unit = {
+  override def initialize(split: InputSplit, context: TaskAttemptContext): Unit = {
     val fileSplit: FileSplit = split.asInstanceOf[FileSplit]
     val conf: Configuration = {
       // Use reflection to get the Configuration. This is necessary because TaskAttemptContext is
@@ -72,11 +76,15 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       val method = context.getClass.getMethod("getConfiguration")
       method.invoke(context).asInstanceOf[Configuration]
     }
-    startTag = conf.get(XmlInputFormat.START_TAG_KEY).getBytes(Charsets.UTF_8)
-    endTag = conf.get(XmlInputFormat.END_TAG_KEY).getBytes(Charsets.UTF_8)
-    space = ' '
-    require(startTag != null, "The start tag cannot be null.")
-    require(endTag != null, "The end tag cannot be null.")
+    val charset = Charset.forName(conf.get(XmlInputFormat.ENCODING_KEY))
+    startTag = conf.get(XmlInputFormat.START_TAG_KEY).getBytes(charset)
+    endTag = conf.get(XmlInputFormat.END_TAG_KEY).getBytes(charset)
+    space = " ".getBytes(charset)
+    angleBracket = ">".getBytes(charset)
+    require(startTag != null, "Start tag cannot be null.")
+    require(endTag != null, "End tag cannot be null.")
+    require(space != null, "White space cannot be null.")
+    require(angleBracket != null, "Angle bracket cannot be null.")
     start = fileSplit.getStart
     end = start + fileSplit.getLength
 
@@ -143,7 +151,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private def next(key: LongWritable, value: Text): Boolean = {
     if (readUntilMatch(startTag, withinBlock = false)) {
       try {
-        buffer.write(startTag)
+        buffer.write(currentStartTag)
         if (readUntilMatch(endTag, withinBlock = true)) {
           key.set(filePosition.getPos)
           value.set(buffer.getData, 0, buffer.getLength)
@@ -169,9 +177,10 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
    */
   private def readUntilMatch(mat: Array[Byte], withinBlock: Boolean): Boolean = {
     var i: Int = 0
-    while (true) {
+    while(true) {
       val b: Int = in.read
       if (b == -1) {
+        currentStartTag = startTag
         return false
       }
       if (withinBlock) {
@@ -180,13 +189,14 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       if (b == mat(i)) {
         i += 1
         if (i >= mat.length) {
+          currentStartTag = startTag
           return true
         }
       }
       else {
-        if (i == (mat.length - 1)) {
-          if (b == space && !withinBlock) {
-            startTag(startTag.length - 1) = space
+        // The start tag might have attributes. In this case, we decide it by the space after tag
+        if (i == (mat.length - angleBracket.length) && !withinBlock) {
+          if (checkAttributes(b)){
             return true
           }
         }
@@ -195,6 +205,20 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       if (!withinBlock && i == 0 && filePosition.getPos > end) {
         return false
       }
+    }
+    false
+  }
+
+  private def checkAttributes(current: Int): Boolean = {
+    var len = 0
+    var b = current
+    while(len < space.length && b == space(len)) {
+      len += 1
+      if (len >= space.length) {
+        currentStartTag = startTag.take(startTag.length - angleBracket.length) ++ space
+        return true
+      }
+      b = in.read
     }
     false
   }
@@ -212,7 +236,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       }
     } finally {
       if (decompressor != null) {
-        CodecPool.returnDecompressor(decompressor);
+        CodecPool.returnDecompressor(decompressor)
         decompressor = null
       }
     }
