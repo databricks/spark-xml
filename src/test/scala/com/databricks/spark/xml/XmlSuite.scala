@@ -35,6 +35,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val booksNestedArrayFile = "src/test/resources/books-nested-array.xml"
   val booksComplicatedFile = "src/test/resources/books-complicated.xml"
   val carsFile = "src/test/resources/cars.xml"
+  val carsFile8859 = "src/test/resources/cars-iso-8859-1.xml"
   val carsFileGzip = "src/test/resources/cars.xml.gz"
   val carsFileBzip2 = "src/test/resources/cars.xml.bz2"
   val booksAttributesInNoChild = "src/test/resources/books-attributes-in-no-child.xml"
@@ -73,6 +74,20 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     assert(results.size === numCars)
   }
+
+  test("DSL test for iso-8859-1 encoded file") {
+    val dataFrame = new XmlReader()
+      .withCharset("iso-8859-1")
+      .xmlFile(sqlContext, carsFile8859)
+    assert(dataFrame.select("year").collect().size === numCars)
+
+    val results = dataFrame
+      .select("comment", "year")
+      .where(dataFrame("year") === 2012)
+    assert(results.first.getString(0) === "No comment")
+    assert(results.first.getLong(1) === 2012)
+  }
+
 
   test("DSL test compressed file") {
     val results = sqlContext

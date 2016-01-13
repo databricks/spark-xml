@@ -18,7 +18,6 @@ package com.databricks.spark.xml
 import java.io.{InputStream, IOException}
 import java.nio.charset.Charset
 
-import org.apache.commons.io.Charsets
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Seekable
 import org.apache.hadoop.io.compress._
@@ -69,7 +68,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
 
   private val buffer: DataOutputBuffer = new DataOutputBuffer
 
-  def initialize(split: InputSplit, context: TaskAttemptContext): Unit = {
+  override def initialize(split: InputSplit, context: TaskAttemptContext): Unit = {
     val fileSplit: FileSplit = split.asInstanceOf[FileSplit]
     val conf: Configuration = {
       // Use reflection to get the Configuration. This is necessary because TaskAttemptContext is
