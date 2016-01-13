@@ -44,15 +44,17 @@ private[xml] object StaxXmlParser {
     val failFast = options.failFastFlag
     xml.mapPartitions { iter =>
       iter.flatMap { xml =>
-        // It does not have to skip for white space, since [[XmlInputFormat]]
+        // It does not have to skip for white space, since `XmlInputFormat`
         // always finds the root tag without a heading space.
         val factory = XMLInputFactory.newInstance()
         val reader = new ByteArrayInputStream(xml.getBytes)
         val parser = factory.createXMLEventReader(reader)
         try {
-          val rootEvent = skipUntil(parser, XMLStreamConstants.START_ELEMENT)
-          val rootAttributes = rootEvent.asStartElement.getAttributes
-            .map(_.asInstanceOf[Attribute]).toArray
+          val rootAttributes = {
+            val rootEvent = skipUntil(parser, XMLStreamConstants.START_ELEMENT)
+            rootEvent.asStartElement.getAttributes
+              .map(_.asInstanceOf[Attribute]).toArray
+          }
           Some(convertObject(parser, schema, options, rootAttributes))
         } catch {
           case _: java.lang.NumberFormatException if !failFast =>
@@ -194,19 +196,16 @@ private[xml] object StaxXmlParser {
    */
   private def convertValues(valuesMap: Map[String, String],
                             schema: StructType): Map[String, Any] = {
-    val target = collection.mutable.Map.empty[String, Any]
+    val convertedValuesMap = collection.mutable.Map.empty[String, Any]
     valuesMap.foreach {
       case (f, v) =>
         val nameToIndex = schema.map(_.name).zipWithIndex.toMap
-        nameToIndex.get(f) match {
-          case Some(i) =>
-            target(f) = convertStringTo(v, schema(i).dataType)
-          case _ =>
-            // This will eventually emits `XMLStreamException`.
-            logger.error(s"The field ('$f') does not exist in schema")
+        nameToIndex.get(f).foreach {
+          case i =>
+            convertedValuesMap(f) = convertStringTo(v, schema(i).dataType)
         }
     }
-    Map(target.toSeq: _*)
+    Map(convertedValuesMap.toSeq: _*)
   }
 
   /**
@@ -236,13 +235,13 @@ private[xml] object StaxXmlParser {
           // If there are attributes, then we process them first.
           convertValues(toValuesMap(rootAttributes), schema).toSeq.foreach {
             case (f, v) =>
-              row(nameToIndex(f)) = v
+              nameToIndex.get(f).foreach(row.update(_, v))
           }
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           // Set elements and other attributes to the row
           val field = e.asStartElement.getName.getLocalPart
-          nameToIndex.get(field) match {
-            case Some(index) =>
+          nameToIndex.get(field).foreach {
+            case index =>
               val dataType = schema(index).dataType
               dataType match {
                 case st: StructType if st.exists(_.name == options.valueTag) =>
@@ -263,7 +262,7 @@ private[xml] object StaxXmlParser {
                   // If there are attributes, then we process them first.
                   convertValues(toValuesMap(attributes), schema).toSeq.foreach {
                     case (f, v) =>
-                      row(nameToIndex(f)) = v
+                      nameToIndex.get(f).foreach(row.update(_, v))
                   }
                   row(index) = convertField(parser, dataType, options)
                 case _: ArrayType =>
@@ -278,9 +277,6 @@ private[xml] object StaxXmlParser {
                 case _ =>
                   row(index) = convertField(parser, dataType, options)
               }
-            case _ =>
-              // This will eventually emits `XMLStreamException`.
-              logger.error(s"The field ('$field') does not exist in schema")
           }
         case _: EndElement =>
           shouldStop = checkEndElement(parser, options)

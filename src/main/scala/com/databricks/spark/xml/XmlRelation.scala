@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
-import org.apache.spark.sql.sources.{InsertableRelation, BaseRelation, TableScan}
+import org.apache.spark.sql.sources.{PrunedScan, InsertableRelation, BaseRelation, TableScan}
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.InferSchema
 import com.databricks.spark.xml.parsers.StaxXmlParser
@@ -34,7 +34,8 @@ case class XmlRelation protected[spark] (
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
   extends BaseRelation
   with InsertableRelation
-  with TableScan {
+  with TableScan
+  with PrunedScan {
 
   private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
@@ -48,11 +49,41 @@ case class XmlRelation protected[spark] (
     }
   }
 
-  override def buildScan: RDD[Row] = {
+  override def buildScan(): RDD[Row] = {
     StaxXmlParser.parse(
       baseRDD(),
       schema,
       options)
+  }
+
+  override def buildScan(requiredColumns: Array[String]): RDD[Row] = {
+    val requiredFields = requiredColumns.map(schema(_))
+    val schemaFields = schema.fields
+    if (schemaFields.deep == requiredFields.deep) {
+      buildScan()
+    } else if (options.failFastFlag) {
+      val safeRequestedSchema = StructType(requiredFields)
+      StaxXmlParser.parse(
+        baseRDD(),
+        safeRequestedSchema,
+        options)
+    } else {
+      // If `failFast` is disabled, then it needs to parse all the values
+      // so that we can decide which row is malformed.
+      val safeRequestedSchema = StructType(
+        requiredFields ++ schema.fields.filterNot(requiredFields.contains(_)))
+      val rows = StaxXmlParser.parse(
+        baseRDD(),
+        safeRequestedSchema,
+        options)
+
+      val rowSize = requiredFields.length
+      rows.mapPartitions { iter =>
+        iter.flatMap { xml =>
+          Some(Row.fromSeq(xml.toSeq.take(rowSize)))
+        }
+      }
+    }
   }
 
   // The function below was borrowed from JSONRelation

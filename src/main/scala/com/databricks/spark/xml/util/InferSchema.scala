@@ -87,9 +87,11 @@ private[xml] object InferSchema {
         val reader = new ByteArrayInputStream(xml.getBytes)
         val parser = factory.createXMLEventReader(reader)
         try {
-          val rootEvent = skipUntil(parser, XMLStreamConstants.START_ELEMENT)
-          val rootAttributes = rootEvent.asStartElement.getAttributes
-            .map(_.asInstanceOf[Attribute]).toArray
+          val rootAttributes = {
+            val rootEvent = skipUntil(parser, XMLStreamConstants.START_ELEMENT)
+            rootEvent.asStartElement.getAttributes
+              .map(_.asInstanceOf[Attribute]).toArray
+          }
           Some(inferObject(parser, options, rootAttributes))
         } catch {
           case _: java.lang.NumberFormatException if !failFast =>
