@@ -36,9 +36,9 @@ package object xml {
                  filePath: String,
                  rowTag: String = XmlOptions.DEFAULT_ROW_TAG,
                  samplingRatio: Double = 1.0,
-                 excludeAttributeFlag: Boolean = false,
+                 excludeAttribute: Boolean = false,
                  treatEmptyValuesAsNulls: Boolean = false,
-                 failFastFlag: Boolean = false,
+                 failFast: Boolean = false,
                  attributePrefix: String = XmlOptions.DEFAULT_ATTRIBUTE_PREFIX,
                  valueTag: String = XmlOptions.DEFAULT_VALUE_TAG,
                  charset: String = XmlOptions.DEFAULT_CHARSET): DataFrame = {
@@ -46,9 +46,9 @@ package object xml {
       val parameters = Map(
         "rowTag" -> rowTag,
         "samplingRatio" -> samplingRatio.toString,
-        "excludeAttribute" -> excludeAttributeFlag.toString,
+        "excludeAttribute" -> excludeAttribute.toString,
         "treatEmptyValuesAsNulls" -> treatEmptyValuesAsNulls.toString,
-        "failFast" -> failFastFlag.toString,
+        "failFast" -> failFast.toString,
         "attributePrefix" -> attributePrefix,
         "valueTag" -> valueTag,
         "charset" -> charset)
