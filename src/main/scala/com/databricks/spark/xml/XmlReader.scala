@@ -32,6 +32,11 @@ class XmlReader extends Serializable {
     this
   }
 
+  def withCompression(codec: String): XmlReader = {
+    parameters += ("codec" -> codec)
+    this
+  }
+
   def withRowTag(rowTag: String): XmlReader = {
     parameters += ("rowTag" -> rowTag)
     this

@@ -20,6 +20,7 @@ package com.databricks.spark.xml
  */
 private[xml] case class XmlOptions(
   charset: String = XmlOptions.DEFAULT_CHARSET,
+  codec: String = null,
   rowTag: String = XmlOptions.DEFAULT_ROW_TAG,
   rootTag: String = XmlOptions.DEFAULT_ROOT_TAG,
   samplingRatio: Double = 1.0,
@@ -40,9 +41,8 @@ private[xml] object XmlOptions {
   val DEFAULT_NULL_VALUE = "null"
 
   def createFromConfigMap(parameters: Map[String, String]): XmlOptions = XmlOptions(
-    // TODO Support different encoding types.
-    // TODO validate encoidng types. maybe with Charset.forname()
     charset = parameters.getOrElse("charset", DEFAULT_CHARSET),
+    codec = parameters.get("codec").orNull,
     rowTag = parameters.getOrElse("rowTag", DEFAULT_ROW_TAG),
     rootTag = parameters.getOrElse("rootTag", DEFAULT_ROOT_TAG),
     samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0),

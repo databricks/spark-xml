@@ -28,6 +28,16 @@ import com.databricks.spark.xml.util.XmlFile
 import com.databricks.spark.xml.parsers.StaxXmlGenerator
 
 package object xml {
+  private[xml] def compressionCodecClass(className: String): Class[_ <: CompressionCodec] = {
+    className match {
+      case null => null
+      case codec =>
+        // scalastyle:off classforname
+        Class.forName(codec).asInstanceOf[Class[CompressionCodec]]
+        // scalastyle:on classforname
+    }
+  }
+
   /**
    * Adds a method, `xmlFile`, to [[SQLContext]] that allows reading XML data.
    */
@@ -62,6 +72,8 @@ package object xml {
 
   /**
    * Adds a method, `saveAsXmlFile`, to [[DataFrame]] that allows writing XML data.
+   * If compressionCodec is not null the resulting output will be compressed.
+   * Note that a codec entry in the parameters map will be ignored.
    */
   implicit class XmlSchemaRDD(dataFrame: DataFrame) {
     // Note that writing a XML file from [[DataFrame]] having a field [[ArrayType]] with
