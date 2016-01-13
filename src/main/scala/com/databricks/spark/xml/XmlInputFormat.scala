@@ -98,6 +98,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       // runtime.
       val (inputStream, seekable) = codec match {
         case c: CompressionCodec if isSplitCompressionCodec(c) =>
+          // At Hadoop 1.0.x, this case would not be executed.
           val cIn = {
             val sc = c.asInstanceOf[SplittableCompressionCodec]
             sc.createInputStream(fsin, decompressor, start,
