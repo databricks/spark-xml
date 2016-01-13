@@ -80,7 +80,7 @@ case class XmlRelation protected[spark] (
         safeRequestedSchema,
         parseConf)
     } else {
-      // If `parseConf` is disabled, then it needs to parse all the values
+      // If `failFast` is disabled, then it needs to parse all the values
       // so that we can decide which row is malformed.
       val safeRequestedSchema = StructType(
         requiredFields ++ schema.fields.filterNot(requiredFields.contains(_)))
