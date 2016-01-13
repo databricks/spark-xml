@@ -46,6 +46,7 @@ When reading files the API accepts several options:
 * `failFast` : Whether you want to fail when it fails to parse malformed rows in XML files, instead of dropping the rows. Default is false.
 * `attributePrefix`: The prefix for attributes so that we can differentiate attributes and elements. This will be the prefix for field names. Default is `@`.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `#VALUE`.
+* `charset`: Defaults to 'UTF-8' but can be set to other valid charset names
 
 When writing files the API accepts several options:
 * `path`: Location to write files.

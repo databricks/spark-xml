@@ -88,7 +88,6 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.first.getLong(1) === 2012)
   }
 
-
   test("DSL test compressed file") {
     val results = sqlContext
       .xmlFile(carsFileGzip)
