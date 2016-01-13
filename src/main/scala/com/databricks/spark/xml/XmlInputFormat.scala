@@ -88,35 +88,24 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     val codec = new CompressionCodecFactory(conf).getCodec(path)
     if (null != codec) {
       decompressor = CodecPool.getDecompressor(codec)
-      // Use reflection to get the splittable compression stream. This is necessary
+      // Use reflection to get the splittable compression codec and stream. This is necessary
       // because SplittableCompressionCodec does not exist in Hadoop 1.0.x.
       def isSplitCompressionCodec(obj: Any) = {
         val splittableClassName = "org.apache.hadoop.io.compress.SplittableCompressionCodec"
-        val test = obj.getClass.getInterfaces.map(_.getName)
         obj.getClass.getInterfaces.map(_.getName).contains(splittableClassName)
       }
-      codec match {
+      // Here I made separate variables to avoid to try to find SplitCompressionInputStream at
+      // runtime.
+      val (inputStream, seekable) = codec match {
         case c: CompressionCodec if isSplitCompressionCodec(c) =>
           val cIn = {
-            val method = c.getClass.getMethod("createInputStream",
-              classOf[InputStream],
-              classOf[Decompressor],
-              classOf[Long],
-              classOf[Long],
-              classOf[SplittableCompressionCodec.READ_MODE])
-            method.invoke(c, fsin, decompressor, start.asInstanceOf[AnyRef],
-              end.asInstanceOf[AnyRef], SplittableCompressionCodec.READ_MODE.BYBLOCK)
-          }.asInstanceOf[CompressionInputStream]
-          start = {
-            val method = cIn.getClass.getMethod("getAdjustedStart")
-            method.invoke(cIn).asInstanceOf[Long]
+            val sc = c.asInstanceOf[SplittableCompressionCodec]
+            sc.createInputStream(fsin, decompressor, start,
+              end, SplittableCompressionCodec.READ_MODE.BYBLOCK)
           }
-          end = {
-            val method = cIn.getClass.getMethod("getAdjustedEnd")
-            method.invoke(cIn).asInstanceOf[Long]
-          }
-          in = cIn
-          filePosition = cIn
+          start = cIn.getAdjustedStart
+          end = cIn.getAdjustedEnd
+          (cIn, cIn)
         case c: CompressionCodec =>
           if (start != 0) {
             // So we have a split that is only part of a file stored using
@@ -124,9 +113,11 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
             throw new IOException("Cannot seek in " +
               codec.getClass.getSimpleName + " compressed stream")
           }
-          in = c.createInputStream(fsin, decompressor)
-          filePosition = fsin
+          val cIn = c.createInputStream(fsin, decompressor)
+          (cIn, fsin)
       }
+     in = inputStream
+     filePosition = seekable
     } else {
       in = fsin
       filePosition = fsin
