@@ -32,14 +32,13 @@ private[xml] object XmlFile {
                   rowTag: String): RDD[String] = {
     context.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, s"<$rowTag>")
     context.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, s"</$rowTag>")
+    context.hadoopConfiguration.set(XmlInputFormat.ENCODING_KEY, charset)
     if (Charset.forName(charset) == Charset.forName(XmlOptions.DEFAULT_CHARSET)) {
       context.newAPIHadoopFile(location,
         classOf[XmlInputFormat],
         classOf[LongWritable],
         classOf[Text]).map(pair => new String(pair._2.getBytes, 0, pair._2.getLength))
     } else {
-      // can't pass a Charset object here cause its not serializable
-      // TODO: maybe use mapPartitions instead?
       context.newAPIHadoopFile(location,
         classOf[XmlInputFormat],
         classOf[LongWritable],
