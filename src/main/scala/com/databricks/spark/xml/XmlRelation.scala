@@ -61,12 +61,12 @@ case class XmlRelation protected[spark] (
     val schemaFields = schema.fields
     if (schemaFields.deep == requiredFields.deep) {
       buildScan()
-    } else if (parseConf.failFastFlag) {
+    } else if (options.failFastFlag) {
       val safeRequestedSchema = StructType(requiredFields)
       StaxXmlParser.parse(
         baseRDD(),
         safeRequestedSchema,
-        parseConf)
+        options)
     } else {
       // If `failFast` is disabled, then it needs to parse all the values
       // so that we can decide which row is malformed.
@@ -75,7 +75,7 @@ case class XmlRelation protected[spark] (
       val rows = StaxXmlParser.parse(
         baseRDD(),
         safeRequestedSchema,
-        parseConf)
+        options)
 
       val rowSize = requiredFields.length
       rows.mapPartitions { iter =>
