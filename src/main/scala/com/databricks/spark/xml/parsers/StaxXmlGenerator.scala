@@ -21,6 +21,7 @@ import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
+import com.databricks.spark.xml.XmlOptions
 
 // This class is borrowed from Spark json datasource.
 private[xml] object StaxXmlGenerator {
@@ -28,25 +29,22 @@ private[xml] object StaxXmlGenerator {
   /** Transforms a single Row to XML
     *
     * @param schema the schema object used for conversion
-    * @param row The row to convert
     * @param writer a XML writer object
-    * @param nullValue replacement for null.
+    * @param options options for XML datasource.
+    * @param row The row to convert
     */
   def apply(schema: StructType,
-            tag: String,
             writer: IndentingXMLStreamWriter,
-            nullValue: String,
-            attributePrefix: String,
-            valueTag: String)(row: Row): Unit = {
+            options: XmlOptions)(row: Row): Unit = {
     def writeChild(name: String, vt: DataType, v: Any): Unit = {
       (vt, v) match {
         // If this is meant to be attribute, write an attribute
-        case (_, null) | (NullType, _) if name.startsWith(attributePrefix) =>
-          writer.writeAttribute(name.substring(attributePrefix.size), nullValue)
-        case _ if name.startsWith(attributePrefix) =>
-          writer.writeAttribute(name.substring(attributePrefix.size), v.toString)
+        case (_, null) | (NullType, _) if name.startsWith(options.attributePrefix) =>
+          writer.writeAttribute(name.substring(options.attributePrefix.size), options.nullValue)
+        case _ if name.startsWith(options.attributePrefix) =>
+          writer.writeAttribute(name.substring(options.attributePrefix.size), v.toString)
         // If this is meant to be value but in no child, write only a value
-        case _ if name == valueTag =>
+        case _ if name == options.valueTag =>
           writeElement(vt, v)
         // For ArrayType, we just need to write each as XML element.
         case (ArrayType(ty, _), v: Seq[_]) =>
@@ -64,7 +62,7 @@ private[xml] object StaxXmlGenerator {
     }
 
     def writeElement: (DataType, Any) => Unit = {
-      case (_, null) | (NullType, _) => writer.writeCharacters(nullValue)
+      case (_, null) | (NullType, _) => writer.writeCharacters(options.nullValue)
       case (StringType, v: String) => writer.writeCharacters(v.toString)
       case (TimestampType, v: java.sql.Timestamp) => writer.writeCharacters(v.toString)
       case (IntegerType, v: Int) => writer.writeCharacters(v.toString)
@@ -106,13 +104,13 @@ private[xml] object StaxXmlGenerator {
     }
 
     val (attributes, elements) = schema.zip(row.toSeq).partition {
-      case (f, v) => f.name.startsWith(attributePrefix)
+      case (f, v) => f.name.startsWith(options.attributePrefix)
     }
     // Writing attributes
-    writer.writeStartElement(tag)
+    writer.writeStartElement(options.rowTag)
     attributes.foreach {
       case (f, v) =>
-        writer.writeAttribute(f.name.substring(attributePrefix.size), v.toString)
+        writer.writeAttribute(f.name.substring(options.attributePrefix.size), v.toString)
     }
     // Writing elements
     val (names, values) = elements.unzip

@@ -21,15 +21,10 @@ import org.apache.hadoop.io.{Text, LongWritable}
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import com.databricks.spark.xml.XmlInputFormat
+import com.databricks.spark.xml.{XmlOptions, XmlInputFormat}
 
 private[xml] object XmlFile {
-  val DEFAULT_ROW_TAG = "ROW"
-  val DEFAULT_ROOT_TAG = "ROWS"
-  val DEFAULT_ATTRIBUTE_PREFIX = "@"
-  val DEFAULT_VALUE_TAG = "#VALUE"
   val DEFAULT_INDENT = "    "
-  val DEFAULT_CHARSET = Charset.forName("UTF-8")
   val DEFAULT_ROW_SEPARATOR = "\n"
 
   def withCharset(context: SparkContext, location: String,
@@ -37,7 +32,7 @@ private[xml] object XmlFile {
                   rowTag: String): RDD[String] = {
     context.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, s"<$rowTag>")
     context.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, s"</$rowTag>")
-    if (Charset.forName(charset) == DEFAULT_CHARSET) {
+    if (Charset.forName(charset) == Charset.forName(XmlOptions.DEFAULT_CHARSET)) {
       context.newAPIHadoopFile(location,
         classOf[XmlInputFormat],
         classOf[LongWritable],

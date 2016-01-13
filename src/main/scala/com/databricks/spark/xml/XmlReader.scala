@@ -24,53 +24,46 @@ import com.databricks.spark.xml.util.XmlFile
  * A collection of static functions for working with XML files in Spark SQL
  */
 class XmlReader extends Serializable {
-  private var charset: String = XmlFile.DEFAULT_CHARSET.name()
-  private var rowTag: String = XmlFile.DEFAULT_ROW_TAG
-  private var samplingRatio: Double = 1.0
-  private var excludeAttributeFlag: Boolean = false
-  private var treatEmptyValuesAsNulls: Boolean = false
-  private var failFastFlag: Boolean = false
-  private var attributePrefix: String = XmlFile.DEFAULT_ATTRIBUTE_PREFIX
-  private var valueTag: String = XmlFile.DEFAULT_VALUE_TAG
+  private var parameters = collection.mutable.Map.empty[String, String]
   private var schema: StructType = null
 
   def withCharset(charset: String): XmlReader = {
-    this.charset = charset
+    parameters += ("charset" -> charset)
     this
   }
 
   def withRowTag(rowTag: String): XmlReader = {
-    this.rowTag = rowTag
+    parameters += ("rowTag" -> rowTag)
     this
   }
 
   def withSamplingRatio(samplingRatio: Double): XmlReader = {
-    this.samplingRatio = samplingRatio
+    parameters += ("samplingRatio" -> samplingRatio.toString)
     this
   }
 
   def withExcludeAttribute(exclude: Boolean): XmlReader = {
-    this.excludeAttributeFlag = exclude
+    parameters += ("excludeAttribute" -> exclude.toString)
     this
   }
 
   def withTreatEmptyValuesAsNulls(treatAsNull: Boolean): XmlReader = {
-    this.treatEmptyValuesAsNulls = treatAsNull
+    parameters += ("treatEmptyValuesAsNulls" -> treatAsNull.toString)
     this
   }
 
   def withFailFast(failFast: Boolean): XmlReader = {
-    this.failFastFlag = failFast
+    parameters += ("failFast" -> failFast.toString)
     this
   }
 
   def withAttributePrefix(attributePrefix: String): XmlReader = {
-    this.attributePrefix = attributePrefix
+    parameters += ("attributePrefix" -> attributePrefix)
     this
   }
 
   def withValueTag(valueTag: String): XmlReader = {
-    this.valueTag = valueTag
+    parameters += ("valueTag" -> valueTag)
     this
   }
 
@@ -82,15 +75,15 @@ class XmlReader extends Serializable {
   /** Returns a Schema RDD for the given XML path. */
   @throws[RuntimeException]
   def xmlFile(sqlContext: SQLContext, path: String): DataFrame = {
+    // We need the `charset` and `rowTag` before creating the relation.
+    val (charset, rowTag) = {
+      val options = XmlOptions.createFromConfigMap(parameters.toMap)
+      (options.charset, options.rowTag)
+    }
     val relation: XmlRelation = XmlRelation(
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
       Some(path),
-      samplingRatio,
-      excludeAttributeFlag,
-      treatEmptyValuesAsNulls,
-      failFastFlag,
-      attributePrefix,
-      valueTag,
+      parameters.toMap,
       schema)(sqlContext)
     sqlContext.baseRelationToDataFrame(relation)
   }
@@ -99,12 +92,7 @@ class XmlReader extends Serializable {
     val relation: XmlRelation = XmlRelation(
       () => xmlRDD,
       None,
-      samplingRatio,
-      excludeAttributeFlag,
-      treatEmptyValuesAsNulls,
-      failFastFlag,
-      attributePrefix,
-      valueTag,
+      parameters.toMap,
       schema)(sqlContext)
     sqlContext.baseRelationToDataFrame(relation)
   }

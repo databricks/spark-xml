@@ -18,8 +18,6 @@ package com.databricks.spark
 import java.io.CharArrayWriter
 import javax.xml.stream.XMLOutputFactory
 
-import com.databricks.spark.xml.parsers.StaxXmlGenerator
-
 import scala.collection.Map
 
 import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter
@@ -27,6 +25,7 @@ import org.apache.hadoop.io.compress.CompressionCodec
 
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import com.databricks.spark.xml.util.XmlFile
+import com.databricks.spark.xml.parsers.StaxXmlGenerator
 
 package object xml {
   /**
@@ -35,24 +34,28 @@ package object xml {
   implicit class XmlContext(sqlContext: SQLContext) extends Serializable {
     def xmlFile(
                  filePath: String,
-                 rowTag: String = XmlFile.DEFAULT_ROW_TAG,
+                 rowTag: String = XmlOptions.DEFAULT_ROW_TAG,
                  samplingRatio: Double = 1.0,
-                 excludeAttributeFlag: Boolean = false,
+                 excludeAttribute: Boolean = false,
                  treatEmptyValuesAsNulls: Boolean = false,
-                 failFastFlag: Boolean = false,
-                 attributePrefix: String = XmlFile.DEFAULT_ATTRIBUTE_PREFIX,
-                 valueTag: String = XmlFile.DEFAULT_VALUE_TAG,
-                 charset: String = XmlFile.DEFAULT_CHARSET.name()): DataFrame = {
+                 failFast: Boolean = false,
+                 attributePrefix: String = XmlOptions.DEFAULT_ATTRIBUTE_PREFIX,
+                 valueTag: String = XmlOptions.DEFAULT_VALUE_TAG,
+                 charset: String = XmlOptions.DEFAULT_CHARSET): DataFrame = {
 
+      val parameters = Map(
+        "rowTag" -> rowTag,
+        "samplingRatio" -> samplingRatio.toString,
+        "excludeAttribute" -> excludeAttribute.toString,
+        "treatEmptyValuesAsNulls" -> treatEmptyValuesAsNulls.toString,
+        "failFast" -> failFast.toString,
+        "attributePrefix" -> attributePrefix,
+        "valueTag" -> valueTag,
+        "charset" -> charset)
       val xmlRelation = XmlRelation(
         () => XmlFile.withCharset(sqlContext.sparkContext, filePath, charset, rowTag),
         location = Some(filePath),
-        samplingRatio = samplingRatio,
-        excludeAttributeFlag = excludeAttributeFlag,
-        treatEmptyValuesAsNulls = treatEmptyValuesAsNulls,
-        failFastFlag = failFastFlag,
-        attributePrefix = attributePrefix,
-        valueTag = valueTag)(sqlContext)
+        parameters = parameters.toMap)(sqlContext)
       sqlContext.baseRelationToDataFrame(xmlRelation)
     }
   }
@@ -79,14 +82,9 @@ package object xml {
     // Namely, roundtrip in writing and reading can end up in different schema structure.
     def saveAsXmlFile(path: String, parameters: Map[String, String] = Map(),
                       compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
-      val nullValue = parameters.getOrElse("nullValue", "null")
-      val rootTag = parameters.getOrElse("rootTag", XmlFile.DEFAULT_ROOT_TAG)
-      val rowTag = parameters.getOrElse("rowTag", XmlFile.DEFAULT_ROW_TAG)
-      val attributePrefix =
-        parameters.getOrElse("attributePrefix", XmlFile.DEFAULT_ATTRIBUTE_PREFIX)
-      val valueTag = parameters.getOrElse("valueTag", XmlFile.DEFAULT_VALUE_TAG)
-      val startElement = s"<$rootTag>"
-      val endElement = s"</$rootTag>"
+      val options = XmlOptions.createFromConfigMap(parameters.toMap)
+      val startElement = s"<${options.rootTag}>"
+      val endElement = s"</${options.rootTag}>"
       val rowSchema = dataFrame.schema
       val indent = XmlFile.DEFAULT_INDENT
       val rowSeparator = XmlFile.DEFAULT_ROW_SEPARATOR
@@ -109,11 +107,8 @@ package object xml {
               val xml = {
                 StaxXmlGenerator(
                   rowSchema,
-                  rowTag,
                   indentingXmlWriter,
-                  nullValue,
-                  attributePrefix,
-                  valueTag)(iter.next())
+                  options)(iter.next())
                 writer.toString
               }
               writer.reset()
