@@ -462,7 +462,7 @@ This library is built with [SBT](http://www.scala-sbt.org/0.13/docs/Command-Line
 
 ### Hadoop InputFormat
 
-The library contains a Hadoop input format for XML files reading by a start tag and an end tag. This is similar with [XmlInputFormat](https://github.com/apache/mahout/blob/9d14053c80a1244bdf7157ab02748a492ae9868a/integration/src/main/java/org/apache/mahout/text/wikipedia/XmlInputFormat.java) in [Mahout](http://mahout.apache.org) but supports to read compressed files, different encodings and read elements including attributes,
+The library contains a Hadoop input format for reading XML files by a start tag and an end tag. This is similar with [XmlInputFormat](https://github.com/apache/mahout/blob/9d14053c80a1244bdf7157ab02748a492ae9868a/integration/src/main/java/org/apache/mahout/text/wikipedia/XmlInputFormat.java) in [Mahout](http://mahout.apache.org) but supports to read compressed files, different encodings and read elements including attributes,
 which you may make direct use of as follows:
 
 ```scala
