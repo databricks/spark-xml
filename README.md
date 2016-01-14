@@ -18,13 +18,13 @@ You can link against this library in your program at the following coordiates:
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.10
-version: 0.2.0
+version: 0.3.0
 ```
 ### Scala 2.11
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.11
-version: 0.2.0
+version: 0.3.0
 ```
 
 
