@@ -32,7 +32,7 @@ version: 0.3.0
 This package can be added to  Spark using the `--jars` command line option.  For example, to include it when starting the spark shell:
 
 ```
-$ bin/spark-shell --packages com.databricks:spark-xml_2.11:0.2.0
+$ bin/spark-shell --packages com.databricks:spark-xml_2.11:0.3.0
 ```
 
 ## Features
