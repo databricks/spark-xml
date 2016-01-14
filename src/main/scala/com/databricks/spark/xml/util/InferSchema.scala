@@ -305,6 +305,15 @@ private[xml] object InferSchema {
         case (ty1, ArrayType(ty2, _)) =>
           ArrayType(compatibleType(ty1, ty2))
 
+        // As this library can infer an element with attributes as StructType whereas
+        // some can be inferred as other non-structural data types, this case should be
+        // treated.
+        case (StructType(fields), dt: DataType) =>
+          StructType(fields)
+
+        case (dt: DataType, StructType(fields)) =>
+          StructType(fields)
+
         // strings and every string is a XML object.
         case (_, _) => StringType
       }
