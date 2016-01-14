@@ -464,7 +464,7 @@ which you may make direct use of as follows:
 ```scala
 import com.databricks.spark.xml.XmlInputFormat
 
-// This also detects the tags including attributes
+// This will detect the tags including attributes
 sc.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, "<books>")
 sc.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, "</books>")
 sc.hadoopConfiguration.set(XmlInputFormat.ENCODING_KEY, "utf-8")
