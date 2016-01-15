@@ -56,7 +56,7 @@ When writing files the API accepts several options:
 * `attributePrefix`: The prefix for attributes so that we can differentiating attributes and elements. This will be the prefix for field names. Default is `@`.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `#VALUE`.
 * `codec`: Compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec`. Defaults to no compression when a codec is not specified.
-* `headingContents` : The contents ahead of the XML files you write. They are usually XML declaration and DTD. Default is `<?xml version="1.0"?>`.
+* `headingContents` : The contents ahead of the XML files you write. They are usually XML declaration and DTD. Default is `<?xml version="1.0"?>`. Note that this does not require a newline at the end.
 
 Currently it supports the shorten name useage. You can use just `xml` instead of `com.databricks.spark.xml` from Spark 1.5.0+
 
