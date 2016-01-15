@@ -279,10 +279,27 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     // Check that the part file has a .gz extension
     assert(carsCopyPartFile.exists())
 
-    val carsCopy = sqlContext.xmlFile(copyFilePath + "/")
+    val carsCopy = sqlContext.xmlFile(copyFilePath)
 
     assert(carsCopy.count == cars.count)
     assert(carsCopy.collect.map(_.toString).toSet == cars.collect.map(_.toString).toSet)
+  }
+
+  test("DSL save with heading contents including DTD and XML declaration") {
+    // Create temp directory
+    TestUtils.deleteRecursively(new File(tempEmptyDir))
+    new File(tempEmptyDir).mkdirs()
+    val copyFilePath = tempEmptyDir + "books-copy.xml"
+    val headingContents = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>"
+
+    val books = sqlContext.xmlFile(booksComplicatedFile, rowTag = booksTag)
+    books.saveAsXmlFile(copyFilePath,
+      Map("rootTag" -> booksRootTag, "rowTag" -> booksTag, "headingContents" -> headingContents))
+    val booksCopy = sqlContext.xmlFile(copyFilePath, rowTag = booksTag)
+    val headingContentsCopy = sqlContext.sparkContext.textFile(copyFilePath).first()
+
+    assert(headingContentsCopy.toString == headingContents)
+    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
   }
 
   test("DSL save") {
@@ -295,7 +312,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     books.saveAsXmlFile(copyFilePath,
       Map("rootTag" -> booksRootTag, "rowTag" -> booksTag))
 
-    val booksCopy = sqlContext.xmlFile(copyFilePath + "/", rowTag = booksTag)
+    val booksCopy = sqlContext.xmlFile(copyFilePath, rowTag = booksTag)
     assert(booksCopy.count == books.count)
     assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
   }
@@ -320,7 +337,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       List(StructField("a", ArrayType(
         StructType(List(StructField("item", ArrayType(StringType), nullable = true)))),
           nullable = true)))
-    val dfCopy = sqlContext.xmlFile(copyFilePath + "/")
+    val dfCopy = sqlContext.xmlFile(copyFilePath)
 
     assert(dfCopy.count == df.count)
     assert(dfCopy.schema === schemaCopy)
@@ -360,7 +377,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     val dfCopy = new XmlReader()
             .withSchema(schema)
-            .xmlFile(sqlContext, copyFilePath + "/")
+            .xmlFile(sqlContext, copyFilePath)
 
     assert(dfCopy.collect() === df.collect())
     assert(dfCopy.schema === df.schema)
