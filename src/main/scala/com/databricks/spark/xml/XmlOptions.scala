@@ -29,7 +29,8 @@ private[xml] case class XmlOptions(
   failFastFlag: Boolean = false,
   attributePrefix: String = XmlOptions.DEFAULT_ATTRIBUTE_PREFIX,
   valueTag: String = XmlOptions.DEFAULT_VALUE_TAG,
-  nullValue: String = XmlOptions.DEFAULT_NULL_VALUE
+  nullValue: String = XmlOptions.DEFAULT_NULL_VALUE,
+  headingContents: String = XmlOptions.DEFAULT_HEADING_CONTENTS
 )
 
 private[xml] object XmlOptions {
@@ -39,6 +40,7 @@ private[xml] object XmlOptions {
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_CHARSET = "UTF-8"
   val DEFAULT_NULL_VALUE = "null"
+  val DEFAULT_HEADING_CONTENTS = "<?xml version=\"1.0\"?>"
 
   def createFromConfigMap(parameters: Map[String, String]): XmlOptions = XmlOptions(
     charset = parameters.getOrElse("charset", DEFAULT_CHARSET),
@@ -52,6 +54,7 @@ private[xml] object XmlOptions {
     failFastFlag = parameters.get("failFast").map(_.toBoolean).getOrElse(false),
     attributePrefix = parameters.getOrElse("attributePrefix", DEFAULT_ATTRIBUTE_PREFIX),
     valueTag = parameters.getOrElse("valueTag", DEFAULT_VALUE_TAG),
-    nullValue = parameters.getOrElse("nullValue", DEFAULT_NULL_VALUE)
+    nullValue = parameters.getOrElse("nullValue", DEFAULT_NULL_VALUE),
+    headingContents = parameters.getOrElse("headingContents", DEFAULT_HEADING_CONTENTS)
   )
 }

@@ -40,7 +40,8 @@ private[xml] object StaxXmlGenerator {
       (vt, v) match {
         // If this is meant to be attribute, write an attribute
         case (_, null) | (NullType, _) if name.startsWith(options.attributePrefix) =>
-          writer.writeAttribute(name.substring(options.attributePrefix.size), options.nullValue)
+        // Because usually attributes having `null` do not exist in elements, just do not write
+        // attributes when given values are `null`.
         case _ if name.startsWith(options.attributePrefix) =>
           writer.writeAttribute(name.substring(options.attributePrefix.size), v.toString)
         // If this is meant to be value but in no child, write only a value
