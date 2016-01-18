@@ -156,7 +156,7 @@ OPTIONS (path "books.xml", rowTag "book")
 
 You can also specify column names and types in DDL. In this case, we do not infer schema.
 ```sql
-CREATE TABLE books (author string, description string, genre string, id string, price double, publish_date string, title string)
+CREATE TABLE books (author string, description string, genre string, @id string, price double, publish_date string, title string)
 USING com.databricks.spark.xml
 OPTIONS (path "books.xml", rowTag "book")
 ```
@@ -456,9 +456,28 @@ df <- read.df(sqlContext, "books.xml", source = "com.databricks.spark.xml", rowT
 write.df(df, "newbooks.csv", "com.databricks.spark.xml", "overwrite")
 ```
 
+## Hadoop InputFormat
+
+The library contains a Hadoop input format for reading XML files by a start tag and an end tag. This is similar with [XmlInputFormat.java](https://github.com/apache/mahout/blob/9d14053c80a1244bdf7157ab02748a492ae9868a/integration/src/main/java/org/apache/mahout/text/wikipedia/XmlInputFormat.java) in [Mahout](http://mahout.apache.org) but supports to read compressed files, different encodings and read elements including attributes,
+which you may make direct use of as follows:
+
+```scala
+import com.databricks.spark.xml.XmlInputFormat
+
+// This will detect the tags including attributes
+sc.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, "<books>")
+sc.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, "</books>")
+sc.hadoopConfiguration.set(XmlInputFormat.ENCODING_KEY, "utf-8")
+
+val records = context.newAPIHadoopFile(
+  path,
+  classOf[XmlInputFormat],
+  classOf[LongWritable],
+  classOf[Text])
+```
+
 ## Building From Source
 This library is built with [SBT](http://www.scala-sbt.org/0.13/docs/Command-Line-Reference.html), which is automatically downloaded by the included shell script. To build a JAR file simply run `sbt/sbt package` from the project root. The build configuration includes support for both Scala 2.10 and 2.11.
-
 
 ## Acknowledgements
 
