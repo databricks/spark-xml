@@ -40,8 +40,9 @@ private[xml] object StaxXmlGenerator {
       (vt, v) match {
         // If this is meant to be attribute, write an attribute
         case (_, null) | (NullType, _) if name.startsWith(options.attributePrefix) =>
-        // Because usually attributes having `null` do not exist in elements, just do not write
-        // attributes when given values are `null`.
+          Option(options.nullValue).foreach {
+            writer.writeAttribute(name.substring(options.attributePrefix.size), _)
+          }
         case _ if name.startsWith(options.attributePrefix) =>
           writer.writeAttribute(name.substring(options.attributePrefix.size), v.toString)
         // If this is meant to be value but in no child, write only a value
@@ -51,7 +52,7 @@ private[xml] object StaxXmlGenerator {
         case (ArrayType(ty, _), v: Seq[_]) =>
           v.foreach { e =>
             (ty, e) match {
-              case (_, null) |(NullType, _) =>
+              case (_, null) |(NullType, _) if options.nullValue != null =>
               // Because usually elements having `null` do not exist, just do not write
               // elements when given values are `null`.
               case _ =>
@@ -63,7 +64,7 @@ private[xml] object StaxXmlGenerator {
         // For other datatypes, we just write normal elements.
         case _ =>
           (vt, v) match {
-            case (_, null) |(NullType, _) =>
+            case (_, null) |(NullType, _) if options.nullValue == null =>
             case _ =>
               writer.writeStartElement(name)
               writeElement(vt, v)
@@ -73,9 +74,7 @@ private[xml] object StaxXmlGenerator {
     }
 
     def writeElement: (DataType, Any) => Unit = {
-      case (_, null) | (NullType, _) =>
-        // Because usually elements having `null` do not exist, just do not write
-        // elements when given values are `null`.
+      case (_, null) | (NullType, _) => writer.writeCharacters(options.nullValue)
       case (StringType, v: String) => writer.writeCharacters(v.toString)
       case (TimestampType, v: java.sql.Timestamp) => writer.writeCharacters(v.toString)
       case (IntegerType, v: Int) => writer.writeCharacters(v.toString)
@@ -113,7 +112,7 @@ private[xml] object StaxXmlGenerator {
 
       case (dt, v) =>
         sys.error(
-          s"Failed to convert value $v (class of ${v.getClass}}) in type $dt to XML.")
+          s"Failed to convert value $v (class of ${v.getClass}) in type $dt to XML.")
     }
 
     val (attributes, elements) = schema.zip(row.toSeq).partition {

@@ -161,8 +161,15 @@ private[xml] object InferSchema {
         Map.empty[String, String]
       } else {
         val attrFields = attributes.map(options.attributePrefix + _.getName.getLocalPart)
-        val attrDataTypes = attributes.map(_.getValue)
-        attrFields.zip(attrDataTypes).toMap
+        val attrValues = attributes.map(_.getValue)
+        val nullSafeValues = {
+          if (options.treatEmptyValuesAsNulls) {
+            attrValues.map (v => if (v.trim.isEmpty) null else v)
+          } else {
+            attrValues
+          }
+        }
+        attrFields.zip(nullSafeValues).toMap
       }
     }
 
