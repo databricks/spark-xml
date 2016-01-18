@@ -36,7 +36,7 @@ private[xml] object StaxXmlGenerator {
   def apply(schema: StructType,
             writer: IndentingXMLStreamWriter,
             options: XmlOptions)(row: Row): Unit = {
-    def writeChildElement:(String, DataType, Any) => Unit = {
+    def writeChildElement: (String, DataType, Any) => Unit = {
         case (_, _, null) |(_, NullType, _) if options.nullValue == null =>
         // Because usually elements having `null` do not exist, just do not write
         // elements when given values are `null`.
