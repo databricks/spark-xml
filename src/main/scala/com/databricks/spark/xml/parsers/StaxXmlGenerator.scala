@@ -40,7 +40,8 @@ private[xml] object StaxXmlGenerator {
       (vt, v) match {
         // If this is meant to be attribute, write an attribute
         case (_, null) | (NullType, _) if name.startsWith(options.attributePrefix) =>
-          writer.writeAttribute(name.substring(options.attributePrefix.size), options.nullValue)
+        // Because usually attributes having `null` do not exist in elements, just do not write
+        // attributes when given values are `null`.
         case _ if name.startsWith(options.attributePrefix) =>
           writer.writeAttribute(name.substring(options.attributePrefix.size), v.toString)
         // If this is meant to be value but in no child, write only a value
@@ -49,20 +50,32 @@ private[xml] object StaxXmlGenerator {
         // For ArrayType, we just need to write each as XML element.
         case (ArrayType(ty, _), v: Seq[_]) =>
           v.foreach { e =>
-            writer.writeStartElement(name)
-            writeElement(ty, e)
-            writer.writeEndElement()
+            (ty, e) match {
+              case (_, null) |(NullType, _) =>
+              // Because usually elements having `null` do not exist, just do not write
+              // elements when given values are `null`.
+              case _ =>
+                writer.writeStartElement(name)
+                writeElement(ty, e)
+                writer.writeEndElement()
+            }
           }
         // For other datatypes, we just write normal elements.
         case _ =>
-          writer.writeStartElement(name)
-          writeElement(vt, v)
-          writer.writeEndElement()
+          (vt, v) match {
+            case (_, null) |(NullType, _) =>
+            case _ =>
+              writer.writeStartElement(name)
+              writeElement(vt, v)
+              writer.writeEndElement()
+          }
       }
     }
 
     def writeElement: (DataType, Any) => Unit = {
-      case (_, null) | (NullType, _) => writer.writeCharacters(options.nullValue)
+      case (_, null) | (NullType, _) =>
+        // Because usually elements having `null` do not exist, just do not write
+        // elements when given values are `null`.
       case (StringType, v: String) => writer.writeCharacters(v.toString)
       case (TimestampType, v: java.sql.Timestamp) => writer.writeCharacters(v.toString)
       case (IntegerType, v: Int) => writer.writeCharacters(v.toString)

@@ -244,6 +244,7 @@ private[xml] object StaxXmlParser {
             case index =>
               val dataType = schema(index).dataType
               dataType match {
+                // TODO: Simplify the cases here.
                 case st: StructType if st.exists(_.name == options.valueTag) =>
                   // If this is the element having no children, then it wraps attributes with a row
                   // So, we first need to find the field name that has the real value and then push
@@ -265,6 +266,18 @@ private[xml] object StaxXmlParser {
                       nameToIndex.get(f).foreach(row.update(_, v))
                   }
                   row(index) = convertField(parser, dataType, options)
+                case ArrayType(st: StructType, _) if attributes.nonEmpty =>
+                  // If the given type is array but the element type is StructType,
+                  // we should push and write current attributes as fields in elements
+                  // in this array.
+                  val elements = {
+                    val values = Option(row(index))
+                      .map(_.asInstanceOf[ArrayBuffer[Any]])
+                      .getOrElse(ArrayBuffer.empty[Any])
+                    val newValue = convertObject(parser, st, options, attributes)
+                    values :+ newValue
+                  }
+                  row(index) = elements
                 case _: ArrayType =>
                   val elements = {
                     val values = Option(row(index))
