@@ -149,23 +149,21 @@ private[xml] object StaxXmlParser {
     }
   }
 
-  private def convertStringTo(value: String, dataType: DataType): Any = {
-    dataType match {
-      case LongType => signSafeToLong(value)
-      case DoubleType => signSafeToDouble(value)
-      case BooleanType => castTo(value, BooleanType)
-      case StringType => castTo(value, StringType)
-      case DateType => castTo(value, DateType)
-      case TimestampType => castTo(value, TimestampType)
-      case FloatType => signSafeToFloat(value)
-      case ByteType => castTo(value, ByteType)
-      case ShortType => castTo(value, ShortType)
-      case IntegerType => signSafeToInt(value)
-      case _: DecimalType => castTo(value, new DecimalType(None))
-      case NullType => null
-      case dataType =>
-        sys.error(s"Failed to parse a value for data type $dataType.")
-    }
+  private def convertStringTo: (String, DataType) => Any = {
+    case (null, _) | (_, NullType) => null
+    case (v, LongType) => signSafeToLong(v)
+    case (v, DoubleType) => signSafeToDouble(v)
+    case (v, BooleanType) => castTo(v, BooleanType)
+    case (v, StringType) => castTo(v, StringType)
+    case (v, DateType) => castTo(v, DateType)
+    case (v, TimestampType) => castTo(v, TimestampType)
+    case (v, FloatType) => signSafeToFloat(v)
+    case (v, ByteType) => castTo(v, ByteType)
+    case (v, ShortType) => castTo(v, ShortType)
+    case (v, IntegerType) => signSafeToInt(v)
+    case (v, _: DecimalType) => castTo(v, new DecimalType(None))
+    case (_, dataType) =>
+      sys.error(s"Failed to parse a value for data type $dataType.")
   }
 
   /**
@@ -222,7 +220,14 @@ private[xml] object StaxXmlParser {
       } else {
         val attrFields = attributes.map(options.attributePrefix + _.getName.getLocalPart)
         val attrValues = attributes.map(_.getValue)
-        attrFields.zip(attrValues).toMap
+        val nullSafeValues = {
+          if (options.treatEmptyValuesAsNulls) {
+            attrValues.map (v => if (v.trim.isEmpty) null else v)
+          } else {
+            attrValues
+          }
+        }
+        attrFields.zip(nullSafeValues).toMap
       }
     }
 
@@ -243,39 +248,47 @@ private[xml] object StaxXmlParser {
           nameToIndex.get(field).foreach {
             case index =>
               val dataType = schema(index).dataType
-              dataType match {
+              row(index) = dataType match {
                 case st: StructType if st.exists(_.name == options.valueTag) =>
                   // If this is the element having no children, then it wraps attributes with a row
                   // So, we first need to find the field name that has the real value and then push
                   // the value.
-                  row(index) = {
-                    val valuesMap = convertValues(toValuesMap(attributes), st)
-                    val value = {
-                      val dataType = st.filter(_.name == options.valueTag).head.dataType
-                      convertField(parser, dataType, options)
-                    }
-                    // The attributes are sorted therefore `TreeMap` is used.
-                    val row = (TreeMap(options.valueTag -> value) ++ valuesMap).values.toSeq
-                    Row.fromSeq(row)
+                  val valuesMap = convertValues(toValuesMap(attributes), st)
+                  val value = {
+                    val dataType = st.filter(_.name == options.valueTag).head.dataType
+                    convertField(parser, dataType, options)
                   }
+                  // The attributes are sorted therefore `TreeMap` is used.
+                  val row = (TreeMap(options.valueTag -> value) ++ valuesMap).values.toSeq
+                  Row.fromSeq(row)
                 case _: StructType =>
                   // If there are attributes, then we process them first.
                   convertValues(toValuesMap(attributes), schema).toSeq.foreach {
                     case (f, v) =>
                       nameToIndex.get(f).foreach(row.update(_, v))
                   }
-                  row(index) = convertField(parser, dataType, options)
-                case _: ArrayType =>
+                  convertField(parser, dataType, options)
+                case ArrayType(dt: DataType, _) =>
                   val elements = {
                     val values = Option(row(index))
                       .map(_.asInstanceOf[ArrayBuffer[Any]])
                       .getOrElse(ArrayBuffer.empty[Any])
-                    val newValue = convertField(parser, dataType, options)
+                    val newValue = {
+                      dt match {
+                        case st: StructType  if attributes.nonEmpty =>
+                          // If the given type is array but the element type is StructType,
+                          // we should push and write current attributes as fields in elements
+                          // in this array.
+                          convertObject(parser, st, options, attributes)
+                        case _ =>
+                          convertField(parser, dataType, options)
+                      }
+                    }
                     values :+ newValue
                   }
-                  row(index) = elements
+                  elements
                 case _ =>
-                  row(index) = convertField(parser, dataType, options)
+                  convertField(parser, dataType, options)
               }
           }
         case _: EndElement =>

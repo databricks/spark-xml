@@ -36,28 +36,35 @@ private[xml] object StaxXmlGenerator {
   def apply(schema: StructType,
             writer: IndentingXMLStreamWriter,
             options: XmlOptions)(row: Row): Unit = {
-    def writeChild(name: String, vt: DataType, v: Any): Unit = {
-      (vt, v) match {
+    def writeChildElement: (String, DataType, Any) => Unit = {
+      // If this is meant to be value but in no child, write only a value
+      case (_, _, null) |(_, NullType, _) if options.nullValue == null =>
+      // Because usually elements having `null` do not exist, just do not write
+      // elements when given values are `null`.
+      case (name, dt, v) if name == options.valueTag =>
+        // If this is meant to be value but in no child, write only a value
+        writeElement(dt, v)
+      case (name, dt, v) =>
+        writer.writeStartElement(name)
+        writeElement(dt, v)
+        writer.writeEndElement()
+    }
+
+    def writeChild(name: String, dt: DataType, v: Any): Unit = {
+      (dt, v) match {
         // If this is meant to be attribute, write an attribute
         case (_, null) | (NullType, _) if name.startsWith(options.attributePrefix) =>
-          writer.writeAttribute(name.substring(options.attributePrefix.size), options.nullValue)
+          Option(options.nullValue).foreach {
+            writer.writeAttribute(name.substring(options.attributePrefix.length), _)
+          }
         case _ if name.startsWith(options.attributePrefix) =>
-          writer.writeAttribute(name.substring(options.attributePrefix.size), v.toString)
-        // If this is meant to be value but in no child, write only a value
-        case _ if name == options.valueTag =>
-          writeElement(vt, v)
+          writer.writeAttribute(name.substring(options.attributePrefix.length), v.toString)
         // For ArrayType, we just need to write each as XML element.
         case (ArrayType(ty, _), v: Seq[_]) =>
-          v.foreach { e =>
-            writer.writeStartElement(name)
-            writeElement(ty, e)
-            writer.writeEndElement()
-          }
+          v.foreach(e => writeChildElement(name, ty, e))
         // For other datatypes, we just write normal elements.
         case _ =>
-          writer.writeStartElement(name)
-          writeElement(vt, v)
-          writer.writeEndElement()
+          writeChildElement(name, dt, v)
       }
     }
 
@@ -100,7 +107,7 @@ private[xml] object StaxXmlGenerator {
 
       case (dt, v) =>
         sys.error(
-          s"Failed to convert value $v (class of ${v.getClass}}) in type $dt to XML.")
+          s"Failed to convert value $v (class of ${v.getClass}) in type $dt to XML.")
     }
 
     val (attributes, elements) = schema.zip(row.toSeq).partition {
@@ -110,7 +117,7 @@ private[xml] object StaxXmlGenerator {
     writer.writeStartElement(options.rowTag)
     attributes.foreach {
       case (f, v) =>
-        writer.writeAttribute(f.name.substring(options.attributePrefix.size), v.toString)
+        writer.writeAttribute(f.name.substring(options.attributePrefix.length), v.toString)
     }
     // Writing elements
     val (names, values) = elements.unzip
