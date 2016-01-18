@@ -248,29 +248,26 @@ private[xml] object StaxXmlParser {
           nameToIndex.get(field).foreach {
             case index =>
               val dataType = schema(index).dataType
-              dataType match {
-                // TODO: Simplify the cases here.
+              row(index) = dataType match {
                 case st: StructType if st.exists(_.name == options.valueTag) =>
                   // If this is the element having no children, then it wraps attributes with a row
                   // So, we first need to find the field name that has the real value and then push
                   // the value.
-                  row(index) = {
-                    val valuesMap = convertValues(toValuesMap(attributes), st)
-                    val value = {
-                      val dataType = st.filter(_.name == options.valueTag).head.dataType
-                      convertField(parser, dataType, options)
-                    }
-                    // The attributes are sorted therefore `TreeMap` is used.
-                    val row = (TreeMap(options.valueTag -> value) ++ valuesMap).values.toSeq
-                    Row.fromSeq(row)
+                  val valuesMap = convertValues(toValuesMap(attributes), st)
+                  val value = {
+                    val dataType = st.filter(_.name == options.valueTag).head.dataType
+                    convertField(parser, dataType, options)
                   }
+                  // The attributes are sorted therefore `TreeMap` is used.
+                  val row = (TreeMap(options.valueTag -> value) ++ valuesMap).values.toSeq
+                  Row.fromSeq(row)
                 case _: StructType =>
                   // If there are attributes, then we process them first.
                   convertValues(toValuesMap(attributes), schema).toSeq.foreach {
                     case (f, v) =>
                       nameToIndex.get(f).foreach(row.update(_, v))
                   }
-                  row(index) = convertField(parser, dataType, options)
+                  convertField(parser, dataType, options)
                 case ArrayType(dt: DataType, _) =>
                   val elements = {
                     val values = Option(row(index))
@@ -289,9 +286,9 @@ private[xml] object StaxXmlParser {
                     }
                     values :+ newValue
                   }
-                  row(index) = elements
+                  elements
                 case _ =>
-                  row(index) = convertField(parser, dataType, options)
+                  convertField(parser, dataType, options)
               }
           }
         case _: EndElement =>
