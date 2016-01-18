@@ -36,40 +36,35 @@ private[xml] object StaxXmlGenerator {
   def apply(schema: StructType,
             writer: IndentingXMLStreamWriter,
             options: XmlOptions)(row: Row): Unit = {
-    def writeChild(name: String, vt: DataType, v: Any): Unit = {
-      (vt, v) match {
+    def writeChildElement:(String, DataType, Any) => Unit = {
+        case (_, _, null) |(_, NullType, _) if options.nullValue == null =>
+        // Because usually elements having `null` do not exist, just do not write
+        // elements when given values are `null`.
+        case (name, dt, v) =>
+          writer.writeStartElement(name)
+          writeElement(dt, v)
+          writer.writeEndElement()
+    }
+
+    def writeChild(name: String, dt: DataType, v: Any): Unit = {
+      (dt, v) match {
         // If this is meant to be attribute, write an attribute
         case (_, null) | (NullType, _) if name.startsWith(options.attributePrefix) =>
           Option(options.nullValue).foreach {
-            writer.writeAttribute(name.substring(options.attributePrefix.size), _)
+            writer.writeAttribute(name.substring(options.attributePrefix.length), _)
           }
         case _ if name.startsWith(options.attributePrefix) =>
-          writer.writeAttribute(name.substring(options.attributePrefix.size), v.toString)
+          writer.writeAttribute(name.substring(options.attributePrefix.length), v.toString)
         // If this is meant to be value but in no child, write only a value
         case _ if name == options.valueTag =>
-          writeElement(vt, v)
+          writeElement(dt, v)
         // For ArrayType, we just need to write each as XML element.
         case (ArrayType(ty, _), v: Seq[_]) =>
-          v.foreach { e =>
-            (ty, e) match {
-              case (_, null) |(NullType, _) if options.nullValue != null =>
-              // Because usually elements having `null` do not exist, just do not write
-              // elements when given values are `null`.
-              case _ =>
-                writer.writeStartElement(name)
-                writeElement(ty, e)
-                writer.writeEndElement()
-            }
-          }
+          v.foreach(e => writeChildElement(name, ty, e))
+
         // For other datatypes, we just write normal elements.
         case _ =>
-          (vt, v) match {
-            case (_, null) |(NullType, _) if options.nullValue == null =>
-            case _ =>
-              writer.writeStartElement(name)
-              writeElement(vt, v)
-              writer.writeEndElement()
-          }
+          writeChildElement(name, dt, v)
       }
     }
 
@@ -122,7 +117,7 @@ private[xml] object StaxXmlGenerator {
     writer.writeStartElement(options.rowTag)
     attributes.foreach {
       case (f, v) =>
-        writer.writeAttribute(f.name.substring(options.attributePrefix.size), v.toString)
+        writer.writeAttribute(f.name.substring(options.attributePrefix.length), v.toString)
     }
     // Writing elements
     val (names, values) = elements.unzip
