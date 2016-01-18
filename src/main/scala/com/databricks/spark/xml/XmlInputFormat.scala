@@ -76,7 +76,8 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       val method = context.getClass.getMethod("getConfiguration")
       method.invoke(context).asInstanceOf[Configuration]
     }
-    val charset = Charset.forName(conf.get(XmlInputFormat.ENCODING_KEY))
+    val charset =
+      Charset.forName(conf.get(XmlInputFormat.ENCODING_KEY, XmlOptions.DEFAULT_CHARSET))
     startTag = conf.get(XmlInputFormat.START_TAG_KEY).getBytes(charset)
     endTag = conf.get(XmlInputFormat.END_TAG_KEY).getBytes(charset)
     space = " ".getBytes(charset)

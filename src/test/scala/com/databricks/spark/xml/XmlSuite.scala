@@ -317,6 +317,23 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
   }
 
+  test("DSL save with nullValue and treatEmptyValuesAsNulls") {
+    // Create temp directory
+    TestUtils.deleteRecursively(new File(tempEmptyDir))
+    new File(tempEmptyDir).mkdirs()
+    val copyFilePath = tempEmptyDir + "books-copy.xml"
+
+    val books = sqlContext.xmlFile(booksComplicatedFile, rowTag = booksTag)
+    books.saveAsXmlFile(copyFilePath,
+      Map("rootTag" -> booksRootTag, "rowTag" -> booksTag, "nullValue" -> ""))
+
+    val booksCopy =
+      sqlContext.xmlFile(copyFilePath, rowTag = booksTag, treatEmptyValuesAsNulls = true)
+
+    assert(booksCopy.count == books.count)
+    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+  }
+
   test("DSL save dataframe not read from a XML file") {
     // Create temp directory
     TestUtils.deleteRecursively(new File(tempEmptyDir))

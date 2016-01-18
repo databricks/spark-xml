@@ -39,7 +39,7 @@ private[xml] object XmlOptions {
   val DEFAULT_ROW_TAG = "ROW"
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_CHARSET = "UTF-8"
-  val DEFAULT_NULL_VALUE = "null"
+  val DEFAULT_NULL_VALUE = null
   val DEFAULT_HEADING_CONTENTS = "<?xml version=\"1.0\"?>"
 
   def createFromConfigMap(parameters: Map[String, String]): XmlOptions = XmlOptions(
