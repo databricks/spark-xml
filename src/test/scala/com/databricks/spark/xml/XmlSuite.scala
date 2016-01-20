@@ -285,6 +285,25 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(carsCopy.collect.map(_.toString).toSet == cars.collect.map(_.toString).toSet)
   }
 
+  test("DSL save with gzip compression codec by shorten name") {
+    // Create temp directory
+    TestUtils.deleteRecursively(new File(tempEmptyDir))
+    new File(tempEmptyDir).mkdirs()
+    val copyFilePath = tempEmptyDir + "cars-copy.xml"
+
+    val cars = sqlContext.xmlFile(carsFile)
+    cars.save("com.databricks.spark.xml", SaveMode.Overwrite,
+      Map("path" -> copyFilePath, "codec" -> "gZiP"))
+    val carsCopyPartFile = new File(copyFilePath, "part-00000.gz")
+    // Check that the part file has a .gz extension
+    assert(carsCopyPartFile.exists())
+
+    val carsCopy = sqlContext.xmlFile(copyFilePath)
+
+    assert(carsCopy.count == cars.count)
+    assert(carsCopy.collect.map(_.toString).toSet == cars.collect.map(_.toString).toSet)
+  }
+
   test("DSL save") {
     // Create temp directory
     TestUtils.deleteRecursively(new File(tempEmptyDir))

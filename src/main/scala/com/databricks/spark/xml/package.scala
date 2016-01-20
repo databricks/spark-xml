@@ -28,16 +28,6 @@ import com.databricks.spark.xml.util.XmlFile
 import com.databricks.spark.xml.parsers.StaxXmlGenerator
 
 package object xml {
-  private[xml] def compressionCodecClass(className: String): Class[_ <: CompressionCodec] = {
-    className match {
-      case null => null
-      case codec =>
-        // scalastyle:off classforname
-        Class.forName(codec).asInstanceOf[Class[CompressionCodec]]
-        // scalastyle:on classforname
-    }
-  }
-
   /**
    * Adds a method, `xmlFile`, to [[SQLContext]] that allows reading XML data.
    */
