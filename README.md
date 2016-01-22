@@ -12,7 +12,7 @@ This library requires Spark 1.3+
 
 
 ## Linking
-You can link against this library in your program at the following coordiates:
+You can link against this library in your program at the following coordinates:
 
 ### Scala 2.10
 ```
