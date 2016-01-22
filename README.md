@@ -12,7 +12,7 @@ This library requires Spark 1.3+
 
 
 ## Linking
-You can link against this library in your program at the following coordiates:
+You can link against this library in your program at the following coordinates:
 
 ### Scala 2.10
 ```
@@ -27,12 +27,17 @@ artifactId: spark-xml_2.11
 version: 0.3.1
 ```
 
-
 ## Using with Spark shell
-This package can be added to  Spark using the `--jars` command line option.  For example, to include it when starting the spark shell:
+This package can be added to  Spark using the `--packages` command line option.  For example, to include it when starting the spark shell:
 
+### Spark compiled with Scala 2.10
 ```
-$ bin/spark-shell --packages com.databricks:spark-xml_2.11:0.3.1
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.10:0.3.1
+```
+
+### Spark compiled with Scala 2.11
+```
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.3.1
 ```
 
 ## Features
@@ -426,7 +431,7 @@ Automatically infer schema (data types)
 ```R
 library(SparkR)
 
-Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-xml_2.10:1.3.0" "sparkr-shell"')
+Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-xml_2.10:0.3.1" "sparkr-shell"')
 sqlContext <- sparkRSQL.init(sc)
 
 df <- read.df(sqlContext, "books.xml", source = "com.databricks.spark.xml", rowTag = "book")
@@ -439,7 +444,7 @@ You can manually specify schema:
 ```R
 library(SparkR)
 
-Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:1.3.0" "sparkr-shell"')
+Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:0.3.1" "sparkr-shell"')
 sqlContext <- sparkRSQL.init(sc)
 customSchema <- structType(
     structField("@id", "string"),
