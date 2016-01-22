@@ -364,7 +364,7 @@ from pyspark.sql import SQLContext
 sqlContext = SQLContext(sc)
 
 df = sqlContext.read.format('com.databricks.spark.xml').options(rowTag='book').load('books.xml')
-df.select("author", "@id").save('newbooks.xml', rootTag = 'books', rowTag = 'book', path = 'newbooks.xml')
+df.select("author", "@id").write.format('com.databricks.spark.xml').options(rowTag='book', rootTag='books').save('newbooks.xml')
 ```
 
 You can manually specify schema:
