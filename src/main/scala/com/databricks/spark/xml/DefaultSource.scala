@@ -20,7 +20,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
-import com.databricks.spark.xml.util.{TypeCast, XmlFile}
+import com.databricks.spark.xml.util.XmlFile
 
 /**
  * Provides access to XML data from pure SQL statements (i.e. for users of the
@@ -54,7 +54,7 @@ class DefaultSource
     val path = checkPath(parameters)
     // We need the `charset` and `rowTag` before creating the relation.
     val (charset, rowTag) = {
-      val options = XmlOptions.createFromConfigMap(parameters)
+      val options = XmlOptions(parameters)
       (options.charset, options.rowTag)
     }
 
@@ -89,7 +89,7 @@ class DefaultSource
     }
     if (doSave) {
       // Only save data when the save mode is not ignore.
-      val codecClass = compressionCodecClass(XmlOptions.createFromConfigMap(parameters).codec)
+      val codecClass = compressionCodecClass(XmlOptions(parameters).codec)
       data.saveAsXmlFile(filesystemPath.toString, parameters, codecClass)
     }
     createRelation(sqlContext, parameters, data.schema)
