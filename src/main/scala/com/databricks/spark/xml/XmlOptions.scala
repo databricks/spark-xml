@@ -19,7 +19,7 @@ package com.databricks.spark.xml
  * Options for the XML data source.
  */
 private[xml] class XmlOptions(
-    @transient parameters: Map[String, String])
+    @transient private val parameters: Map[String, String])
   extends Serializable{
 
   val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
