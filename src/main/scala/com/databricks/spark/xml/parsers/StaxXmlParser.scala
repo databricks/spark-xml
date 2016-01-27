@@ -47,6 +47,7 @@ private[xml] object StaxXmlParser {
         // It does not have to skip for white space, since `XmlInputFormat`
         // always finds the root tag without a heading space.
         val factory = XMLInputFactory.newInstance()
+        factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
         val reader = new ByteArrayInputStream(xml.getBytes)
         val parser = factory.createXMLEventReader(reader)
         try {
