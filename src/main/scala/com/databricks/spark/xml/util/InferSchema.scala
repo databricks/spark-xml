@@ -140,10 +140,11 @@ private[xml] object InferSchema {
           case _: EndElement if options.treatEmptyValuesAsNulls => NullType
           case _: EndElement => StringType
           case _: StartElement => inferObject(parser, options)
+          case _: Characters => inferTypeFromString(readData(parser))
         }
       case c: Characters if !c.isIgnorableWhiteSpace && !c.isWhiteSpace =>
         // This means data exists
-        inferTypeFromString(c.asCharacters().getData)
+        inferTypeFromString(readData(parser))
 
       case e: XMLEvent =>
         sys.error(s"Failed to parse data with unexpected event ${e.toString}")

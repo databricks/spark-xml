@@ -87,6 +87,23 @@ private[xml] object StaxXmlParser {
   }
 
   /**
+   * Read data for all continuous character events.
+   */
+  def readData(parser: XMLEventReader): String = {
+    var data: String = null
+    while(true) {
+      parser.peek match {
+        case c: Characters =>
+          if (data == null) data = c.getData else data += c.getData
+        case _ =>
+          return data
+      }
+      parser.nextEvent
+    }
+    null
+  }
+
+  /**
    * Check if current event points the EndElement.
    */
   def checkEndElement(parser: XMLEventReader, options: XmlOptions): Boolean = {
@@ -105,6 +122,9 @@ private[xml] object StaxXmlParser {
         next match {
           case _: EndElement => true
           case _: StartElement => false
+          case _: Characters =>
+            readData(parser)
+            false
           case e: XMLEvent =>
             sys.error(s"Failed to parse data with unexpected event ${e.toString}")
         }
@@ -139,11 +159,12 @@ private[xml] object StaxXmlParser {
         (next, dataType) match {
           case (_: EndElement, _) => if (options.treatEmptyValuesAsNulls) null else data
           case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
+          case (_: Characters, dt: DataType) => convertStringTo(readData(parser), dt)
         }
       case (c: Characters, ArrayType(st, _)) if !c.isIgnorableWhiteSpace && !c.isWhiteSpace =>
-        convertStringTo(c.asCharacters().getData, st)
+        convertStringTo(readData(parser), st)
       case (c: Characters, dt: DataType) if !c.isIgnorableWhiteSpace && !c.isWhiteSpace =>
-        convertStringTo(c.asCharacters().getData, dt)
+        convertStringTo(readData(parser), dt)
       case (e: XMLEvent, dt: DataType) =>
         sys.error(s"Failed to parse a value for data type $dt with event ${e.toString}")
     }

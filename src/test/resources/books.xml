@@ -6,8 +6,26 @@
       <genre>Computer</genre>
       <price>44.95</price>
       <publish_date>2000-10-01</publish_date>
-      <description>An in-depth look at creating applications 
-      with XML.</description>
+      <description>
+
+
+         An in-depth look at creating applications
+         with XML.This manual describes Oracle XML DB, and how you can use it to store, generate, manipulate, manage,
+         and query XML data in the database.
+
+
+         After introducing you to the heart of Oracle XML DB, namely the XMLType framework and Oracle XML DB repository,
+         the manual provides a brief introduction to design criteria to consider when planning your Oracle XML DB
+         application. It provides examples of how and where you can use Oracle XML DB.
+
+
+         The manual then describes ways you can store and retrieve XML data using Oracle XML DB, APIs for manipulating
+         XMLType data, and ways you can view, generate, transform, and search on existing XML data. The remainder of
+         the manual discusses how to use Oracle XML DB repository, including versioning and security,
+         how to access and manipulate repository resources using protocols, SQL, PL/SQL, or Java, and how to manage
+         your Oracle XML DB application using Oracle Enterprise Manager. It also introduces you to XML messaging and
+         Oracle Streams Advanced Queuing XMLType support.
+      </description>
    </book>
    <book id="bk102">
       <author>Ralls, Kim</author>
