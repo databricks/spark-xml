@@ -266,6 +266,7 @@ private[xml] object StaxXmlParser {
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           // Set elements and other attributes to the row
           val field = e.asStartElement.getName.getLocalPart
+          // TODO: Simplify the complex logic below.
           nameToIndex.get(field).foreach {
             case index =>
               val dataType = schema(index).dataType

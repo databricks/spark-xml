@@ -177,6 +177,7 @@ private[xml] object InferSchema {
     val builder = Seq.newBuilder[StructField]
     val nameToDataTypes = collection.mutable.Map.empty[String, ArrayBuffer[DataType]]
     var shouldStop = false
+    // TODO: Simplify the complex logic below.
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
