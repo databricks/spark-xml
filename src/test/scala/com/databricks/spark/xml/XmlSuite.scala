@@ -45,13 +45,16 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val carsMalformedFile = "src/test/resources/cars-malformed.xml"
   val nullNumbersFile = "src/test/resources/null-numbers.xml"
   val emptyFile = "src/test/resources/empty.xml"
+  val topicsFile = "src/test/resources/topics-namespaces.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
+  val topicsTag = "Topic"
 
   val numCars = 3
   val numBooks = 12
   val numBooksComplicated = 3
+  val numTopics = 1
 
   private var sqlContext: SQLContext = _
 
@@ -571,5 +574,13 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .collect()
 
     assert(results(1).toSeq === Seq("bob", null))
+  }
+
+  test("DSL test with namespaces ignored") {
+    val results = sqlContext
+      .xmlFile(topicsFile, rowTag = topicsTag)
+      .collect()
+
+    assert(results.size === numTopics)
   }
 }
