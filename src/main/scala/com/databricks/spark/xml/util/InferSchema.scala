@@ -17,7 +17,7 @@ package com.databricks.spark.xml.util
 
 import java.io.ByteArrayInputStream
 import javax.xml.stream.events._
-import javax.xml.stream.{XMLStreamException, XMLStreamConstants, XMLEventReader, XMLInputFactory}
+import javax.xml.stream.{XMLStreamException, XMLEventReader, XMLInputFactory}
 
 import org.slf4j.LoggerFactory
 
@@ -88,7 +88,7 @@ private[xml] object InferSchema {
         val parser = factory.createXMLEventReader(reader)
         try {
           val rootAttributes = {
-            val rootEvent = skipUntil(parser, XMLStreamConstants.START_ELEMENT)
+            val rootEvent = skipUntil(parser, classOf[StartElement])
             rootEvent.asStartElement.getAttributes
               .map(_.asInstanceOf[Attribute]).toArray
           }
@@ -140,11 +140,11 @@ private[xml] object InferSchema {
           case _: EndElement if options.treatEmptyValuesAsNulls => NullType
           case _: EndElement => StringType
           case _: StartElement => inferObject(parser, options)
-          case _: Characters => inferTypeFromString(readData(parser))
+          case _: Characters => inferTypeFromString(readDataFully(parser))
         }
       case c: Characters if !c.isIgnorableWhiteSpace && !c.isWhiteSpace =>
         // This means data exists
-        inferTypeFromString(readData(parser))
+        inferTypeFromString(readDataFully(parser))
 
       case e: XMLEvent =>
         sys.error(s"Failed to parse data with unexpected event ${e.toString}")

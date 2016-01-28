@@ -18,7 +18,7 @@ package com.databricks.spark.xml.parsers
 import java.io.ByteArrayInputStream
 import javax.xml.stream.events.{Attribute, XMLEvent}
 import javax.xml.stream.events._
-import javax.xml.stream.{XMLStreamException, XMLStreamConstants, XMLEventReader, XMLInputFactory}
+import javax.xml.stream.{XMLStreamException, XMLEventReader, XMLInputFactory}
 
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable.ArrayBuffer
@@ -51,7 +51,7 @@ private[xml] object StaxXmlParser {
         val parser = factory.createXMLEventReader(reader)
         try {
           val rootAttributes = {
-            val rootEvent = skipUntil(parser, XMLStreamConstants.START_ELEMENT)
+            val rootEvent = skipUntil(parser, classOf[StartElement])
             rootEvent.asStartElement.getAttributes
               .map(_.asInstanceOf[Attribute]).toArray
           }
@@ -78,9 +78,9 @@ private[xml] object StaxXmlParser {
   /**
    * Skips elements until this meets the given type of a element
    */
-  def skipUntil(parser: XMLEventReader, eventType: Int): XMLEvent = {
+  def skipUntil(parser: XMLEventReader, eventType: Class[_ <: XMLEvent]): XMLEvent = {
     var event = parser.nextEvent
-    while(parser.hasNext && event.getEventType != eventType) {
+    while(parser.hasNext && event.getClass != eventType) {
       event = parser.nextEvent
     }
     event
@@ -89,7 +89,7 @@ private[xml] object StaxXmlParser {
   /**
    * Read data for all continuous character events.
    */
-  def readData(parser: XMLEventReader): String = {
+  def readDataFully(parser: XMLEventReader): String = {
     var event = parser.peek
     var data: String = if (event.isCharacters) "" else null
     while(event.isCharacters) {
@@ -154,12 +154,12 @@ private[xml] object StaxXmlParser {
         (next, dataType) match {
           case (_: EndElement, _) => if (options.treatEmptyValuesAsNulls) null else data
           case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
-          case (_: Characters, dt: DataType) => convertStringTo(readData(parser), dt)
+          case (_: Characters, dt: DataType) => convertStringTo(readDataFully(parser), dt)
         }
       case (c: Characters, ArrayType(st, _)) if !c.isIgnorableWhiteSpace && !c.isWhiteSpace =>
-        convertStringTo(readData(parser), st)
+        convertStringTo(readDataFully(parser), st)
       case (c: Characters, dt: DataType) if !c.isIgnorableWhiteSpace && !c.isWhiteSpace =>
-        convertStringTo(readData(parser), dt)
+        convertStringTo(readDataFully(parser), dt)
       case (e: XMLEvent, dt: DataType) =>
         sys.error(s"Failed to parse a value for data type $dt with event ${e.toString}")
     }
