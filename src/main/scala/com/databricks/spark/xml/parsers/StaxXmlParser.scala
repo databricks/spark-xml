@@ -79,9 +79,9 @@ private[xml] object StaxXmlParser {
    * Skips elements until this meets the given type of a element
    */
   def skipUntil(parser: XMLEventReader, eventType: Int): XMLEvent = {
-    var event = parser.nextEvent()
+    var event = parser.nextEvent
     while(parser.hasNext && event.getEventType != eventType) {
-      event = parser.nextEvent()
+      event = parser.nextEvent
     }
     event
   }
@@ -90,17 +90,14 @@ private[xml] object StaxXmlParser {
    * Read data for all continuous character events.
    */
   def readData(parser: XMLEventReader): String = {
-    var data: String = null
-    while(true) {
-      parser.peek match {
-        case c: Characters =>
-          if (data == null) data = c.getData else data += c.getData
-        case _ =>
-          return data
-      }
+    var event = parser.peek
+    var data: String = if (event.isCharacters) "" else null
+    while(event.isCharacters) {
+      data += event.asCharacters.getData
       parser.nextEvent
+      event = parser.peek
     }
-    null
+    data
   }
 
   /**
@@ -122,9 +119,7 @@ private[xml] object StaxXmlParser {
         next match {
           case _: EndElement => true
           case _: StartElement => false
-          case _: Characters =>
-            readData(parser)
-            false
+          case _: Characters => checkEndElement(parser, options)
           case e: XMLEvent =>
             sys.error(s"Failed to parse data with unexpected event ${e.toString}")
         }
