@@ -29,7 +29,6 @@ import scala.collection.JavaConversions._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.TypeCast._
-import com.databricks.spark.xml.parsers.StaxXmlParser._
 import com.databricks.spark.xml.XmlOptions
 
 private[xml] object InferSchema {
@@ -218,7 +217,7 @@ private[xml] object InferSchema {
           dataTypes += inferredType
           nameToDataTypes += (field -> dataTypes)
         case _: EndElement =>
-          shouldStop = checkEndElement(parser, options)
+          shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
         case _ =>
           shouldStop = shouldStop && parser.hasNext
       }

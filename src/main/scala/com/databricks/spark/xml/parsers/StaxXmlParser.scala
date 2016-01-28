@@ -76,32 +76,6 @@ private[xml] object StaxXmlParser {
   }
 
   /**
-   * Check if current event points the EndElement.
-   */
-  def checkEndElement(parser: XMLEventReader, options: XmlOptions): Boolean = {
-    val current = parser.peek
-    current match {
-      case _: EndElement => true
-      case _: StartElement => false
-      case _: Characters =>
-        // When `Characters` is found here, we need to look further to decide
-        // if this is really `EndElement` because this can be whitespace between
-        // `EndElement` and `StartElement`.
-        val next = {
-          parser.nextEvent
-          parser.peek
-        }
-        next match {
-          case _: EndElement => true
-          case _: StartElement => false
-          case _: Characters => checkEndElement(parser, options)
-          case e: XMLEvent =>
-            sys.error(s"Failed to parse data with unexpected event ${e.toString}")
-        }
-    }
-  }
-
-  /**
    * Parse the current token (and related children) according to a desired schema
    */
   private[xml] def convertField(parser: XMLEventReader,
@@ -173,7 +147,7 @@ private[xml] object StaxXmlParser {
           keys += e.getName.getLocalPart
           values += convertField(parser, valueType, options)
         case _: EndElement =>
-          shouldStop = checkEndElement(parser, options)
+          shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
         case _ =>
           shouldStop = shouldStop && parser.hasNext
       }
@@ -285,7 +259,7 @@ private[xml] object StaxXmlParser {
               }
           }
         case _: EndElement =>
-          shouldStop = checkEndElement(parser, options)
+          shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
         case _ =>
           shouldStop = shouldStop && parser.hasNext
       }
