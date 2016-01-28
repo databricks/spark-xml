@@ -16,7 +16,7 @@ private[xml] object StaxXmlParserUtils {
   }
 
   /**
-   * Read data for all continuous character events.
+   * Read the data for all continuous character events within an element.
    */
   def readDataFully(parser: XMLEventReader): String = {
     var event = parser.peek
