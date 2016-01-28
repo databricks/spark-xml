@@ -26,11 +26,7 @@
          your Oracle XML DB application using Oracle Enterprise Manager. It also introduces you to XML messaging and
          Oracle Streams Advanced Queuing XMLType support.
       </description>
-   </book>
-
-
-
-   <book id="bk102">
+   </book><book id="bk102">
       <author>Ralls, Kim</author>
       <title>Midnight Rain</title>
       <genre>Fantasy</genre>
