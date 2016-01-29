@@ -40,6 +40,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val carsFile8859 = "src/test/resources/cars-iso-8859-1.xml"
   val carsFileGzip = "src/test/resources/cars.xml.gz"
   val carsFileBzip2 = "src/test/resources/cars.xml.bz2"
+  val carsMixedAttrNoChildFile = "src/test/resources/cars-mixed-attr-no-child.xml"
   val booksAttributesInNoChild = "src/test/resources/books-attributes-in-no-child.xml"
   val carsUnbalancedFile = "src/test/resources/cars-unbalanced-elements.xml"
   val carsMalformedFile = "src/test/resources/cars-malformed.xml"
@@ -76,6 +77,21 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xmlFile(carsFile)
       .select("year")
       .collect()
+
+    assert(results.size === numCars)
+  }
+
+  test("DSL test with mixed elements (attributes, no child)") {
+    val results = sqlContext
+      .xmlFile(carsMixedAttrNoChildFile)
+      .select("date")
+      .collect()
+
+    sqlContext
+      .xmlFile(carsMixedAttrNoChildFile).printSchema()
+
+    sqlContext
+      .xmlFile(carsMixedAttrNoChildFile).collect.foreach(println)
 
     assert(results.size === numCars)
   }

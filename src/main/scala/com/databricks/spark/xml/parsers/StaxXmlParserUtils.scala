@@ -1,7 +1,7 @@
 package com.databricks.spark.xml.parsers
 
 import javax.xml.stream.XMLEventReader
-import javax.xml.stream.events.{Characters, StartElement, EndElement, XMLEvent}
+import javax.xml.stream.events._
 
 import com.databricks.spark.xml.XmlOptions
 
@@ -54,4 +54,23 @@ private[xml] object StaxXmlParserUtils {
     }
   }
 
+  /**
+   * Produce values map from given attributes.
+   */
+  def toValuesMap(attributes: Array[Attribute], options: XmlOptions): Map[String, String] = {
+    if (options.excludeAttributeFlag) {
+      Map.empty[String, String]
+    } else {
+      val attrFields = attributes.map(options.attributePrefix + _.getName.getLocalPart)
+      val attrValues = attributes.map(_.getValue)
+      val nullSafeValues = {
+        if (options.treatEmptyValuesAsNulls) {
+          attrValues.map (v => if (v.trim.isEmpty) null else v)
+        } else {
+          attrValues
+        }
+      }
+      attrFields.zip(nullSafeValues).toMap
+    }
+  }
 }

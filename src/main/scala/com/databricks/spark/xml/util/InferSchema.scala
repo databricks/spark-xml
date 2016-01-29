@@ -158,39 +158,22 @@ private[xml] object InferSchema {
   private def inferObject(parser: XMLEventReader,
                           options: XmlOptions,
                           rootAttributes: Array[Attribute] = Array()): DataType = {
-    def toValuesMap(attributes: Array[Attribute]): Map[String, String] = {
-      if (options.excludeAttributeFlag){
-        Map.empty[String, String]
-      } else {
-        val attrFields = attributes.map(options.attributePrefix + _.getName.getLocalPart)
-        val attrValues = attributes.map(_.getValue)
-        val nullSafeValues = {
-          if (options.treatEmptyValuesAsNulls) {
-            attrValues.map (v => if (v.trim.isEmpty) null else v)
-          } else {
-            attrValues
-          }
-        }
-        attrFields.zip(nullSafeValues).toMap
-      }
-    }
-
     val builder = Seq.newBuilder[StructField]
     val nameToDataTypes = collection.mutable.Map.empty[String, ArrayBuffer[DataType]]
     var shouldStop = false
-    // TODO: Simplify the complex logic below.
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
           // If there are attributes, then we should process them first.
-          toValuesMap(rootAttributes).foreach {
+          val rootValuesMap = StaxXmlParserUtils.toValuesMap(rootAttributes, options)
+          rootValuesMap.foreach {
             case (f, v) =>
               nameToDataTypes += (f -> ArrayBuffer(inferTypeFromString(v)))
           }
-          val valuesMap = {
-            val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
-            toValuesMap(attributes)
-          }
+
+          val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
+          val valuesMap = StaxXmlParserUtils.toValuesMap(attributes, options)
+
           val inferredType = inferField(parser, options) match {
             case st: StructType if valuesMap.nonEmpty =>
               // Merge attributes to the field
