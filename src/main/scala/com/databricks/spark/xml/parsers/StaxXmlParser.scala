@@ -52,7 +52,7 @@ private[xml] object StaxXmlParser {
         val parser = factory.createXMLEventReader(reader)
         try {
           val rootAttributes = {
-            val rootEvent = skipUntil(parser, XMLStreamConstants.START_ELEMENT)
+            val rootEvent = StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
             rootEvent.asStartElement.getAttributes
               .map(_.asInstanceOf[Attribute]).toArray
           }
@@ -73,42 +73,6 @@ private[xml] object StaxXmlParser {
             None
         }
       }
-    }
-  }
-
-  /**
-   * Skips elements until this meets the given type of a element
-   */
-  def skipUntil(parser: XMLEventReader, eventType: Int): XMLEvent = {
-    var event = parser.nextEvent()
-    while(parser.hasNext && event.getEventType != eventType) {
-      event = parser.nextEvent()
-    }
-    event
-  }
-
-  /**
-   * Check if current event points the EndElement.
-   */
-  def checkEndElement(parser: XMLEventReader, options: XmlOptions): Boolean = {
-    val current = parser.peek
-    current match {
-      case _: EndElement => true
-      case _: StartElement => false
-      case _: Characters =>
-        // When `Characters` is found here, we need to look further to decide
-        // if this is really `EndElement` because this can be whitespace between
-        // `EndElement` and `StartElement`.
-        val next = {
-          parser.nextEvent
-          parser.peek
-        }
-        next match {
-          case _: EndElement => true
-          case _: StartElement => false
-          case e: XMLEvent =>
-            sys.error(s"Failed to parse data with unexpected event ${e.toString}")
-        }
     }
   }
 
@@ -140,11 +104,13 @@ private[xml] object StaxXmlParser {
         (next, dataType) match {
           case (_: EndElement, _) => if (options.treatEmptyValuesAsNulls) null else data
           case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
+          case (_: Characters, dt: DataType) =>
+            convertStringTo(StaxXmlParserUtils.readDataFully(parser), dt)
         }
       case (c: Characters, ArrayType(st, _)) if !c.isIgnorableWhiteSpace && !c.isWhiteSpace =>
-        convertStringTo(c.asCharacters().getData, st)
+        convertStringTo(StaxXmlParserUtils.readDataFully(parser), st)
       case (c: Characters, dt: DataType) if !c.isIgnorableWhiteSpace && !c.isWhiteSpace =>
-        convertStringTo(c.asCharacters().getData, dt)
+        convertStringTo(StaxXmlParserUtils.readDataFully(parser), dt)
       case (e: XMLEvent, dt: DataType) =>
         sys.error(s"Failed to parse a value for data type $dt with event ${e.toString}")
     }
@@ -182,7 +148,7 @@ private[xml] object StaxXmlParser {
           keys += e.getName.getLocalPart
           values += convertField(parser, valueType, options)
         case _: EndElement =>
-          shouldStop = checkEndElement(parser, options)
+          shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
         case _ =>
           shouldStop = shouldStop && parser.hasNext
       }
@@ -246,6 +212,7 @@ private[xml] object StaxXmlParser {
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           // Set elements and other attributes to the row
           val field = e.asStartElement.getName.getLocalPart
+          // TODO: Simplify the complex logic below.
           nameToIndex.get(field).foreach {
             case index =>
               val dataType = schema(index).dataType
@@ -293,7 +260,7 @@ private[xml] object StaxXmlParser {
               }
           }
         case _: EndElement =>
-          shouldStop = checkEndElement(parser, options)
+          shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
         case _ =>
           shouldStop = shouldStop && parser.hasNext
       }
@@ -301,3 +268,4 @@ private[xml] object StaxXmlParser {
     Row.fromSeq(row)
   }
 }
+
