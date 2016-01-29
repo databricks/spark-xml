@@ -87,12 +87,6 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .select("date")
       .collect()
 
-    sqlContext
-      .xmlFile(carsMixedAttrNoChildFile).printSchema()
-
-    sqlContext
-      .xmlFile(carsMixedAttrNoChildFile).collect.foreach(println)
-
     assert(results.size === numCars)
   }
 
