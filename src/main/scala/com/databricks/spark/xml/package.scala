@@ -94,7 +94,7 @@ package object xml {
     // Namely, roundtrip in writing and reading can end up in different schema structure.
     def saveAsXmlFile(path: String, parameters: Map[String, String] = Map(),
                       compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
-      val options = XmlOptions.createFromConfigMap(parameters.toMap)
+      val options = XmlOptions(parameters.toMap)
       val startElement = s"<${options.rootTag}>"
       val endElement = s"</${options.rootTag}>"
       val rowSchema = dataFrame.schema
