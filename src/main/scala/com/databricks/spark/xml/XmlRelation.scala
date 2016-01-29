@@ -39,7 +39,7 @@ case class XmlRelation protected[spark] (
 
   private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
-  private val options = XmlOptions.createFromConfigMap(parameters)
+  private val options = XmlOptions(parameters)
 
   override val schema: StructType = {
     Option(userSchema).getOrElse {

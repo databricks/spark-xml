@@ -18,19 +18,24 @@ package com.databricks.spark.xml
 /**
  * Options for the XML data source.
  */
-private[xml] case class XmlOptions(
-  charset: String = XmlOptions.DEFAULT_CHARSET,
-  codec: String = null,
-  rowTag: String = XmlOptions.DEFAULT_ROW_TAG,
-  rootTag: String = XmlOptions.DEFAULT_ROOT_TAG,
-  samplingRatio: Double = 1.0,
-  excludeAttributeFlag: Boolean = false,
-  treatEmptyValuesAsNulls: Boolean = false,
-  failFastFlag: Boolean = false,
-  attributePrefix: String = XmlOptions.DEFAULT_ATTRIBUTE_PREFIX,
-  valueTag: String = XmlOptions.DEFAULT_VALUE_TAG,
-  nullValue: String = XmlOptions.DEFAULT_NULL_VALUE
-)
+private[xml] class XmlOptions(
+    @transient private val parameters: Map[String, String])
+  extends Serializable{
+
+  val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
+  val codec = parameters.get("codec").orNull
+  val rowTag = parameters.getOrElse("rowTag", XmlOptions.DEFAULT_ROW_TAG)
+  val rootTag = parameters.getOrElse("rootTag", XmlOptions.DEFAULT_ROOT_TAG)
+  val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
+  val excludeAttributeFlag = parameters.get("excludeAttribute").map(_.toBoolean).getOrElse(false)
+  val treatEmptyValuesAsNulls =
+    parameters.get("treatEmptyValuesAsNulls").map(_.toBoolean).getOrElse(false)
+  val failFastFlag = parameters.get("failFast").map(_.toBoolean).getOrElse(false)
+  val attributePrefix =
+    parameters.getOrElse("attributePrefix", XmlOptions.DEFAULT_ATTRIBUTE_PREFIX)
+  val valueTag = parameters.getOrElse("valueTag", XmlOptions.DEFAULT_VALUE_TAG)
+  val nullValue = parameters.getOrElse("nullValue", XmlOptions.DEFAULT_NULL_VALUE)
+}
 
 private[xml] object XmlOptions {
   val DEFAULT_ATTRIBUTE_PREFIX = "@"
@@ -40,18 +45,5 @@ private[xml] object XmlOptions {
   val DEFAULT_CHARSET = "UTF-8"
   val DEFAULT_NULL_VALUE = null
 
-  def createFromConfigMap(parameters: Map[String, String]): XmlOptions = XmlOptions(
-    charset = parameters.getOrElse("charset", DEFAULT_CHARSET),
-    codec = parameters.get("codec").orNull,
-    rowTag = parameters.getOrElse("rowTag", DEFAULT_ROW_TAG),
-    rootTag = parameters.getOrElse("rootTag", DEFAULT_ROOT_TAG),
-    samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0),
-    excludeAttributeFlag = parameters.get("excludeAttribute").map(_.toBoolean).getOrElse(false),
-    treatEmptyValuesAsNulls =
-      parameters.get("treatEmptyValuesAsNulls").map(_.toBoolean).getOrElse(false),
-    failFastFlag = parameters.get("failFast").map(_.toBoolean).getOrElse(false),
-    attributePrefix = parameters.getOrElse("attributePrefix", DEFAULT_ATTRIBUTE_PREFIX),
-    valueTag = parameters.getOrElse("valueTag", DEFAULT_VALUE_TAG),
-    nullValue = parameters.getOrElse("nullValue", DEFAULT_NULL_VALUE)
-  )
+  def apply(parameters: Map[String, String]): XmlOptions = new XmlOptions(parameters)
 }
