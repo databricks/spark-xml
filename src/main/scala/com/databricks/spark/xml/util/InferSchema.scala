@@ -17,8 +17,9 @@ package com.databricks.spark.xml.util
 
 import java.io.ByteArrayInputStream
 import javax.xml.stream.events._
-import javax.xml.stream.{XMLStreamException, XMLStreamConstants, XMLEventReader, XMLInputFactory}
+import javax.xml.stream.{XMLStreamConstants, XMLStreamException, XMLEventReader, XMLInputFactory}
 
+import com.databricks.spark.xml.parsers.StaxXmlParserUtils
 import org.slf4j.LoggerFactory
 
 import scala.collection.Seq
@@ -28,7 +29,6 @@ import scala.collection.JavaConversions._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.TypeCast._
-import com.databricks.spark.xml.parsers.StaxXmlParser._
 import com.databricks.spark.xml.XmlOptions
 
 private[xml] object InferSchema {
@@ -84,11 +84,12 @@ private[xml] object InferSchema {
         // It does not have to skip for white space, since [[XmlInputFormat]]
         // always finds the root tag without a heading space.
         val factory = XMLInputFactory.newInstance()
+        factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
         val reader = new ByteArrayInputStream(xml.getBytes)
         val parser = factory.createXMLEventReader(reader)
         try {
           val rootAttributes = {
-            val rootEvent = skipUntil(parser, XMLStreamConstants.START_ELEMENT)
+            val rootEvent = StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
             rootEvent.asStartElement.getAttributes
               .map(_.asInstanceOf[Attribute]).toArray
           }
@@ -140,10 +141,11 @@ private[xml] object InferSchema {
           case _: EndElement if options.treatEmptyValuesAsNulls => NullType
           case _: EndElement => StringType
           case _: StartElement => inferObject(parser, options)
+          case _: Characters => inferTypeFromString(StaxXmlParserUtils.readDataFully(parser))
         }
       case c: Characters if !c.isIgnorableWhiteSpace && !c.isWhiteSpace =>
         // This means data exists
-        inferTypeFromString(c.asCharacters().getData)
+        inferTypeFromString(StaxXmlParserUtils.readDataFully(parser))
 
       case e: XMLEvent =>
         sys.error(s"Failed to parse data with unexpected event ${e.toString}")
@@ -156,23 +158,6 @@ private[xml] object InferSchema {
   private def inferObject(parser: XMLEventReader,
                           options: XmlOptions,
                           rootAttributes: Array[Attribute] = Array()): DataType = {
-    def toValuesMap(attributes: Array[Attribute]): Map[String, String] = {
-      if (options.excludeAttributeFlag){
-        Map.empty[String, String]
-      } else {
-        val attrFields = attributes.map(options.attributePrefix + _.getName.getLocalPart)
-        val attrValues = attributes.map(_.getValue)
-        val nullSafeValues = {
-          if (options.treatEmptyValuesAsNulls) {
-            attrValues.map (v => if (v.trim.isEmpty) null else v)
-          } else {
-            attrValues
-          }
-        }
-        attrFields.zip(nullSafeValues).toMap
-      }
-    }
-
     val builder = Seq.newBuilder[StructField]
     val nameToDataTypes = collection.mutable.Map.empty[String, ArrayBuffer[DataType]]
     var shouldStop = false
@@ -180,14 +165,15 @@ private[xml] object InferSchema {
       parser.nextEvent match {
         case e: StartElement =>
           // If there are attributes, then we should process them first.
-          toValuesMap(rootAttributes).foreach {
+          val rootValuesMap = StaxXmlParserUtils.toValuesMap(rootAttributes, options)
+          rootValuesMap.foreach {
             case (f, v) =>
               nameToDataTypes += (f -> ArrayBuffer(inferTypeFromString(v)))
           }
-          val valuesMap = {
-            val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
-            toValuesMap(attributes)
-          }
+
+          val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
+          val valuesMap = StaxXmlParserUtils.toValuesMap(attributes, options)
+
           val inferredType = inferField(parser, options) match {
             case st: StructType if valuesMap.nonEmpty =>
               // Merge attributes to the field
@@ -215,7 +201,7 @@ private[xml] object InferSchema {
           dataTypes += inferredType
           nameToDataTypes += (field -> dataTypes)
         case _: EndElement =>
-          shouldStop = checkEndElement(parser, options)
+          shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
         case _ =>
           shouldStop = shouldStop && parser.hasNext
       }

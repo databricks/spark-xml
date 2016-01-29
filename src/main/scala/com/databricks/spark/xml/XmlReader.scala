@@ -82,7 +82,7 @@ class XmlReader extends Serializable {
   def xmlFile(sqlContext: SQLContext, path: String): DataFrame = {
     // We need the `charset` and `rowTag` before creating the relation.
     val (charset, rowTag) = {
-      val options = XmlOptions.createFromConfigMap(parameters.toMap)
+      val options = XmlOptions(parameters.toMap)
       (options.charset, options.rowTag)
     }
     val relation: XmlRelation = XmlRelation(
