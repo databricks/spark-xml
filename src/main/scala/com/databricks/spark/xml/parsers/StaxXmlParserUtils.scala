@@ -18,7 +18,7 @@ private[xml] object StaxXmlParserUtils {
   }
 
   /**
-   * Read the data for all continuous character events within an element.
+   * Reads the data for all continuous character events within an element.
    */
   def readDataFully(parser: XMLEventReader): String = {
     var event = parser.peek
@@ -32,7 +32,7 @@ private[xml] object StaxXmlParserUtils {
   }
 
   /**
-   * Check if current event points the EndElement.
+   * Checks if current event points the EndElement.
    */
   def checkEndElement(parser: XMLEventReader, options: XmlOptions): Boolean = {
     val current = parser.peek
@@ -55,7 +55,7 @@ private[xml] object StaxXmlParserUtils {
   }
 
   /**
-   * Produce values map from given attributes.
+   * Produces values map from given attributes.
    */
   def toValuesMap(attributes: Array[Attribute], options: XmlOptions): Map[String, String] = {
     if (options.excludeAttributeFlag) {

@@ -87,6 +87,10 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .select("date")
       .collect()
 
+    val attrValOne = results(0).get(0).asInstanceOf[Row](1)
+    val attrValTwo = results(1).get(0).asInstanceOf[Row](1)
+    assert(attrValOne == "string")
+    assert(attrValTwo == "struct")
     assert(results.size === numCars)
   }
 
