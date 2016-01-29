@@ -1,7 +1,7 @@
 package com.databricks.spark.xml.parsers
 
 import javax.xml.stream.XMLEventReader
-import javax.xml.stream.events.{Characters, StartElement, EndElement, XMLEvent}
+import javax.xml.stream.events._
 
 import com.databricks.spark.xml.XmlOptions
 
@@ -18,7 +18,7 @@ private[xml] object StaxXmlParserUtils {
   }
 
   /**
-   * Read the data for all continuous character events within an element.
+   * Reads the data for all continuous character events within an element.
    */
   def readDataFully(parser: XMLEventReader): String = {
     var event = parser.peek
@@ -32,7 +32,7 @@ private[xml] object StaxXmlParserUtils {
   }
 
   /**
-   * Check if current event points the EndElement.
+   * Checks if current event points the EndElement.
    */
   def checkEndElement(parser: XMLEventReader, options: XmlOptions): Boolean = {
     val current = parser.peek
@@ -54,4 +54,23 @@ private[xml] object StaxXmlParserUtils {
     }
   }
 
+  /**
+   * Produces values map from given attributes.
+   */
+  def toValuesMap(attributes: Array[Attribute], options: XmlOptions): Map[String, String] = {
+    if (options.excludeAttributeFlag) {
+      Map.empty[String, String]
+    } else {
+      val attrFields = attributes.map(options.attributePrefix + _.getName.getLocalPart)
+      val attrValues = attributes.map(_.getValue)
+      val nullSafeValues = {
+        if (options.treatEmptyValuesAsNulls) {
+          attrValues.map (v => if (v.trim.isEmpty) null else v)
+        } else {
+          attrValues
+        }
+      }
+      attrFields.zip(nullSafeValues).toMap
+    }
+  }
 }
