@@ -252,6 +252,7 @@ private[xml] object InferSchema {
    * Returns the most general data type for two given data types.
    */
   private[xml] def compatibleType(options: XmlOptions)(t1: DataType, t2: DataType): DataType = {
+    // TODO: Optimise this logic.
     findTightestCommonTypeOfTwo(t1, t2).getOrElse {
       // t1 or t2 is a StructType, ArrayType, or an unexpected type.
       (t1, t2) match {
