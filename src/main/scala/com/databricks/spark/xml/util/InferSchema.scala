@@ -51,8 +51,6 @@ private[xml] object InferSchema {
 
   val findTightestCommonTypeOfTwo: (DataType, DataType) => Option[DataType] = {
     case (t1, t2) if t1 == t2 => Some(t1)
-    case (NullType, t1) => Some(t1)
-    case (t1, NullType) => Some(t1)
 
     // Promote numeric types to the highest of the two
     case (t1, t2) if Seq(t1, t2).forall(numericPrecedence.contains) =>
@@ -102,7 +100,8 @@ private[xml] object InferSchema {
             throw new RuntimeException(s"Malformed row (failing fast): ${xml.replaceAll("\n", "")}")
         }
       }
-    }.treeAggregate[DataType](StructType(Seq()))(compatibleRootType, compatibleRootType)
+    }.treeAggregate[DataType](StructType(Seq()))(
+        compatibleType(_, _, options), compatibleType(_, _, options))
 
     canonicalizeType(rootType) match {
       case Some(st: StructType) => st
@@ -210,7 +209,7 @@ private[xml] object InferSchema {
     // This can be inferred as ArrayType.
     nameToDataTypes.foreach{
       case (field, dataTypes) if dataTypes.length > 1 =>
-        val elementType = dataTypes.reduceLeft(InferSchema.compatibleType)
+        val elementType = dataTypes.reduceLeft(InferSchema.compatibleType(_, _, options))
         builder += StructField(field, ArrayType(elementType), nullable = true)
       case (field, dataTypes) =>
         builder += StructField(field, dataTypes.head, nullable = true)
@@ -250,16 +249,9 @@ private[xml] object InferSchema {
   }
 
   /**
-   * Remove top-level ArrayType wrappers and merge the remaining schemas
-   */
-  private def compatibleRootType: (DataType, DataType) => DataType = {
-    case (ty1, ty2) => compatibleType(ty1, ty2)
-  }
-
-  /**
    * Returns the most general data type for two given data types.
    */
-  private[xml] def compatibleType(t1: DataType, t2: DataType): DataType = {
+  private[xml] def compatibleType(t1: DataType, t2: DataType, options: XmlOptions): DataType = {
     findTightestCommonTypeOfTwo(t1, t2).getOrElse {
       // t1 or t2 is a StructType, ArrayType, or an unexpected type.
       (t1, t2) match {
@@ -282,31 +274,38 @@ private[xml] object InferSchema {
         case (StructType(fields1), StructType(fields2)) =>
           val newFields = (fields1 ++ fields2).groupBy(field => field.name).map {
             case (name, fieldTypes) =>
-              val dataType = fieldTypes.view.map(_.dataType).reduce(compatibleType)
+              val dataType = fieldTypes.view.map(_.dataType).reduce(compatibleType(_, _, options))
               StructField(name, dataType, nullable = true)
           }
           StructType(newFields.toSeq.sortBy(_.name))
 
         case (ArrayType(elementType1, containsNull1), ArrayType(elementType2, containsNull2)) =>
-          ArrayType(compatibleType(elementType1, elementType2), containsNull1 || containsNull2)
+          ArrayType(
+            compatibleType(elementType1, elementType2, options), containsNull1 || containsNull2)
 
         // In XML datasource, since StructType can be compared with ArrayType.
         // In this case, ArrayType wraps the StructType.
         case (ArrayType(ty1, _), ty2) =>
-          ArrayType(compatibleType(ty1, ty2))
+          ArrayType(compatibleType(ty1, ty2, options))
 
         case (ty1, ArrayType(ty2, _)) =>
-          ArrayType(compatibleType(ty1, ty2))
+          ArrayType(compatibleType(ty1, ty2, options))
 
         // As this library can infer an element with attributes as StructType whereas
         // some can be inferred as other non-structural data types, this case should be
         // treated.
         case (StructType(fields), dt: DataType) =>
-          StructType(fields)
+          val safeFields =
+            (fields :+ StructField(options.valueTag, dt, nullable = true)).sortBy(_.name)
+          StructType(safeFields)
 
         case (dt: DataType, StructType(fields)) =>
-          StructType(fields)
+          val safeFields =
+            (fields :+ StructField(options.valueTag, dt, nullable = true)).sortBy(_.name)
+          StructType(safeFields)
 
+        case (_, NullType) => t1
+        case (NullType, _) => t2
         // strings and every string is a XML object.
         case (_, _) => StringType
       }
