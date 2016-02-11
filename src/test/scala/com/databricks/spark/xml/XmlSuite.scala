@@ -47,7 +47,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val nullNumbersFile = "src/test/resources/null-numbers.xml"
   val emptyFile = "src/test/resources/empty.xml"
   val topicsFile = "src/test/resources/topics-namespaces.xml"
-  val gpsUnBalanced = "src/test/resources/gps-unbalanced.xml"
+  val gpsEmptyField = "src/test/resources/gps-empty-field.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -85,7 +85,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test with xml having unbalanced datatypes") {
     val results = sqlContext
-      .xmlFile(gpsUnBalanced, treatEmptyValuesAsNulls = true)
+      .xmlFile(gpsEmptyField, treatEmptyValuesAsNulls = true)
 
     assert(results.collect().size === numGPS)
   }
