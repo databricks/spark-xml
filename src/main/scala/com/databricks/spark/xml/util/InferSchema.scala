@@ -304,6 +304,7 @@ private[xml] object InferSchema {
             (fields :+ StructField(options.valueTag, dt, nullable = true)).sortBy(_.name)
           StructType(safeFields)
 
+        // TODO: These null type checks should be in `findTightestCommonTypeOfTwo`.
         case (_, NullType) => t1
         case (NullType, _) => t2
         // strings and every string is a XML object.
