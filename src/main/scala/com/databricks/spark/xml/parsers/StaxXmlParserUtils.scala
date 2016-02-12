@@ -10,9 +10,10 @@ private[xml] object StaxXmlParserUtils {
    * Skips elements until this meets the given type of a element
    */
   def skipUntil(parser: XMLEventReader, eventType: Int): XMLEvent = {
-    var event = parser.nextEvent
+    var event = parser.peek
     while(parser.hasNext && event.getEventType != eventType) {
-      event = parser.nextEvent
+      parser.nextEvent
+      event = parser.peek
     }
     event
   }
@@ -35,22 +36,15 @@ private[xml] object StaxXmlParserUtils {
    * Checks if current event points the EndElement.
    */
   def checkEndElement(parser: XMLEventReader, options: XmlOptions): Boolean = {
-    val current = parser.peek
-    current match {
+    parser.peek match {
       case _: EndElement => true
       case _: StartElement => false
-      case _: Characters =>
-        // When `Characters` is found here, we need to look further to decide
-        // if this is really `EndElement` because this can be whitespace between
-        // `EndElement` and `StartElement`.
-        val next = {
-          parser.nextEvent
-          parser.peek
-        }
-        next match {
-          case _: EndElement => true
-          case _: XMLEvent => false
-        }
+      case _: XMLEvent =>
+        // When other events are found here rather than `EndElement` or `StartElement`
+        // , we need to look further to decide if this is the end because this can be
+        // whitespace between `EndElement` and `StartElement`.
+        parser.nextEvent
+        checkEndElement(parser, options)
     }
   }
 

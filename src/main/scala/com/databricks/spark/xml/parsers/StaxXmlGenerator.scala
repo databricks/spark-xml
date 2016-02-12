@@ -34,8 +34,8 @@ private[xml] object StaxXmlGenerator {
     * @param row The row to convert
     */
   def apply(schema: StructType,
-            writer: IndentingXMLStreamWriter,
-            options: XmlOptions)(row: Row): Unit = {
+      writer: IndentingXMLStreamWriter,
+      options: XmlOptions)(row: Row): Unit = {
     def writeChildElement: (String, DataType, Any) => Unit = {
       // If this is meant to be value but in no child, write only a value
       case (_, _, null) |(_, NullType, _) if options.nullValue == null =>
