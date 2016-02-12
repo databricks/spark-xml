@@ -216,6 +216,7 @@ private[xml] object StaxXmlParser {
                       // with a row So, we first need to find the field name that has the real
                       // value and then push the value.
                       TreeMap(options.valueTag -> v)
+                    case null => TreeMap()
                   }
                   val convertedValuesMap = convertValues(valuesMap, st)
                   val row = (fields ++ convertedValuesMap).values.toSeq
