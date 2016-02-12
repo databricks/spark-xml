@@ -43,11 +43,12 @@ private[xml] object StaxXmlParser {
       options: XmlOptions): RDD[Row] = {
     val failFast = options.failFastFlag
     xml.mapPartitions { iter =>
+      val factory = XMLInputFactory.newInstance()
+      factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
+      factory.setProperty(XMLInputFactory.IS_COALESCING, true)
       iter.flatMap { xml =>
         // It does not have to skip for white space, since `XmlInputFormat`
         // always finds the root tag without a heading space.
-        val factory = XMLInputFactory.newInstance()
-        factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
         val reader = new ByteArrayInputStream(xml.getBytes)
         val parser = factory.createXMLEventReader(reader)
         try {
@@ -94,28 +95,25 @@ private[xml] object StaxXmlParser {
       case (c: Characters, dt: DataType) if c.isWhiteSpace =>
         // When `Characters` is found, we need to look further to decide
         // if this is really data or space between other elements.
-        val data = StaxXmlParserUtils.readDataFully(parser)
+        val data = c.getData
+        parser.nextEvent()
         (parser.peek, dataType) match {
-          case (_, st: StructType) if data != null && data.trim.nonEmpty =>
-            // This case can be happen when current data type is inferred as `StructType`
-            // due to `valueTag` for elements having attributes but no child.
-            val dt = st.filter(_.name == options.valueTag).head.dataType
-            convertStringTo(StaxXmlParserUtils.readDataFully(parser), dt)
-          case (_, dt: DataType)  if data != null && data.trim.nonEmpty =>
-            convertStringTo(StaxXmlParserUtils.readDataFully(parser), dt)
           case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
+          case (_: EndElement, _) if data.isEmpty => null
           case (_: EndElement, _) if options.treatEmptyValuesAsNulls => null
-          case (_: EndElement, _) => data
+          case (_: EndElement, _: DataType) => data
         }
 
-      case (c: Characters, ArrayType(st, _)) if !c.isWhiteSpace =>
+      case (c: Characters, ArrayType(st, _)) =>
         // For `ArrayType`, it needs to return the type of element. The values are merged later.
-        convertStringTo(StaxXmlParserUtils.readDataFully(parser), st)
-      case (c: Characters, st: StructType) if !c.isWhiteSpace =>
+        convertStringTo(c.getData, st)
+      case (c: Characters, st: StructType) =>
+        // This case can be happen when current data type is inferred as `StructType`
+        // due to `valueTag` for elements having attributes but no child.
         val dt = st.filter(_.name == options.valueTag).head.dataType
-        convertStringTo(StaxXmlParserUtils.readDataFully(parser), dt)
-      case (c: Characters, dt: DataType) if !c.isWhiteSpace =>
-        convertStringTo(StaxXmlParserUtils.readDataFully(parser), dt)
+        convertStringTo(c.getData, dt)
+      case (c: Characters, dt: DataType) =>
+        convertStringTo(c.getData, dt)
       case (e: XMLEvent, dt: DataType) =>
         sys.error(s"Failed to parse a value for data type $dt with event ${e.toString}")
     }

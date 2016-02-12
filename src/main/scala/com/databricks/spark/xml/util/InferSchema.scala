@@ -79,11 +79,12 @@ private[xml] object InferSchema {
     val failFast = options.failFastFlag
     // perform schema inference on each row and merge afterwards
     val rootType = schemaData.mapPartitions { iter =>
+      val factory = XMLInputFactory.newInstance()
+      factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
+      factory.setProperty(XMLInputFactory.IS_COALESCING, true)
       iter.flatMap { xml =>
         // It does not have to skip for white space, since [[XmlInputFormat]]
         // always finds the root tag without a heading space.
-        val factory = XMLInputFactory.newInstance()
-        factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
         val reader = new ByteArrayInputStream(xml.getBytes)
         val parser = factory.createXMLEventReader(reader)
         try {
@@ -128,20 +129,17 @@ private[xml] object InferSchema {
       case c: Characters if c.isWhiteSpace =>
         // When `Characters` is found, we need to look further to decide
         // if this is really data or space between other elements.
-        val data = StaxXmlParserUtils.readDataFully(parser)
+        val data = c.getData
+        parser.nextEvent()
         parser.peek match {
-          case _: XMLEvent if data != null && data.trim.nonEmpty =>
-            inferTypeFromString(data)
-          case _: EndElement if options.treatEmptyValuesAsNulls =>
-            NullType
-          case _: EndElement =>
-            StringType
-          case _: StartElement =>
-            inferObject(parser, options)
+          case _: StartElement => inferObject(parser, options)
+          case _: EndElement if data.isEmpty => NullType
+          case _: EndElement if options.treatEmptyValuesAsNulls => NullType
+          case _: EndElement => StringType
         }
       case c: Characters if !c.isWhiteSpace =>
         // This means data exists
-        inferTypeFromString(StaxXmlParserUtils.readDataFully(parser))
+        inferTypeFromString(c.getData)
       case e: XMLEvent =>
         sys.error(s"Failed to parse data with unexpected event ${e.toString}")
     }

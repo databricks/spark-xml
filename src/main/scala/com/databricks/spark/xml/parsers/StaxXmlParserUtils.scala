@@ -19,20 +19,6 @@ private[xml] object StaxXmlParserUtils {
   }
 
   /**
-   * Reads the data for all continuous character events within an element.
-   */
-  def readDataFully(parser: XMLEventReader): String = {
-    var event = parser.peek
-    var data: String = if (event.isCharacters) "" else null
-    while(event.isCharacters) {
-      data += event.asCharacters.getData
-      parser.nextEvent
-      event = parser.peek
-    }
-    data
-  }
-
-  /**
    * Checks if current event points the EndElement.
    */
   def checkEndElement(parser: XMLEventReader, options: XmlOptions): Boolean = {
