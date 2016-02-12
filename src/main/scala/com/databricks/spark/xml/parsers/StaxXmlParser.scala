@@ -207,19 +207,19 @@ private[xml] object StaxXmlParser {
               val dataType = schema(index).dataType
               row(index) = dataType match {
                 case st: StructType =>
-                  // The fields are sorted so `TreeMap` is used.
                   val fields = convertField(parser, st, options) match {
                     case row: Row =>
-                      TreeMap(st.map(_.name).zip(row.toSeq): _*)
+                      Map(st.map(_.name).zip(row.toSeq): _*)
                     case v if st.exists(_.name == options.valueTag) =>
                       // If this is the element having no children, then it wraps attributes
                       // with a row So, we first need to find the field name that has the real
                       // value and then push the value.
-                      TreeMap(options.valueTag -> v)
-                    case null => TreeMap()
+                      Map(options.valueTag -> v)
+                    case null => Map.empty
                   }
+                  // The fields are sorted so `TreeMap` is used.
                   val convertedValuesMap = convertValues(valuesMap, st)
-                  val row = (fields ++ convertedValuesMap).values.toSeq
+                  val row = TreeMap((fields ++ convertedValuesMap).toSeq : _*).values.toSeq
                   Row.fromSeq(row)
 
                 case ArrayType(dt: DataType, _) =>
