@@ -1,7 +1,9 @@
-# Spark XML Library [![Build Status](https://travis-ci.org/databricks/spark-xml.svg?branch=master)](https://travis-ci.org/databricks/spark-xml) [![codecov.io](http://codecov.io/github/databricks/spark-xml/coverage.svg?branch=master)](http://codecov.io/github/databricks/spark-xml?branch=master)
+# XML Data Source for Spark
+
+[![Build Status](https://travis-ci.org/databricks/spark-xml.svg?branch=master)](https://travis-ci.org/databricks/spark-xml) [![codecov.io](http://codecov.io/github/databricks/spark-xml/coverage.svg?branch=master)](http://codecov.io/github/databricks/spark-xml?branch=master)
 
 - A library for parsing and querying XML data with Apache Spark, for Spark SQL and DataFrames.
-The structure and test tools are mostly copied from databricks/spark-csv.
+The structure and test tools are mostly copied from [CSV Data Source for Spark](https://github.com/databricks/spark-csv).
 
 - This package supports to process format-free XML files in a distributed way, unlike JSON datasource in Spark restricts in-line JSON format.
 
@@ -152,7 +154,7 @@ $ wget https://github.com/databricks/spark-xml/raw/master/src/test/resources/boo
 
 ### SQL API
 
-Spark-xml can infer data types:
+XML data source for Spark can infer data types:
 ```sql
 CREATE TABLE books
 USING com.databricks.spark.xml
