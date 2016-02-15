@@ -87,6 +87,7 @@ package object xml {
       val options = XmlOptions(parameters.toMap)
       val startElement = s"<${options.rootTag}>"
       val endElement = s"</${options.rootTag}>"
+      val headingContents = options.headingContents
       val rowSchema = dataFrame.schema
       val indent = XmlFile.DEFAULT_INDENT
       val rowSeparator = XmlFile.DEFAULT_ROW_SEPARATOR
@@ -120,7 +121,7 @@ package object xml {
               val indentedXml = indent + xml.replaceAll(rowSeparator, rowSeparator + indent)
               if (firstRow) {
                 firstRow = false
-                startElement + rowSeparator + indentedXml
+                headingContents + rowSeparator + startElement + rowSeparator + indentedXml
               } else {
                 indentedXml
               }

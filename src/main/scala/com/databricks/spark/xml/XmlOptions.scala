@@ -35,8 +35,9 @@ private[xml] class XmlOptions(
     parameters.getOrElse("attributePrefix", XmlOptions.DEFAULT_ATTRIBUTE_PREFIX)
   val valueTag = parameters.getOrElse("valueTag", XmlOptions.DEFAULT_VALUE_TAG)
   val nullValue = parameters.getOrElse("nullValue", XmlOptions.DEFAULT_NULL_VALUE)
+  val headingContents =
+    parameters.getOrElse("headingContents", XmlOptions.DEFAULT_HEADING_CONTENTS)
 }
-
 private[xml] object XmlOptions {
   val DEFAULT_ATTRIBUTE_PREFIX = "@"
   val DEFAULT_VALUE_TAG = "#VALUE"
@@ -44,6 +45,7 @@ private[xml] object XmlOptions {
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_CHARSET = "UTF-8"
   val DEFAULT_NULL_VALUE = null
+  val DEFAULT_HEADING_CONTENTS = "<?xml version=\"1.0\"?>"
 
   def apply(parameters: Map[String, String]): XmlOptions = new XmlOptions(parameters)
 }
