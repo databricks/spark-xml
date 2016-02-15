@@ -66,8 +66,7 @@ private[xml] object InferSchema {
    *   2. Merge types by choosing the lowest type necessary to cover equal keys
    *   3. Replace any remaining null fields with string, the top type
    */
-  def infer(xml: RDD[String],
-            options: XmlOptions): StructType = {
+  def infer(xml: RDD[String], options: XmlOptions): StructType = {
     require(options.samplingRatio > 0,
       s"samplingRatio ($options.samplingRatio) should be greater than 0")
     val schemaData = if (options.samplingRatio > 0.99) {
@@ -78,19 +77,19 @@ private[xml] object InferSchema {
     val failFast = options.failFastFlag
     // perform schema inference on each row and merge afterwards
     val rootType = schemaData.mapPartitions { iter =>
+      val factory = XMLInputFactory.newInstance()
+      factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
+      factory.setProperty(XMLInputFactory.IS_COALESCING, true)
       iter.flatMap { xml =>
         // It does not have to skip for white space, since [[XmlInputFormat]]
         // always finds the root tag without a heading space.
-        val factory = XMLInputFactory.newInstance()
-        factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
         val reader = new ByteArrayInputStream(xml.getBytes)
         val parser = factory.createXMLEventReader(reader)
         try {
-          val rootAttributes = {
-            val rootEvent = StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
-            rootEvent.asStartElement.getAttributes
-              .map(_.asInstanceOf[Attribute]).toArray
-          }
+          StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
+          val rootEvent = parser.nextEvent()
+          val rootAttributes =
+            rootEvent.asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           Some(inferObject(parser, options, rootAttributes))
         } catch {
           case _: XMLStreamException if !failFast =>
@@ -111,41 +110,35 @@ private[xml] object InferSchema {
     }
   }
 
-  private def inferTypeFromString(value: String): DataType = {
-    Option(value) match {
-      case Some(v) if v.isEmpty => NullType
-      case Some(v) if isLong(v) => LongType
-      case Some(v) if isInteger(v) => IntegerType
-      case Some(v) if isDouble(v) => DoubleType
-      case Some(v) if isBoolean(v) => BooleanType
-      case Some(v) if isTimestamp(v) => TimestampType
-      case Some(v) => StringType
-      case None => NullType
-    }
+  private def inferTypeFromString: String => DataType = {
+    case null => NullType
+    case v if v.isEmpty => NullType
+    case v if isLong(v) => LongType
+    case v if isInteger(v) => IntegerType
+    case v if isDouble(v) => DoubleType
+    case v if isBoolean(v) => BooleanType
+    case v if isTimestamp(v) => TimestampType
+    case v => StringType
   }
 
   private def inferField(parser: XMLEventReader, options: XmlOptions): DataType = {
-    val current = parser.peek
-    current match {
+    parser.peek match {
       case _: EndElement => NullType
       case _: StartElement => inferObject(parser, options)
-      case c: Characters if !c.isIgnorableWhiteSpace && c.isWhiteSpace =>
+      case c: Characters if c.isWhiteSpace =>
         // When `Characters` is found, we need to look further to decide
         // if this is really data or space between other elements.
-        val next = {
-          parser.nextEvent
-          parser.peek
-        }
-        next match {
+        val data = c.getData
+        parser.nextEvent()
+        parser.peek match {
+          case _: StartElement => inferObject(parser, options)
+          case _: EndElement if data.isEmpty => NullType
           case _: EndElement if options.treatEmptyValuesAsNulls => NullType
           case _: EndElement => StringType
-          case _: StartElement => inferObject(parser, options)
-          case _: Characters => inferTypeFromString(StaxXmlParserUtils.readDataFully(parser))
         }
-      case c: Characters if !c.isIgnorableWhiteSpace && !c.isWhiteSpace =>
+      case c: Characters if !c.isWhiteSpace =>
         // This means data exists
-        inferTypeFromString(StaxXmlParserUtils.readDataFully(parser))
-
+        inferTypeFromString(c.getData)
       case e: XMLEvent =>
         sys.error(s"Failed to parse data with unexpected event ${e.toString}")
     }
@@ -155,8 +148,8 @@ private[xml] object InferSchema {
    * Infer the type of a xml document from the parser's token stream
    */
   private def inferObject(parser: XMLEventReader,
-                          options: XmlOptions,
-                          rootAttributes: Array[Attribute] = Array()): DataType = {
+      options: XmlOptions,
+      rootAttributes: Array[Attribute] = Array()): DataType = {
     val builder = Seq.newBuilder[StructField]
     val nameToDataTypes = collection.mutable.Map.empty[String, ArrayBuffer[DataType]]
     var shouldStop = false
@@ -172,7 +165,6 @@ private[xml] object InferSchema {
 
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           val valuesMap = StaxXmlParserUtils.toValuesMap(attributes, options)
-
           val inferredType = inferField(parser, options) match {
             case st: StructType if valuesMap.nonEmpty =>
               // Merge attributes to the field
@@ -183,6 +175,7 @@ private[xml] object InferSchema {
                   nestedBuilder += StructField(f, inferTypeFromString(v), nullable = true)
               }
               StructType(nestedBuilder.result().sortBy(_.name))
+
             case dt: DataType if valuesMap.nonEmpty =>
               // We need to manually add the field for value.
               val nestedBuilder = Seq.newBuilder[StructField]
@@ -192,6 +185,7 @@ private[xml] object InferSchema {
                   nestedBuilder += StructField(f, inferTypeFromString(v), nullable = true)
               }
               StructType(nestedBuilder.result().sortBy(_.name))
+
             case dt: DataType => dt
           }
           // Add the field and datatypes so that we can check if this is ArrayType.
@@ -199,8 +193,10 @@ private[xml] object InferSchema {
           val dataTypes = nameToDataTypes.getOrElse(field, ArrayBuffer.empty[DataType])
           dataTypes += inferredType
           nameToDataTypes += (field -> dataTypes)
+
         case _: EndElement =>
           shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
+
         case _ =>
           shouldStop = shouldStop && parser.hasNext
       }

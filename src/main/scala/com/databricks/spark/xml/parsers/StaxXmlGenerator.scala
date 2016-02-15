@@ -34,8 +34,8 @@ private[xml] object StaxXmlGenerator {
     * @param row The row to convert
     */
   def apply(schema: StructType,
-            writer: IndentingXMLStreamWriter,
-            options: XmlOptions)(row: Row): Unit = {
+      writer: IndentingXMLStreamWriter,
+      options: XmlOptions)(row: Row): Unit = {
     def writeChildElement: (String, DataType, Any) => Unit = {
       // If this is meant to be value but in no child, write only a value
       case (_, _, null) |(_, NullType, _) if options.nullValue == null =>
@@ -59,9 +59,12 @@ private[xml] object StaxXmlGenerator {
           }
         case _ if name.startsWith(options.attributePrefix) =>
           writer.writeAttribute(name.substring(options.attributePrefix.length), v.toString)
+
         // For ArrayType, we just need to write each as XML element.
         case (ArrayType(ty, _), v: Seq[_]) =>
-          v.foreach(e => writeChildElement(name, ty, e))
+          v.foreach { e =>
+            writeChildElement(name, ty, e)
+          }
         // For other datatypes, we just write normal elements.
         case _ =>
           writeChildElement(name, dt, v)
@@ -94,13 +97,21 @@ private[xml] object StaxXmlGenerator {
         }
 
       case (MapType(kv, vt, _), mv: Map[_, _]) =>
-        mv.foreach {
+        val (attributes, elements) = mv.toSeq.partition {
+          case (f, _) => f.toString.startsWith(options.attributePrefix)
+        }
+        // We need to write attributes first before the value.
+        (attributes ++ elements).foreach {
           case (k, v) =>
             writeChild(k.toString, vt, v)
         }
 
       case (StructType(ty), r: Row) =>
-        ty.zip(r.toSeq).foreach {
+        val (attributes, elements) = ty.zip(r.toSeq).partition {
+          case (f, _) => f.name.startsWith(options.attributePrefix)
+        }
+        // We need to write attributes first before the value.
+        (attributes ++ elements).foreach {
           case (field, v) =>
             writeChild(field.name, field.dataType, v)
         }
