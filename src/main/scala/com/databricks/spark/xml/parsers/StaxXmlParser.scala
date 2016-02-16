@@ -176,17 +176,19 @@ private[xml] object StaxXmlParser {
   }
 
   /**
-   * Convert string values to required data type.
+   * [[convertObject()]] calls this in order to convert the object to a row. [[convertObject()]]
+   * contains some logic to find out which events are the start and end of a row and this function
+   * converts the events to a row.
    */
   private def convertRow(parser: XMLEventReader,
-      st: StructType,
+      schema: StructType,
       options: XmlOptions,
       attributes: Array[Attribute] = Array.empty) = {
     val valuesMap = StaxXmlParserUtils.convertAttributesToValuesMap(attributes, options)
-    val fields = convertField(parser, st, options) match {
+    val fields = convertField(parser, schema, options) match {
       case row: Row =>
-        Map(st.map(_.name).zip(row.toSeq): _*)
-      case v if st.exists(_.name == options.valueTag) =>
+        Map(schema.map(_.name).zip(row.toSeq): _*)
+      case v if schema.exists(_.name == options.valueTag) =>
         // If this is the element having no children, then it wraps attributes
         // with a row So, we first need to find the field name that has the real
         // value and then push the value.
@@ -194,13 +196,13 @@ private[xml] object StaxXmlParser {
       case _ => Map.empty
     }
     // The fields are sorted so `TreeMap` is used.
-    val convertedValuesMap = convertValues(valuesMap, st)
+    val convertedValuesMap = convertValues(valuesMap, schema)
     val row = TreeMap((fields ++ convertedValuesMap).toSeq : _*).values.toSeq
     Row.fromSeq(row)
   }
 
   /**
-   * Parse an object from the token stream into a new Row representing the schema.
+   * Parse an object from the event stream into a new Row representing the schema.
    * Fields in the xml that are not defined in the requested schema will be dropped.
    */
   private def convertObject(parser: XMLEventReader,
