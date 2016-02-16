@@ -45,6 +45,6 @@ class StaxXmlParserUtilsSuite extends FunSuite with BeforeAndAfterAll {
     val valuesMap =
       StaxXmlParserUtils.convertAttributesToValuesMap(attributes, new XmlOptions(Map()))
 
-    assert(valuesMap === Map("@id" -> "2"))
+    assert(valuesMap === Map(s"${XmlOptions.DEFAULT_ATTRIBUTE_PREFIX}id" -> "2"))
   }
 }
