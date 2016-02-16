@@ -56,7 +56,7 @@ private[xml] object StaxXmlParser {
             StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
           val rootAttributes =
             rootEvent.asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
-          
+
           Some(convertObject(parser, schema, options, rootAttributes))
         } catch {
           case _: java.lang.NumberFormatException if !failFast =>
