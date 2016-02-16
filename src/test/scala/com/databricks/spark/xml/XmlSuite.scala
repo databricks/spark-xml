@@ -30,7 +30,6 @@ import com.databricks.spark.xml.XmlOptions._
 class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val tempEmptyDir = "target/test/empty/"
   val agesFile = "src/test/resources/ages.xml"
-  val agesAttributeFile = "src/test/resources/ages-attribute.xml"
   val booksFile = "src/test/resources/books.xml"
   val booksNestedObjectFile = "src/test/resources/books-nested-object.xml"
   val booksNestedArrayFile = "src/test/resources/books-nested-array.xml"
@@ -51,7 +50,9 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val booksTag = "book"
   val booksRootTag = "books"
   val topicsTag = "Topic"
+  val agesTag = "person"
 
+  val numAges = 3
   val numCars = 3
   val numBooks = 12
   val numBooksComplicated = 3
@@ -100,6 +101,15 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(attrValOne == "string")
     assert(attrValTwo == "struct")
     assert(results.size === numCars)
+  }
+
+  test("DSL test with elements in array having attributes") {
+    val results = sqlContext.xmlFile(agesFile, rowTag = agesTag).collect()
+    val attrValOne = results(0).get(0).asInstanceOf[Row](1)
+    val attrValTwo = results(1).get(0).asInstanceOf[Row](1)
+    assert(attrValOne == "1990-02-24")
+    assert(attrValTwo == "1985-01-01")
+    assert(results.size === numAges)
   }
 
   test("DSL test for iso-8859-1 encoded file") {

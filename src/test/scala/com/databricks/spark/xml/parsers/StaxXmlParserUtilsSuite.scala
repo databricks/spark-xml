@@ -42,7 +42,8 @@ class StaxXmlParserUtilsSuite extends FunSuite with BeforeAndAfterAll {
       StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
     val attributes =
       event.asStartElement().getAttributes.map(_.asInstanceOf[Attribute]).toArray
-    val valuesMap = StaxXmlParserUtils.toValuesMap(attributes, new XmlOptions(Map()))
+    val valuesMap =
+      StaxXmlParserUtils.convertAttributesToValuesMap(attributes, new XmlOptions(Map()))
 
     assert(valuesMap === Map("@id" -> "2"))
   }
