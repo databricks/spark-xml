@@ -20,7 +20,6 @@ import java.nio.charset.UnsupportedCharsetException
 import java.sql.{Date, Timestamp}
 
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
-
 import org.apache.hadoop.io.compress.GzipCodec
 
 import org.apache.spark.{SparkException, SparkContext}

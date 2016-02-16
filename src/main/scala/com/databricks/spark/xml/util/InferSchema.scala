@@ -86,10 +86,11 @@ private[xml] object InferSchema {
         val reader = new ByteArrayInputStream(xml.getBytes)
         val parser = factory.createXMLEventReader(reader)
         try {
-          StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
-          val rootEvent = parser.nextEvent()
+          val rootEvent =
+            StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
           val rootAttributes =
             rootEvent.asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
+
           Some(inferObject(parser, options, rootAttributes))
         } catch {
           case _: XMLStreamException if !failFast =>
