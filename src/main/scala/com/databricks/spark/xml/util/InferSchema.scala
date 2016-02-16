@@ -87,9 +87,8 @@ private[xml] object InferSchema {
         val parser = factory.createXMLEventReader(reader)
         try {
           StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
-          val rootEvent = parser.nextEvent()
           val rootAttributes =
-            rootEvent.asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
+            parser.nextEvent().asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           Some(inferObject(parser, options, rootAttributes))
         } catch {
           case _: XMLStreamException if !failFast =>
@@ -110,7 +109,7 @@ private[xml] object InferSchema {
     }
   }
 
-  private def inferTypeFromString: String => DataType = {
+  private def inferFrom: String => DataType = {
     case null => NullType
     case v if v.isEmpty => NullType
     case v if isLong(v) => LongType
@@ -138,7 +137,7 @@ private[xml] object InferSchema {
         }
       case c: Characters if !c.isWhiteSpace =>
         // This means data exists
-        inferTypeFromString(c.getData)
+        inferFrom(c.getData)
       case e: XMLEvent =>
         sys.error(s"Failed to parse data with unexpected event ${e.toString}")
     }
@@ -149,22 +148,23 @@ private[xml] object InferSchema {
    */
   private def inferObject(parser: XMLEventReader,
       options: XmlOptions,
-      rootAttributes: Array[Attribute] = Array()): DataType = {
+      rootAttributes: Array[Attribute] = Array.empty): DataType = {
     val builder = Seq.newBuilder[StructField]
-    val nameToDataTypes = collection.mutable.Map.empty[String, ArrayBuffer[DataType]]
+    val nameToDataType = collection.mutable.Map.empty[String, ArrayBuffer[DataType]]
     var shouldStop = false
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
           // If there are attributes, then we should process them first.
-          val rootValuesMap = StaxXmlParserUtils.toValuesMap(rootAttributes, options)
+          val rootValuesMap =
+            StaxXmlParserUtils.convertAttributesToValuesMap(rootAttributes, options)
           rootValuesMap.foreach {
             case (f, v) =>
-              nameToDataTypes += (f -> ArrayBuffer(inferTypeFromString(v)))
+              nameToDataType += (f -> ArrayBuffer(inferFrom(v)))
           }
 
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
-          val valuesMap = StaxXmlParserUtils.toValuesMap(attributes, options)
+          val valuesMap = StaxXmlParserUtils.convertAttributesToValuesMap(attributes, options)
           val inferredType = inferField(parser, options) match {
             case st: StructType if valuesMap.nonEmpty =>
               // Merge attributes to the field
@@ -172,7 +172,7 @@ private[xml] object InferSchema {
               nestedBuilder ++= st.fields
               valuesMap.foreach {
                 case (f, v) =>
-                  nestedBuilder += StructField(f, inferTypeFromString(v), nullable = true)
+                  nestedBuilder += StructField(f, inferFrom(v), nullable = true)
               }
               StructType(nestedBuilder.result().sortBy(_.name))
 
@@ -182,7 +182,7 @@ private[xml] object InferSchema {
               nestedBuilder += StructField(options.valueTag, dt, nullable = true)
               valuesMap.foreach {
                 case (f, v) =>
-                  nestedBuilder += StructField(f, inferTypeFromString(v), nullable = true)
+                  nestedBuilder += StructField(f, inferFrom(v), nullable = true)
               }
               StructType(nestedBuilder.result().sortBy(_.name))
 
@@ -190,9 +190,9 @@ private[xml] object InferSchema {
           }
           // Add the field and datatypes so that we can check if this is ArrayType.
           val field = e.asStartElement.getName.getLocalPart
-          val dataTypes = nameToDataTypes.getOrElse(field, ArrayBuffer.empty[DataType])
+          val dataTypes = nameToDataType.getOrElse(field, ArrayBuffer.empty[DataType])
           dataTypes += inferredType
-          nameToDataTypes += (field -> dataTypes)
+          nameToDataType += (field -> dataTypes)
 
         case _: EndElement =>
           shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
@@ -203,7 +203,7 @@ private[xml] object InferSchema {
     }
     // We need to manually merges the fields having the sames so that
     // This can be inferred as ArrayType.
-    nameToDataTypes.foreach{
+    nameToDataType.foreach{
       case (field, dataTypes) if dataTypes.length > 1 =>
         val elementType = dataTypes.reduceLeft(InferSchema.compatibleType(options))
         builder += StructField(field, ArrayType(elementType), nullable = true)
