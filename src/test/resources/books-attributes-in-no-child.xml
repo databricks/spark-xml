@@ -3,7 +3,7 @@
    <book id="bk101">
       <author>Gambardella, Matthew</author>
       <title>XML Developer's Guide</title>
-      <price>44.95</price>
+      <price>twenty</price>
       <publish_date>2000-10-01</publish_date>
    </book>
    <book id="bk102">

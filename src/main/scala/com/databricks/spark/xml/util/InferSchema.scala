@@ -291,15 +291,19 @@ private[xml] object InferSchema {
         // As this library can infer an element with attributes as StructType whereas
         // some can be inferred as other non-structural data types, this case should be
         // treated.
-        case (StructType(fields), dt: DataType) =>
-          val safeFields =
-            (fields :+ StructField(options.valueTag, dt, nullable = true)).sortBy(_.name)
-          StructType(safeFields)
+        case (st: StructType, dt: DataType) if st.fieldNames.contains(options.valueTag) =>
+          val valueIndex = st.fieldNames.indexOf(options.valueTag)
+          val valueField = st.fields(valueIndex)
+          val valueDataType = compatibleType(options)(valueField.dataType, dt)
+          st.fields(valueIndex) = StructField(options.valueTag, valueDataType, nullable = true)
+          st
 
-        case (dt: DataType, StructType(fields)) =>
-          val safeFields =
-            (fields :+ StructField(options.valueTag, dt, nullable = true)).sortBy(_.name)
-          StructType(safeFields)
+        case (dt: DataType, st: StructType) if st.fieldNames.contains(options.valueTag) =>
+          val valueIndex = st.fieldNames.indexOf(options.valueTag)
+          val valueField = st.fields(valueIndex)
+          val valueDataType = compatibleType(options)(dt, valueField.dataType)
+          st.fields(valueIndex) = StructField(options.valueTag, valueDataType, nullable = true)
+          st
 
         // TODO: These null type checks should be in `findTightestCommonTypeOfTwo`.
         case (_, NullType) => t1
