@@ -193,7 +193,7 @@ private[xml] object StaxXmlParser {
         // with a row So, we first need to find the field name that has the real
         // value and then push the value.
         val valuesMap = schema.fieldNames.map((_, null)).toMap
-        Map(options.valueTag -> v) ++ valuesMap
+        valuesMap + (options.valueTag -> v)
       case _ => Map.empty
     }
     // The fields are sorted so `TreeMap` is used.
