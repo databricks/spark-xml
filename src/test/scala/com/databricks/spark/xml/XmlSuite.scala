@@ -104,6 +104,22 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.size === numCars)
   }
 
+  test("DSL test for inconsistent element attributes as fields") {
+    val results = sqlContext
+      .xmlFile(booksAttributesInNoChild, rowTag = booksTag)
+      .select("price")
+
+    // This should not throw an exception `java.lang.ArrayIndexOutOfBoundsException`
+    // as non-existing values are represented as `null`s.
+    val nullValue = results
+      .collect()
+      .toSeq.head
+      .toSeq.head
+      .asInstanceOf[Row]
+      .get(1)
+    assert(nullValue == null)
+  }
+
   test("DSL test with elements in array having attributes") {
     val results = sqlContext.xmlFile(agesFile, rowTag = agesTag).collect()
     val attrValOne = results(0).get(0).asInstanceOf[Row](1)

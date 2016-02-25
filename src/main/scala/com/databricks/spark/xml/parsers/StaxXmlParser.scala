@@ -188,11 +188,12 @@ private[xml] object StaxXmlParser {
     val fields = convertField(parser, schema, options) match {
       case row: Row =>
         Map(schema.map(_.name).zip(row.toSeq): _*)
-      case v if schema.exists(_.name == options.valueTag) =>
+      case v if schema.fieldNames.contains(options.valueTag) =>
         // If this is the element having no children, then it wraps attributes
         // with a row So, we first need to find the field name that has the real
         // value and then push the value.
-        Map(options.valueTag -> v)
+        val valuesMap = schema.fieldNames.map((_, null)).toMap
+        Map(options.valueTag -> v) ++ valuesMap
       case _ => Map.empty
     }
     // The fields are sorted so `TreeMap` is used.
