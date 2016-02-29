@@ -194,14 +194,14 @@ import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.types.{StructType, StructField, StringType, DoubleType};
 
 val sqlContext = new SQLContext(sc)
-val customSchema = StructType(
+val customSchema = StructType(Array(
     StructField("@id", StringType, nullable = true),
     StructField("author", StringType, nullable = true),
     StructField("description", StringType, nullable = true),
     StructField("genre", StringType ,nullable = true),
     StructField("price", DoubleType, nullable = true),
     StructField("publish_date", StringType, nullable = true),
-    StructField("title", StringType, nullable = true))
+    StructField("title", StringType, nullable = true)))
 
 
 val df = sqlContext.read
@@ -240,14 +240,14 @@ import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.types.{StructType, StructField, StringType, IntegerType};
 
 val sqlContext = new SQLContext(sc)
-val customSchema = StructType(
+val customSchema = StructType(Array(
     StructField("@id", StringType, nullable = true),
     StructField("author", StringType, nullable = true),
     StructField("description", StringType, nullable = true),
     StructField("genre", StringType ,nullable = true),
     StructField("price", DoubleType, nullable = true),
     StructField("publish_date", StringType, nullable = true),
-    StructField("title", StringType, nullable = true))
+    StructField("title", StringType, nullable = true)))
 
 val df = sqlContext.load(
     "com.databricks.spark.xml",
