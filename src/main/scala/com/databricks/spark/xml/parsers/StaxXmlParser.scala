@@ -52,9 +52,11 @@ private[xml] object StaxXmlParser {
         val reader = new ByteArrayInputStream(xml.getBytes)
         val parser = factory.createXMLEventReader(reader)
         try {
-          StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
+          val rootEvent =
+            StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
           val rootAttributes =
-            parser.nextEvent().asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
+            rootEvent.asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
+
           Some(convertObject(parser, schema, options, rootAttributes))
         } catch {
           case _: java.lang.NumberFormatException if !failFast =>
