@@ -561,7 +561,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField(s"${attributePrefix}id", StringType, nullable = true),
       StructField("author", StringType, nullable = true),
       StructField("price", StructType(
-        List(StructField(valueTag, DoubleType, nullable = true),
+        List(StructField(valueTag, StringType, nullable = true),
           StructField(s"${attributePrefix}unit", StringType, nullable = true))),
         nullable = true),
       StructField("publish_date", StringType, nullable = true),
