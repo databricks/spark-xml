@@ -46,7 +46,7 @@ class StaxXmlParserUtilsSuite extends FunSuite with BeforeAndAfterAll {
     // Skip until </id>
     StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.END_ELEMENT)
 
-    assert(StaxXmlParserUtils.checkEndElement(parser, new XmlOptions(Map())))
+    assert(StaxXmlParserUtils.checkEndElement(parser))
   }
 
   test("Convert attributes to a map with keys and values") {
@@ -61,5 +61,17 @@ class StaxXmlParserUtilsSuite extends FunSuite with BeforeAndAfterAll {
       StaxXmlParserUtils.convertAttributesToValuesMap(attributes, new XmlOptions(Map()))
 
     assert(valuesMap === Map(s"${XmlOptions.DEFAULT_ATTRIBUTE_PREFIX}id" -> "2"))
+  }
+
+  test("Convert current structure to string") {
+    val input = <ROW><id>2</id><info><name>Sam Mad Dog Smith</name><amount>93</amount></info></ROW>
+    val reader = new ByteArrayInputStream(input.toString().getBytes)
+    val parser = factory.createXMLEventReader(reader)
+    // Skip until </id>
+    StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.END_ELEMENT)
+    val xmlString = StaxXmlParserUtils.currentStructureAsString(parser)
+
+    val expected = <info><name>Sam Mad Dog Smith</name><amount>93</amount></info>
+    assert(xmlString === expected.toString())
   }
 }

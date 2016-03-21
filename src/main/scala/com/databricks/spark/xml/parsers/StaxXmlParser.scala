@@ -88,6 +88,7 @@ private[xml] object StaxXmlParser {
       case MapType(StringType, vt, _) => convertMap(parser, vt, options)
       case ArrayType(st, _) => convertField(parser, st, options)
       case udt: UserDefinedType[_] => convertField(parser, udt.sqlType, options)
+      case _: StringType => StaxXmlParserUtils.currentStructureAsString(parser)
     }
 
     (parser.peek, dataType) match {
@@ -97,12 +98,12 @@ private[xml] object StaxXmlParser {
         // When `Characters` is found, we need to look further to decide
         // if this is really data or space between other elements.
         val data = c.getData
-        parser.nextEvent()
-        (parser.peek, dataType) match {
-          case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
-          case (_: EndElement, _) if data.isEmpty => null
-          case (_: EndElement, _) if options.treatEmptyValuesAsNulls => null
-          case (_: EndElement, _: DataType) => data
+        parser.next
+        parser.peek match {
+          case _: StartElement => convertComplicatedType(dataType)
+          case _: EndElement if data.isEmpty => null
+          case _: EndElement if options.treatEmptyValuesAsNulls => null
+          case _: EndElement => data
         }
 
       case (c: Characters, ArrayType(st, _)) =>
@@ -151,8 +152,8 @@ private[xml] object StaxXmlParser {
         case e: StartElement =>
           keys += e.getName.getLocalPart
           values += convertField(parser, valueType, options)
-        case _: EndElement =>
-          shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
+        case e: EndElement =>
+          shouldStop = StaxXmlParserUtils.checkEndElement(parser)
         case _ =>
           shouldStop = shouldStop && parser.hasNext
       }
@@ -255,8 +256,8 @@ private[xml] object StaxXmlParser {
               }
           }
 
-        case _: EndElement =>
-          shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
+        case e: EndElement =>
+          shouldStop = StaxXmlParserUtils.checkEndElement(parser)
 
         case _ =>
           shouldStop = shouldStop && parser.hasNext

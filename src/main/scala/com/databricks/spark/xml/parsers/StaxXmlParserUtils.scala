@@ -20,16 +20,16 @@ private[xml] object StaxXmlParserUtils {
   /**
    * Checks if current event points the EndElement.
    */
-  def checkEndElement(parser: XMLEventReader, options: XmlOptions): Boolean = {
+  def checkEndElement(parser: XMLEventReader): Boolean = {
     parser.peek match {
       case _: EndElement => true
       case _: StartElement => false
-      case _: XMLEvent =>
+      case _ =>
         // When other events are found here rather than `EndElement` or `StartElement`
         // , we need to look further to decide if this is the end because this can be
         // whitespace between `EndElement` and `StartElement`.
         parser.nextEvent
-        checkEndElement(parser, options)
+        checkEndElement(parser)
     }
   }
 
@@ -52,5 +52,51 @@ private[xml] object StaxXmlParserUtils {
       }
       attrFields.zip(nullSafeValues).toMap
     }
+  }
+
+
+  /**
+   * Convert the current structure of XML document to a XML string.
+   */
+  def currentStructureAsString(parser: XMLEventReader): String = {
+    // I could not find a proper method to produce the current document
+    // as a string. For Jackson, there is a method `copyCurrentStructure()`.
+    // So, it ended up with manually converting event by event to string.
+    def convertChildren(): String = {
+      var childrenXmlString = ""
+      parser.peek match {
+        case e: StartElement =>
+          childrenXmlString += currentStructureAsString(parser)
+        case c: Characters if c.isWhiteSpace =>
+          // There can be a `Characters` event between `StartElement`s.
+          // So, we need to check further to decide if this is a data or just
+          // a whitespace between them.
+          childrenXmlString += c.toString
+          parser.next
+          parser.peek match {
+            case _: StartElement =>
+              childrenXmlString += currentStructureAsString(parser)
+          }
+        case e: XMLEvent =>
+          childrenXmlString += e.toString
+      }
+      childrenXmlString
+    }
+
+    var xmlString = ""
+    var shouldStop = false
+    while (!shouldStop) {
+      parser.nextEvent match {
+        case e: StartElement =>
+          xmlString += e.toString
+          xmlString += convertChildren()
+        case e: EndElement =>
+          xmlString += e.toString
+          shouldStop = checkEndElement(parser)
+        case e: XMLEvent =>
+          shouldStop = shouldStop && parser.hasNext
+      }
+    }
+    xmlString
   }
 }

@@ -197,7 +197,7 @@ private[xml] object InferSchema {
           nameToDataType += (field -> dataTypes)
 
         case _: EndElement =>
-          shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
+          shouldStop = StaxXmlParserUtils.checkEndElement(parser)
 
         case _ =>
           shouldStop = shouldStop && parser.hasNext

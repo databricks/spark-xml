@@ -20,6 +20,7 @@ import java.nio.charset.UnsupportedCharsetException
 import java.sql.{Date, Timestamp}
 
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
+
 import org.apache.hadoop.io.compress.GzipCodec
 
 import org.apache.spark.{SparkException, SparkContext}
@@ -46,6 +47,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val emptyFile = "src/test/resources/empty.xml"
   val topicsFile = "src/test/resources/topics-namespaces.xml"
   val gpsEmptyField = "src/test/resources/gps-empty-field.xml"
+  val agesMixedTypes = "src/test/resources/ages-mixed-types.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -90,19 +92,6 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.collect().size === numGPS)
   }
 
-  test("DSL test with mixed elements (attributes, no child)") {
-    val results = sqlContext
-      .xmlFile(carsMixedAttrNoChildFile)
-      .select("date")
-      .collect()
-
-    val attrValOne = results(0).get(0).asInstanceOf[Row](1)
-    val attrValTwo = results(1).get(0).asInstanceOf[Row](1)
-    assert(attrValOne == "string")
-    assert(attrValTwo == "struct")
-    assert(results.size === numCars)
-  }
-
   test("DSL test for inconsistent element attributes as fields") {
     val results = sqlContext
       .xmlFile(booksAttributesInNoChild, rowTag = booksTag)
@@ -117,6 +106,25 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .asInstanceOf[Row]
       .get(1)
     assert(nullValue == null)
+  }
+
+  test("DSL test with mixed elements (attributes, no child)") {
+    val results = sqlContext
+      .xmlFile(carsMixedAttrNoChildFile)
+      .select("date")
+      .collect()
+
+    val attrValOne = results(0).get(0).asInstanceOf[Row](1)
+    val attrValTwo = results(1).get(0).asInstanceOf[Row](1)
+    assert(attrValOne == "string")
+    assert(attrValTwo == "struct")
+    assert(results.size === numCars)
+  }
+
+  test("DSL test with mixed elements (struct, string)") {
+    val results = sqlContext
+      .xmlFile(agesMixedTypes, rowTag = agesTag).collect()
+    assert(results.size === numAges)
   }
 
   test("DSL test with elements in array having attributes") {
