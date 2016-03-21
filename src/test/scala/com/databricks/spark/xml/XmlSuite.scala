@@ -121,19 +121,6 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(nullValue == null)
   }
 
-  test("DSL test with mixed elements (attributes, no child)") {
-    val results = sqlContext
-      .xmlFile(carsMixedAttrNoChildFile)
-      .select("date")
-      .collect()
-
-    val attrValOne = results(0).get(0).asInstanceOf[Row](1)
-    val attrValTwo = results(1).get(0).asInstanceOf[Row](1)
-    assert(attrValOne == "string")
-    assert(attrValTwo == "struct")
-    assert(results.size === numCars)
-  }
-
   test("DSL test with mixed elements (struct, string)") {
     val results = sqlContext
       .xmlFile(agesMixedTypes, rowTag = agesTag).collect()
