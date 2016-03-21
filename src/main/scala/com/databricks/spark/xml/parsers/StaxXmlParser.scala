@@ -152,7 +152,7 @@ private[xml] object StaxXmlParser {
         case e: StartElement =>
           keys += e.getName.getLocalPart
           values += convertField(parser, valueType, options)
-        case e: EndElement =>
+        case _: EndElement =>
           shouldStop = StaxXmlParserUtils.checkEndElement(parser)
         case _ =>
           shouldStop = shouldStop && parser.hasNext
@@ -256,7 +256,7 @@ private[xml] object StaxXmlParser {
               }
           }
 
-        case e: EndElement =>
+        case _: EndElement =>
           shouldStop = StaxXmlParserUtils.checkEndElement(parser)
 
         case _ =>
