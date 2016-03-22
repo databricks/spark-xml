@@ -59,7 +59,7 @@ private[xml] object StaxXmlParserUtils {
    * Convert the current structure of XML document to a XML string.
    */
   def currentStructureAsString(parser: XMLEventReader): String = {
-    // I could not find a proper method to produce the current document
+    // (Hyukjin) I could not find a proper method to produce the current document
     // as a string. For Jackson, there is a method `copyCurrentStructure()`.
     // So, it ended up with manually converting event by event to string.
     def convertChildren(): String = {
