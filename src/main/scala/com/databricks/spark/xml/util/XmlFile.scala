@@ -27,9 +27,11 @@ private[xml] object XmlFile {
   val DEFAULT_INDENT = "    "
   val DEFAULT_ROW_SEPARATOR = "\n"
 
-  def withCharset(context: SparkContext, location: String,
-                  charset: String,
-                  rowTag: String): RDD[String] = {
+  def withCharset(
+      context: SparkContext,
+      location: String,
+      charset: String,
+      rowTag: String): RDD[String] = {
     context.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, s"<$rowTag>")
     context.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, s"</$rowTag>")
     context.hadoopConfiguration.set(XmlInputFormat.ENCODING_KEY, charset)

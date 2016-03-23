@@ -36,7 +36,8 @@ private[xml] object StaxXmlParserUtils {
   /**
    * Produces values map from given attributes.
    */
-  def convertAttributesToValuesMap(attributes: Array[Attribute],
+  def convertAttributesToValuesMap(
+      attributes: Array[Attribute],
       options: XmlOptions): Map[String, String] = {
     if (options.excludeAttributeFlag) {
       Map.empty[String, String]

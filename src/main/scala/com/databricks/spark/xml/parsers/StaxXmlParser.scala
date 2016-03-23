@@ -38,7 +38,8 @@ import com.databricks.spark.xml.XmlOptions
 private[xml] object StaxXmlParser {
   private val logger = LoggerFactory.getLogger(StaxXmlParser.getClass)
 
-  def parse(xml: RDD[String],
+  def parse(
+      xml: RDD[String],
       schema: StructType,
       options: XmlOptions): RDD[Row] = {
     val failFast = options.failFastFlag
@@ -80,7 +81,8 @@ private[xml] object StaxXmlParser {
   /**
    * Parse the current token (and related children) according to a desired schema
    */
-  private[xml] def convertField(parser: XMLEventReader,
+  private[xml] def convertField(
+      parser: XMLEventReader,
       dataType: DataType,
       options: XmlOptions): Any = {
     def convertComplicatedType: DataType => Any = {
@@ -141,7 +143,8 @@ private[xml] object StaxXmlParser {
   /**
    * Parse an object as map.
    */
-  private def convertMap(parser: XMLEventReader,
+  private def convertMap(
+      parser: XMLEventReader,
       valueType: DataType,
       options: XmlOptions): Map[String, Any] = {
     val keys = ArrayBuffer.empty[String]
@@ -164,7 +167,8 @@ private[xml] object StaxXmlParser {
   /**
    * Convert string values to required data type.
    */
-  private def convertValues(valuesMap: Map[String, String],
+  private def convertValues(
+      valuesMap: Map[String, String],
       schema: StructType): Map[String, Any] = {
     val convertedValuesMap = collection.mutable.Map.empty[String, Any]
     valuesMap.foreach {
@@ -183,7 +187,8 @@ private[xml] object StaxXmlParser {
    * contains some logic to find out which events are the start and end of a row and this function
    * converts the events to a row.
    */
-  private def convertRow(parser: XMLEventReader,
+  private def convertRow(
+      parser: XMLEventReader,
       schema: StructType,
       options: XmlOptions,
       attributes: Array[Attribute] = Array.empty) = {
@@ -209,7 +214,8 @@ private[xml] object StaxXmlParser {
    * Parse an object from the event stream into a new Row representing the schema.
    * Fields in the xml that are not defined in the requested schema will be dropped.
    */
-  private def convertObject(parser: XMLEventReader,
+  private def convertObject(
+      parser: XMLEventReader,
       schema: StructType,
       options: XmlOptions,
       rootAttributes: Array[Attribute] = Array.empty): Row = {
