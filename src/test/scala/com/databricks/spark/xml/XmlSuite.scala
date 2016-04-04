@@ -26,6 +26,7 @@ import org.apache.spark.{SparkException, SparkContext}
 import org.apache.spark.sql.{SaveMode, Row, SQLContext}
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions._
+import com.databricks.spark.xml.util.ParseModes
 
 class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val tempEmptyDir = "target/test/empty/"
@@ -201,60 +202,45 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
   }
 
-  test("DSL test for parsing a malformed XML file") {
-    val results = new XmlReader()
-      .withFailFast(false)
+  test("DSL test for dropping malformed rows") {
+    val cars = new XmlReader()
+      .withParseMode(ParseModes.DROP_MALFORMED_MODE)
       .xmlFile(sqlContext, carsMalformedFile)
 
-    assert(results.count() === 1)
-  }
-
-  test("DSL test for dropping malformed rows") {
-    val schema = new StructType(
-      Array(
-        StructField("color", IntegerType, true),
-        StructField("make", TimestampType, true),
-        StructField("model", DoubleType, true),
-        StructField("comment", StringType, true),
-        StructField("year", DoubleType, true)
-      )
-    )
-    val results = new XmlReader()
-      .withSchema(schema)
-      .xmlFile(sqlContext, carsUnbalancedFile)
-      .count()
-
-    assert(results === 0)
+    assert(cars.count() == 1)
+    assert(cars.head().toSeq === Seq("Chevy", "Volt", 2015))
   }
 
   test("DSL test for failing fast") {
-    // Fail fast in type inference
-    val exceptionInSchema = intercept[SparkException] {
-      new XmlReader()
-        .withFailFast(true)
-        .xmlFile(sqlContext, carsMalformedFile)
-        .printSchema()
-    }
-    assert(exceptionInSchema.getMessage.contains("Malformed row (failing fast)"))
-
-    // Fail fast in parsing data
-    val schema = new StructType(
-      Array(
-        StructField("color", StringType, true),
-        StructField("make", StringType, true),
-        StructField("model", StringType, true),
-        StructField("comment", StringType, true),
-        StructField("year", StringType, true)
-      )
-    )
     val exceptionInParse = intercept[SparkException] {
       new XmlReader()
         .withFailFast(true)
-        .withSchema(schema)
         .xmlFile(sqlContext, carsMalformedFile)
         .collect()
     }
-    assert(exceptionInParse.getMessage.contains("Malformed row (failing fast)"))
+    assert(exceptionInParse.getMessage.contains("Malformed line in FAILFAST mode"))
+  }
+
+  test("DSL test for permissive mode for corrupt records") {
+    val cars = new XmlReader()
+        .withParseMode(ParseModes.PERMISSIVE_MODE)
+        .xmlFile(sqlContext, carsMalformedFile)
+        .collect()
+    assert(cars.length == 3)
+
+    val malformedRowOne = cars(0).toSeq.head.toString
+    val malformedRowTwo = cars(1).toSeq.head.toString
+    val expectedMalformedRowOne = "<ROW><year>2012</year><make>Tesla</make><model>>S" +
+      "<comment>No comment</comment></ROW>"
+    val expectedMalformedRowTwo = "<ROW></year><make>Ford</make><model>E350</model>model></model>" +
+      "<comment>Go get one now they are going fast</comment></ROW>"
+
+    assert(malformedRowOne.replaceAll("\\s", "") === expectedMalformedRowOne.replaceAll("\\s", ""))
+    assert(malformedRowTwo.replaceAll("\\s", "") === expectedMalformedRowTwo.replaceAll("\\s", ""))
+    assert(cars(2).toSeq.head === null)
+    assert(cars(0).toSeq.takeRight(3) === Seq(null, null, null))
+    assert(cars(1).toSeq.takeRight(3) === Seq(null, null, null))
+    assert(cars(2).toSeq.takeRight(3) === Seq("Chevy", "Volt", 2015))
   }
 
   test("DSL test with empty file and known schema") {
