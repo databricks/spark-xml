@@ -42,24 +42,7 @@ private[xml] object StaxXmlParser {
       xml: RDD[String],
       schema: StructType,
       options: XmlOptions): RDD[Row] = {
-    def failedRecord(record: String): Option[Row] = {
-      // create a row even if no corrupt record column is present
-      if (options.failFast) {
-        throw new RuntimeException(s"Malformed line in FAILFAST mode: $record")
-      } else if (options.dropMalformed) {
-        logger.warn(s"Dropping malformed line: $record")
-        None
-      } else {
-        val row = new Array[Any](schema.length)
-        val nameToIndex = schema.map(_.name).zipWithIndex.toMap
-        nameToIndex.get(options.columnNameOfCorruptRecord).foreach { corruptIndex =>
-          require(schema(corruptIndex).dataType == StringType)
-          row.update(corruptIndex, record)
-        }
-        Some(Row.fromSeq(row))
-      }
-    }
-
+    val failFast = options.failFastFlag
     xml.mapPartitions { iter =>
       val factory = XMLInputFactory.newInstance()
       factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
@@ -74,15 +57,22 @@ private[xml] object StaxXmlParser {
             StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
           val rootAttributes =
             rootEvent.asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
+
           Some(convertObject(parser, schema, options, rootAttributes))
-            .orElse(failedRecord(xml))
         } catch {
-          case _: java.lang.NumberFormatException =>
-            failedRecord(xml)
-          case _: java.text.ParseException | _: IllegalArgumentException =>
-            failedRecord(xml)
-          case _: XMLStreamException =>
-            failedRecord(xml)
+          case _: java.lang.NumberFormatException if !failFast =>
+            logger.warn("Number format exception. " +
+              s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
+            None
+          case _: java.text.ParseException | _: IllegalArgumentException  if !failFast =>
+            logger.warn("Parse exception. " +
+              s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
+            None
+          case _: XMLStreamException if failFast =>
+            throw new RuntimeException(s"Malformed row (failing fast): ${xml.replaceAll("\n", "")}")
+          case _: XMLStreamException if !failFast =>
+            logger.warn(s"Dropping malformed row: ${xml.replaceAll("\n", "")}")
+            None
         }
       }
     }
