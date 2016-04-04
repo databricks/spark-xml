@@ -47,7 +47,6 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val emptyFile = "src/test/resources/empty.xml"
   val topicsFile = "src/test/resources/topics-namespaces.xml"
   val gpsEmptyField = "src/test/resources/gps-empty-field.xml"
-  val agesMixedTypes = "src/test/resources/ages-mixed-types.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -119,12 +118,6 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .asInstanceOf[Row]
       .get(1)
     assert(nullValue == null)
-  }
-
-  ignore("DSL test with mixed elements (struct, string)") {
-    val results = sqlContext
-      .xmlFile(agesMixedTypes, rowTag = agesTag).collect()
-    assert(results.size === numAges)
   }
 
   test("DSL test with elements in array having attributes") {
@@ -200,6 +193,14 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       """.stripMargin.replaceAll("\n", " "))
 
     assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
+  }
+
+  test("DSL test for parsing a malformed XML file") {
+    val results = new XmlReader()
+      .withParseMode(ParseModes.DROP_MALFORMED_MODE)
+      .xmlFile(sqlContext, carsMalformedFile)
+
+    assert(results.count() === 1)
   }
 
   test("DSL test for dropping malformed rows") {
