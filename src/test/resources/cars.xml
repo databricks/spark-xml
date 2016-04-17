@@ -1,16 +1,16 @@
 <?xml version="1.0"?>
 <ROWSET>
     <ROW>
-        <year>2012</year>
+        <year>2012<!--A comment within tags--></year>
         <make>Tesla</make>
         <model>S</model>
         <comment>No comment</comment>
     </ROW>
     <ROW>
-        <year>1997</year>
+        <year>1997</year><!--A comment within elements-->
         <make>Ford</make>
         <model>E350</model>
-        <comment>Go get one now they are going fast</comment>
+        <comment><!--A comment before a value-->Go get one now they are going fast</comment>
     </ROW>
     <ROW>
         <year>2015</year>
