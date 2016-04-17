@@ -148,7 +148,8 @@ private[xml] object InferSchema {
   /**
    * Infer the type of a xml document from the parser's token stream
    */
-  private def inferObject(parser: XMLEventReader,
+  private def inferObject(
+      parser: XMLEventReader,
       options: XmlOptions,
       rootAttributes: Array[Attribute] = Array.empty): DataType = {
     val builder = Seq.newBuilder[StructField]
@@ -197,7 +198,7 @@ private[xml] object InferSchema {
           nameToDataType += (field -> dataTypes)
 
         case _: EndElement =>
-          shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
+          shouldStop = StaxXmlParserUtils.checkEndElement(parser)
 
         case _ =>
           shouldStop = shouldStop && parser.hasNext

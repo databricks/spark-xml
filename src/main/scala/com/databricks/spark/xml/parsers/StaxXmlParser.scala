@@ -38,7 +38,8 @@ import com.databricks.spark.xml.XmlOptions
 private[xml] object StaxXmlParser {
   private val logger = LoggerFactory.getLogger(StaxXmlParser.getClass)
 
-  def parse(xml: RDD[String],
+  def parse(
+      xml: RDD[String],
       schema: StructType,
       options: XmlOptions): RDD[Row] = {
     val failFast = options.failFastFlag
@@ -80,7 +81,8 @@ private[xml] object StaxXmlParser {
   /**
    * Parse the current token (and related children) according to a desired schema
    */
-  private[xml] def convertField(parser: XMLEventReader,
+  private[xml] def convertField(
+      parser: XMLEventReader,
       dataType: DataType,
       options: XmlOptions): Any = {
     def convertComplicatedType: DataType => Any = {
@@ -88,6 +90,7 @@ private[xml] object StaxXmlParser {
       case MapType(StringType, vt, _) => convertMap(parser, vt, options)
       case ArrayType(st, _) => convertField(parser, st, options)
       case udt: UserDefinedType[_] => convertField(parser, udt.sqlType, options)
+      case _: StringType => StaxXmlParserUtils.currentStructureAsString(parser)
     }
 
     (parser.peek, dataType) match {
@@ -97,12 +100,12 @@ private[xml] object StaxXmlParser {
         // When `Characters` is found, we need to look further to decide
         // if this is really data or space between other elements.
         val data = c.getData
-        parser.nextEvent()
-        (parser.peek, dataType) match {
-          case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
-          case (_: EndElement, _) if data.isEmpty => null
-          case (_: EndElement, _) if options.treatEmptyValuesAsNulls => null
-          case (_: EndElement, _: DataType) => data
+        parser.next
+        parser.peek match {
+          case _: StartElement => convertComplicatedType(dataType)
+          case _: EndElement if data.isEmpty => null
+          case _: EndElement if options.treatEmptyValuesAsNulls => null
+          case _: EndElement => data
         }
 
       case (c: Characters, ArrayType(st, _)) =>
@@ -140,7 +143,8 @@ private[xml] object StaxXmlParser {
   /**
    * Parse an object as map.
    */
-  private def convertMap(parser: XMLEventReader,
+  private def convertMap(
+      parser: XMLEventReader,
       valueType: DataType,
       options: XmlOptions): Map[String, Any] = {
     val keys = ArrayBuffer.empty[String]
@@ -152,7 +156,7 @@ private[xml] object StaxXmlParser {
           keys += e.getName.getLocalPart
           values += convertField(parser, valueType, options)
         case _: EndElement =>
-          shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
+          shouldStop = StaxXmlParserUtils.checkEndElement(parser)
         case _ =>
           shouldStop = shouldStop && parser.hasNext
       }
@@ -163,7 +167,8 @@ private[xml] object StaxXmlParser {
   /**
    * Convert string values to required data type.
    */
-  private def convertValues(valuesMap: Map[String, String],
+  private def convertValues(
+      valuesMap: Map[String, String],
       schema: StructType): Map[String, Any] = {
     val convertedValuesMap = collection.mutable.Map.empty[String, Any]
     valuesMap.foreach {
@@ -182,7 +187,8 @@ private[xml] object StaxXmlParser {
    * contains some logic to find out which events are the start and end of a row and this function
    * converts the events to a row.
    */
-  private def convertRow(parser: XMLEventReader,
+  private def convertRow(
+      parser: XMLEventReader,
       schema: StructType,
       options: XmlOptions,
       attributes: Array[Attribute] = Array.empty) = {
@@ -208,7 +214,8 @@ private[xml] object StaxXmlParser {
    * Parse an object from the event stream into a new Row representing the schema.
    * Fields in the xml that are not defined in the requested schema will be dropped.
    */
-  private def convertObject(parser: XMLEventReader,
+  private def convertObject(
+      parser: XMLEventReader,
       schema: StructType,
       options: XmlOptions,
       rootAttributes: Array[Attribute] = Array.empty): Row = {
@@ -256,7 +263,7 @@ private[xml] object StaxXmlParser {
           }
 
         case _: EndElement =>
-          shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
+          shouldStop = StaxXmlParserUtils.checkEndElement(parser)
 
         case _ =>
           shouldStop = shouldStop && parser.hasNext
