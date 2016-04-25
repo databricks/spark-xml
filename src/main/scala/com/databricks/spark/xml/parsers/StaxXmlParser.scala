@@ -18,7 +18,7 @@ package com.databricks.spark.xml.parsers
 import java.io.ByteArrayInputStream
 import javax.xml.stream.events.{Attribute, XMLEvent}
 import javax.xml.stream.events._
-import javax.xml.stream.{XMLStreamException, XMLStreamConstants, XMLEventReader, XMLInputFactory}
+import javax.xml.stream._
 
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable.ArrayBuffer
@@ -47,11 +47,18 @@ private[xml] object StaxXmlParser {
       val factory = XMLInputFactory.newInstance()
       factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
       factory.setProperty(XMLInputFactory.IS_COALESCING, true)
+      val filter = new EventFilter {
+        override def accept(event: XMLEvent): Boolean =
+          // Ignore comments. This library does not treat comments.
+          event.getEventType != XMLStreamConstants.COMMENT
+      }
+
       iter.flatMap { xml =>
         // It does not have to skip for white space, since `XmlInputFormat`
         // always finds the root tag without a heading space.
         val reader = new ByteArrayInputStream(xml.getBytes)
-        val parser = factory.createXMLEventReader(reader)
+        val eventReader = factory.createXMLEventReader(reader)
+        val parser = factory.createFilteredReader(eventReader, filter)
         try {
           val rootEvent =
             StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
