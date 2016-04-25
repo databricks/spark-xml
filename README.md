@@ -20,13 +20,13 @@ You can link against this library in your program at the following coordinates:
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.10
-version: 0.3.2
+version: 0.3.3
 ```
 ### Scala 2.11
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.11
-version: 0.3.2
+version: 0.3.3
 ```
 
 ## Using with Spark shell
@@ -34,16 +34,16 @@ This package can be added to  Spark using the `--packages` command line option. 
 
 ### Spark compiled with Scala 2.10
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.10:0.3.2
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.10:0.3.3
 ```
 
 ### Spark compiled with Scala 2.11
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.3.2
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.3.3
 ```
 
 ## Features
-This package allows reading XML files in local or distributed filesystem as [Spark DataFrames](https://spark.apache.org/docs/1.3.0/sql-programming-guide.html).
+This package allows reading XML files in local or distributed filesystem as [Spark DataFrames](https://spark.apache.org/docs/1.6.0/sql-programming-guide.html).
 When reading files the API accepts several options:
 * `path`: Location of files. Similar to Spark can accept standard Hadoop globbing expressions.
 * `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
@@ -436,7 +436,7 @@ Automatically infer schema (data types)
 ```R
 library(SparkR)
 
-Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-xml_2.10:0.3.2" "sparkr-shell"')
+Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-xml_2.10:0.3.3" "sparkr-shell"')
 sqlContext <- sparkRSQL.init(sc)
 
 df <- read.df(sqlContext, "books.xml", source = "com.databricks.spark.xml", rowTag = "book")
@@ -449,7 +449,7 @@ You can manually specify schema:
 ```R
 library(SparkR)
 
-Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:0.3.2" "sparkr-shell"')
+Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:0.3.3" "sparkr-shell"')
 sqlContext <- sparkRSQL.init(sc)
 customSchema <- structType(
     structField("@id", "string"),
