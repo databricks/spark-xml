@@ -214,7 +214,7 @@ private[xml] object StaxXmlParser {
     // The fields are sorted so `TreeMap` is used.
     val convertedValuesMap = convertValues(valuesMap, schema)
     val row = TreeMap((fields ++ convertedValuesMap).toSeq : _*).values.toSeq
-    Row.fromSeq(row)
+    if(row.length == 0) null else Row.fromSeq(row)
   }
 
   /**
