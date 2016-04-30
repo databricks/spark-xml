@@ -24,7 +24,6 @@ import org.apache.spark.{SparkException, SparkContext}
 import org.apache.spark.sql.{SaveMode, Row, SQLContext}
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions._
-import scala.collection.mutable.WrappedArray
 
 class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val tempEmptyDir = "target/test/empty/"
@@ -666,7 +665,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     val firstES = result(0)(0)
       .asInstanceOf[Row](0)
-      .asInstanceOf[WrappedArray[Row]]
+      .asInstanceOf[Seq[Row]]
     assert(firstES(0).asInstanceOf[Row].toSeq === Seq(1, null) )
     assert(firstES(1).asInstanceOf[Row].toSeq === Seq(2, 3) )
 
