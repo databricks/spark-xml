@@ -657,19 +657,19 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     assert(results.size === numTopics)
   }
-  
+
   test("Missing nested struct") {
     val result = sqlContext
-      .xmlFile(nullNestedStructFile, rowTag="item")
+      .xmlFile(nullNestedStructFile, rowTag = "item")
       .select("b.es")
       .collect()
-      
+
     val firstES = result(0)(0)
       .asInstanceOf[Row](0)
       .asInstanceOf[WrappedArray[Row]]
     assert(firstES(0).asInstanceOf[Row].toSeq === Seq(1, null) )
     assert(firstES(1).asInstanceOf[Row].toSeq === Seq(2, 3) )
-    
-    assert(result(1).toSeq === Seq(null))  
+
+    assert(result(1).toSeq === Seq(null))
   }
 }
