@@ -22,6 +22,7 @@
 		<b>
 			<c>c</c>
 			<d>0.4</d>
+			<!-- Issue 117 - This is where an empty Row would be produced instead of null -->
 			<es></es>
 		</b>
 		<f>f</f>

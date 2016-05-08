@@ -657,7 +657,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.size === numTopics)
   }
 
-  test("Missing nested struct") {
+  test("Missing nested struct represented as null instead of empty Row") {
     val result = sqlContext
       .xmlFile(nullNestedStructFile, rowTag = "item")
       .select("b.es")
