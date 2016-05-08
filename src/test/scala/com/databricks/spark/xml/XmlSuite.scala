@@ -18,10 +18,8 @@ package com.databricks.spark.xml
 import java.io.File
 import java.nio.charset.UnsupportedCharsetException
 import java.sql.{Date, Timestamp}
-
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 import org.apache.hadoop.io.compress.GzipCodec
-
 import org.apache.spark.{SparkException, SparkContext}
 import org.apache.spark.sql.{SaveMode, Row, SQLContext}
 import org.apache.spark.sql.types._
@@ -47,6 +45,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val topicsFile = "src/test/resources/topics-namespaces.xml"
   val gpsEmptyField = "src/test/resources/gps-empty-field.xml"
   val agesMixedTypes = "src/test/resources/ages-mixed-types.xml"
+  val nullNestedStructFile = "src/test/resources/null-nested-struct.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -656,5 +655,20 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .collect()
 
     assert(results.size === numTopics)
+  }
+
+  test("Missing nested struct represented as null instead of empty Row") {
+    val result = sqlContext
+      .xmlFile(nullNestedStructFile, rowTag = "item")
+      .select("b.es")
+      .collect()
+
+    val firstES = result(0)(0)
+      .asInstanceOf[Row](0)
+      .asInstanceOf[Seq[Row]]
+    assert(firstES(0).asInstanceOf[Row].toSeq === Seq(1, null) )
+    assert(firstES(1).asInstanceOf[Row].toSeq === Seq(2, 3) )
+
+    assert(result(1).toSeq === Seq(null))
   }
 }
