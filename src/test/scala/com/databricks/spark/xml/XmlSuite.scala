@@ -47,6 +47,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val topicsFile = "src/test/resources/topics-namespaces.xml"
   val gpsEmptyField = "src/test/resources/gps-empty-field.xml"
   val agesMixedTypes = "src/test/resources/ages-mixed-types.xml"
+  val nullNestedStructFile = "src/test/resources/null-nested-struct.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -656,5 +657,14 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .collect()
 
     assert(results.size === numTopics)
+  }
+
+  test("Missing nested struct represented as null instead of empty Row") {
+    val result = sqlContext
+      .xmlFile(nullNestedStructFile, rowTag = "item")
+      .select("b.es")
+      .collect()
+
+    assert(result(1).toSeq === Seq(null))
   }
 }
