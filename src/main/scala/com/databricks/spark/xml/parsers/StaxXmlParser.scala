@@ -214,9 +214,14 @@ private[xml] object StaxXmlParser {
     // The fields are sorted so `TreeMap` is used.
     val convertedValuesMap = convertValues(valuesMap, schema)
     val row = TreeMap((fields ++ convertedValuesMap).toSeq : _*).values.toSeq
+
     // Return null rather than empty row. For nested structs empty row causes
-    // ArrayOutOfBounds exceptions when executing an action
-    if(row.isEmpty) null else Row.fromSeq(row)
+    // ArrayOutOfBounds exceptions when executing an action.
+    if (row.isEmpty) {
+      null
+    } else {
+      Row.fromSeq(row)
+    }
   }
 
   /**

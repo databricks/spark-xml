@@ -1,30 +1,16 @@
 <?xml version="1.0" ?>
 <root>
 	<item>
-		<a>a</a>
 		<b>
-			<c>c</c>
-			<d>0.4</d>
 			<es>
-				<e>
-					<ee>1</ee>
-				</e>
-				<e>
-					<ee>2</ee>
-					<eee>3</eee>
-				</e>
+				<e>1</e>
 			</es>
 		</b>
-		<f>f</f>
 	</item>
 	<item>
-		<a>a</a>
+        <!-- Issue 117 - This is where an empty Row would be produced instead of null -->
 		<b>
-			<c>c</c>
-			<d>0.4</d>
-			<!-- Issue 117 - This is where an empty Row would be produced instead of null -->
 			<es></es>
 		</b>
-		<f>f</f>
 	</item>
 </root>

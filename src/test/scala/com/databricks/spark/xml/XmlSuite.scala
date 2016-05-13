@@ -18,8 +18,10 @@ package com.databricks.spark.xml
 import java.io.File
 import java.nio.charset.UnsupportedCharsetException
 import java.sql.{Date, Timestamp}
+
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 import org.apache.hadoop.io.compress.GzipCodec
+
 import org.apache.spark.{SparkException, SparkContext}
 import org.apache.spark.sql.{SaveMode, Row, SQLContext}
 import org.apache.spark.sql.types._
@@ -662,12 +664,6 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xmlFile(nullNestedStructFile, rowTag = "item")
       .select("b.es")
       .collect()
-
-    val firstES = result(0)(0)
-      .asInstanceOf[Row](0)
-      .asInstanceOf[Seq[Row]]
-    assert(firstES(0).asInstanceOf[Row].toSeq === Seq(1, null) )
-    assert(firstES(1).asInstanceOf[Row].toSeq === Seq(2, 3) )
 
     assert(result(1).toSeq === Seq(null))
   }
