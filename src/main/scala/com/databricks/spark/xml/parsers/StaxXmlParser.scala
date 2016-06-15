@@ -213,7 +213,10 @@ private[xml] object StaxXmlParser {
     }
     // The fields are sorted so `TreeMap` is used.
     val convertedValuesMap = convertValues(valuesMap, schema)
-    val row = TreeMap((fields ++ convertedValuesMap).toSeq : _*).values.toSeq
+    // Provide explicit ordering in case the user specified schema with wrong order of columns
+    val schemaFieldIndex = schema.map(_.name).zipWithIndex.toMap
+    val row = TreeMap((fields ++ convertedValuesMap).toSeq: _*)(Ordering.by {
+      field: String => schemaFieldIndex(field) }).values.toSeq
 
     // Return null rather than empty row. For nested structs empty row causes
     // ArrayOutOfBounds exceptions when executing an action.
