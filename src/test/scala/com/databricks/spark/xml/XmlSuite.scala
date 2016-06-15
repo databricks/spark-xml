@@ -668,7 +668,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     assert(result(1).toSeq === Seq(null))
   }
-  
+
   test("Correct order of columns for nested rows when user specifies a schema") {
     val policySchema = StructType(
       Seq(
@@ -678,15 +678,14 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       Seq(
         StructField("c", policySchema, true)))
     val result = new XmlReader()
-      .withRowTag("ROW")  
+      .withRowTag("ROW")
       .withSchema(schema)
       .xmlFile(sqlContext, nestedNumbersFile)
       .select("c.a", "c.b")
       .collect().head
-      
+
     assert(result.getInt(0) === 111)
     assert(result.getInt(1) === 222)
-    
   }
-  
+
 }
