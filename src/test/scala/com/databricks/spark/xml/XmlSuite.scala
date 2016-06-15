@@ -684,8 +684,8 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .select("c.a", "c.b")
       .collect().head
       
-    assert(result.getAs[Int]("a") === 111)
-    assert(result.getAs[Int]("b") === 222)
+    assert(result.getInt(0) === 111)
+    assert(result.getInt(1) === 222)
     
   }
   
