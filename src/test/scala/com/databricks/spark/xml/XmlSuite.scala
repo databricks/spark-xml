@@ -48,6 +48,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val gpsEmptyField = "src/test/resources/gps-empty-field.xml"
   val agesMixedTypes = "src/test/resources/ages-mixed-types.xml"
   val nullNestedStructFile = "src/test/resources/null-nested-struct.xml"
+  val nestedNumbersFile = "src/test/resources/nested-numbers.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -667,4 +668,25 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     assert(result(1).toSeq === Seq(null))
   }
+  
+  test("Correct order of columns for nested rows when user specifies a schema") {
+    val policySchema = StructType(
+      Seq(
+        StructField("b", IntegerType, nullable = true),
+        StructField("a", IntegerType, nullable = true)))
+    val schema = StructType(
+      Seq(
+        StructField("c", policySchema, true)))
+    val result = new XmlReader()
+      .withRowTag("ROW")  
+      .withSchema(schema)
+      .xmlFile(sqlContext, nestedNumbersFile)
+      .select("c.a", "c.b")
+      .collect().head
+      
+    assert(result.getAs[Int]("a") === 111)
+    assert(result.getAs[Int]("b") === 222)
+    
+  }
+  
 }
