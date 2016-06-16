@@ -185,7 +185,7 @@ private[xml] object StaxXmlParser {
         convertedValuesMap(f) = convertTo(v, schema(i).dataType)
       }
     }
-    Map(convertedValuesMap.toSeq: _*)
+    convertedValuesMap.toMap
   }
 
   /**
