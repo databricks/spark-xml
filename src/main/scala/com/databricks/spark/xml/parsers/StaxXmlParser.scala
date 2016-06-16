@@ -171,12 +171,14 @@ private[xml] object StaxXmlParser {
   }
 
   /**
-   * Convert string values to required data type.
+   * Convert XML attributes to a map with the given schema types.
    */
-  private def convertValues(
-      valuesMap: Map[String, String],
-      schema: StructType): Map[String, Any] = {
+  private def convertAttributes(
+      attributes: Array[Attribute],
+      schema: StructType,
+      options: XmlOptions): Map[String, Any] = {
     val convertedValuesMap = collection.mutable.Map.empty[String, Any]
+    val valuesMap = StaxXmlParserUtils.convertAttributesToValuesMap(attributes, options)
     valuesMap.foreach { case (f, v) =>
       val nameToIndex = schema.map(_.name).zipWithIndex.toMap
       nameToIndex.get(f).foreach { i =>
@@ -191,19 +193,16 @@ private[xml] object StaxXmlParser {
    * [[convertObject()]] contains some logic to find out which events are the start
    * and end of a nested row and this function converts the events to a row.
    */
-  private def convertObjectWithAttribute(
+  private def convertObjectWithAttributes(
       parser: XMLEventReader,
       schema: StructType,
       options: XmlOptions,
-      attributes: Array[Attribute] = Array.empty) = {
+      attributes: Array[Attribute] = Array.empty): Row = {
     // TODO: This method might have to be removed. Some logics duplicate `convertObject()`
     val row = new Array[Any](schema.length)
 
     // Read attributes first.
-    val attributesMap = {
-      val valuesMap = StaxXmlParserUtils.convertAttributesToValuesMap(attributes, options)
-      convertValues(valuesMap, schema)
-    }
+    val attributesMap = convertAttributes(attributes, schema, options)
 
     // Then, we read elements here.
     val fieldsMap = convertField(parser, schema, options) match {
@@ -222,7 +221,7 @@ private[xml] object StaxXmlParser {
     val valuesMap = fieldsMap ++ attributesMap
     valuesMap.foreach { case (f, v) =>
       val nameToIndex = schema.map(_.name).zipWithIndex.toMap
-      nameToIndex.get(f).foreach(row.update(_, v))
+      nameToIndex.get(f).foreach { row(_) = v }
     }
 
     // Return null rather than empty row. For nested structs empty row causes
@@ -250,11 +249,9 @@ private[xml] object StaxXmlParser {
         case e: StartElement =>
           val nameToIndex = schema.map(_.name).zipWithIndex.toMap
           // If there are attributes, then we process them first.
-          val rootValuesMap =
-            StaxXmlParserUtils.convertAttributesToValuesMap(rootAttributes, options)
-          convertValues(rootValuesMap, schema).toSeq.foreach {
+          convertAttributes(rootAttributes, schema, options).toSeq.foreach {
             case (f, v) =>
-              nameToIndex.get(f).foreach(row.update(_, v))
+              nameToIndex.get(f).foreach { row(_) = v }
           }
 
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
@@ -263,7 +260,7 @@ private[xml] object StaxXmlParser {
           nameToIndex.get(field).foreach { index =>
             schema(index).dataType match {
               case st: StructType =>
-                row(index) = convertObjectWithAttribute(parser, st, options, attributes)
+                row(index) = convertObjectWithAttributes(parser, st, options, attributes)
 
               case ArrayType(dt: DataType, _) =>
                 val values = Option(row(index))
@@ -272,7 +269,7 @@ private[xml] object StaxXmlParser {
                 val newValue = {
                   dt match {
                     case st: StructType =>
-                      convertObjectWithAttribute(parser, st, options, attributes)
+                      convertObjectWithAttributes(parser, st, options, attributes)
                     case dt: DataType =>
                       convertField(parser, dt, options)
                   }
