@@ -20,7 +20,6 @@ import javax.xml.stream.events.{Attribute, XMLEvent}
 import javax.xml.stream.events._
 import javax.xml.stream._
 
-import scala.collection.immutable.TreeMap
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConversions._
 
@@ -172,35 +171,41 @@ private[xml] object StaxXmlParser {
   }
 
   /**
-   * Convert string values to required data type.
+   * Convert XML attributes to a map with the given schema types.
    */
-  private def convertValues(
-      valuesMap: Map[String, String],
-      schema: StructType): Map[String, Any] = {
+  private def convertAttributes(
+      attributes: Array[Attribute],
+      schema: StructType,
+      options: XmlOptions): Map[String, Any] = {
     val convertedValuesMap = collection.mutable.Map.empty[String, Any]
-    valuesMap.foreach {
-      case (f, v) =>
-        val nameToIndex = schema.map(_.name).zipWithIndex.toMap
-        nameToIndex.get(f).foreach {
-          case i =>
-            convertedValuesMap(f) = convertTo(v, schema(i).dataType)
-        }
+    val valuesMap = StaxXmlParserUtils.convertAttributesToValuesMap(attributes, options)
+    valuesMap.foreach { case (f, v) =>
+      val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+      nameToIndex.get(f).foreach { i =>
+        convertedValuesMap(f) = convertTo(v, schema(i).dataType)
+      }
     }
-    Map(convertedValuesMap.toSeq: _*)
+    convertedValuesMap.toMap
   }
 
   /**
-   * [[convertObject()]] calls this in order to convert the object to a row. [[convertObject()]]
-   * contains some logic to find out which events are the start and end of a row and this function
-   * converts the events to a row.
+   * [[convertObject()]] calls this in order to convert the nested object to a row.
+   * [[convertObject()]] contains some logic to find out which events are the start
+   * and end of a nested row and this function converts the events to a row.
    */
-  private def convertRow(
+  private def convertObjectWithAttributes(
       parser: XMLEventReader,
       schema: StructType,
       options: XmlOptions,
-      attributes: Array[Attribute] = Array.empty) = {
-    val valuesMap = StaxXmlParserUtils.convertAttributesToValuesMap(attributes, options)
-    val fields = convertField(parser, schema, options) match {
+      attributes: Array[Attribute] = Array.empty): Row = {
+    // TODO: This method might have to be removed. Some logics duplicate `convertObject()`
+    val row = new Array[Any](schema.length)
+
+    // Read attributes first.
+    val attributesMap = convertAttributes(attributes, schema, options)
+
+    // Then, we read elements here.
+    val fieldsMap = convertField(parser, schema, options) match {
       case row: Row =>
         Map(schema.map(_.name).zip(row.toSeq): _*)
       case v if schema.fieldNames.contains(options.valueTag) =>
@@ -211,13 +216,17 @@ private[xml] object StaxXmlParser {
         valuesMap + (options.valueTag -> v)
       case _ => Map.empty
     }
-    // The fields are sorted so `TreeMap` is used.
-    val convertedValuesMap = convertValues(valuesMap, schema)
-    val row = TreeMap((fields ++ convertedValuesMap).toSeq : _*).values.toSeq
+
+    // Here we merge both to a row.
+    val valuesMap = fieldsMap ++ attributesMap
+    valuesMap.foreach { case (f, v) =>
+      val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+      nameToIndex.get(f).foreach { row(_) = v }
+    }
 
     // Return null rather than empty row. For nested structs empty row causes
     // ArrayOutOfBounds exceptions when executing an action.
-    if (row.isEmpty) {
+    if (valuesMap.isEmpty) {
       null
     } else {
       Row.fromSeq(row)
@@ -240,40 +249,36 @@ private[xml] object StaxXmlParser {
         case e: StartElement =>
           val nameToIndex = schema.map(_.name).zipWithIndex.toMap
           // If there are attributes, then we process them first.
-          val rootValuesMap =
-            StaxXmlParserUtils.convertAttributesToValuesMap(rootAttributes, options)
-          convertValues(rootValuesMap, schema).toSeq.foreach {
+          convertAttributes(rootAttributes, schema, options).toSeq.foreach {
             case (f, v) =>
-              nameToIndex.get(f).foreach(row.update(_, v))
+              nameToIndex.get(f).foreach { row(_) = v }
           }
 
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           val field = e.asStartElement.getName.getLocalPart
 
-          nameToIndex.get(field).foreach {
-            case index =>
-              val dataType = schema(index).dataType
-              row(index) = dataType match {
-                case st: StructType =>
-                  convertRow(parser, st, options, attributes)
+          nameToIndex.get(field).foreach { index =>
+            schema(index).dataType match {
+              case st: StructType =>
+                row(index) = convertObjectWithAttributes(parser, st, options, attributes)
 
-                case ArrayType(dt: DataType, _) =>
-                  val values = Option(row(index))
-                    .map(_.asInstanceOf[ArrayBuffer[Any]])
-                    .getOrElse(ArrayBuffer.empty[Any])
-                  val newValue = {
-                    dt match {
-                      case st: StructType =>
-                        convertRow(parser, st, options, attributes)
-                      case _ =>
-                        convertField(parser, dataType, options)
-                    }
+              case ArrayType(dt: DataType, _) =>
+                val values = Option(row(index))
+                  .map(_.asInstanceOf[ArrayBuffer[Any]])
+                  .getOrElse(ArrayBuffer.empty[Any])
+                val newValue = {
+                  dt match {
+                    case st: StructType =>
+                      convertObjectWithAttributes(parser, st, options, attributes)
+                    case dt: DataType =>
+                      convertField(parser, dt, options)
                   }
-                  values :+ newValue
+                }
+                row(index) = values :+ newValue
 
-                case _ =>
-                  convertField(parser, dataType, options)
-              }
+              case dt: DataType =>
+                row(index) = convertField(parser, dt, options)
+            }
           }
 
         case _: EndElement =>
