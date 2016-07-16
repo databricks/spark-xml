@@ -38,8 +38,8 @@ private[xml] class XmlOptions(
 }
 
 private[xml] object XmlOptions {
-  val DEFAULT_ATTRIBUTE_PREFIX = "@"
-  val DEFAULT_VALUE_TAG = "#VALUE"
+  val DEFAULT_ATTRIBUTE_PREFIX = "_"
+  val DEFAULT_VALUE_TAG = "_VALUE"
   val DEFAULT_ROW_TAG = "ROW"
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_CHARSET = "UTF-8"
