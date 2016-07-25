@@ -385,7 +385,7 @@ customSchema = StructType([ \
     StructField("genre", StringType(), True), \
     StructField("price", DoubleType(), True), \
     StructField("publish_date", StringType(), True), \
-    StructField("title", StringType(), True]))
+    StructField("title", StringType(), True)])
 
 df = sqlContext.read \
     .format('com.databricks.spark.xml') \
