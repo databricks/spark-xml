@@ -64,11 +64,11 @@ When writing files the API accepts several options:
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `#VALUE`.
 * `codec`: compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec` or one of case-insensitive shorten names (`bzip2`, `gzip`, `lz4`, and `snappy`). Defaults to no compression when a codec is not specified.
 
-Currently it supports the shorten name useage. You can use just `xml` instead of `com.databricks.spark.xml` from Spark 1.5.0+
+Currently it supports the shortened name usage. You can use just `xml` instead of `com.databricks.spark.xml` from Spark 1.5.0+
 
 ## Structure Conversion
 
-Due to the structure differences between `DataFrame` and XML, there are some conversion rules from XML data to `DataFrame` and from `DataFrame` to XML data. Note that hanlding attributes can be disbaled with the option `excludeAttribute`.
+Due to the structure differences between `DataFrame` and XML, there are some conversion rules from XML data to `DataFrame` and from `DataFrame` to XML data. Note that handling attributes can be disabled with the option `excludeAttribute`.
 
 
 ### Conversion from XML to `DataFrame`
@@ -422,7 +422,7 @@ customSchema = StructType([ \
     StructField("genre", StringType(), True), \
     StructField("price", DoubleType(), True), \
     StructField("publish_date", StringType(), True), \
-    StructField("title", StringType(), True]))
+    StructField("title", StringType(), True)])
 
 df = sqlContext.load(source="com.databricks.spark.xml", rowTag = 'book', schema = customSchema, path = 'books.xml')
 df.select("author", "@id").save('newbooks.xml', rootTag = 'books', rowTag = 'book', path = 'newbooks.xml')
