@@ -162,6 +162,7 @@ private[xml] object InferSchema {
     val builder = Seq.newBuilder[StructField]
     val nameToDataType = collection.mutable.Map.empty[String, ArrayBuffer[DataType]]
     var shouldStop = false
+
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
@@ -211,6 +212,7 @@ private[xml] object InferSchema {
           shouldStop = shouldStop && parser.hasNext
       }
     }
+
     // We need to manually merges the fields having the sames so that
     // This can be inferred as ArrayType.
     nameToDataType.foreach{

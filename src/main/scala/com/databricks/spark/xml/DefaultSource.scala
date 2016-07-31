@@ -58,7 +58,6 @@ class DefaultSource
       val options = XmlOptions(parameters)
       (options.charset, options.rowTag)
     }
-
     XmlRelation(
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
       Some(path),

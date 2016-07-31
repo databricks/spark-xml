@@ -54,9 +54,10 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private var startTag: Array[Byte] = _
   private var currentStartTag: Array[Byte] = _
   private var endTag: Array[Byte] = _
+  private var endEmptyTag: Array[Byte] = _  
   private var space: Array[Byte] = _
   private var angleBracket: Array[Byte] = _
-
+  private var angleBracketToUse: Array[Byte] = _
   private var currentKey: LongWritable = _
   private var currentValue: Text = _
 
@@ -67,6 +68,8 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private var decompressor: Decompressor = _
 
   private val buffer: DataOutputBuffer = new DataOutputBuffer
+  
+  private var tagPattern = "(.)+".r
 
   override def initialize(split: InputSplit, context: TaskAttemptContext): Unit = {
     val fileSplit: FileSplit = split.asInstanceOf[FileSplit]
@@ -80,10 +83,13 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       Charset.forName(conf.get(XmlInputFormat.ENCODING_KEY, XmlOptions.DEFAULT_CHARSET))
     startTag = conf.get(XmlInputFormat.START_TAG_KEY).getBytes(charset)
     endTag = conf.get(XmlInputFormat.END_TAG_KEY).getBytes(charset)
+    endEmptyTag = "/>".getBytes(charset)
     space = " ".getBytes(charset)
     angleBracket = ">".getBytes(charset)
+    tagPattern = ("\\"+new String(startTag).substring(0,new String(startTag).length-1)+"(\\W)(.*)(\\W)*\\<(.*)(\\W)(.*)\\>").r
     require(startTag != null, "Start tag cannot be null.")
     require(endTag != null, "End tag cannot be null.")
+    require(endEmptyTag != null, "End Empty tag cannot be null.")    
     require(space != null, "White space cannot be null.")
     require(angleBracket != null, "Angle bracket cannot be null.")
     start = fileSplit.getStart
@@ -150,13 +156,23 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
    * @return whether it reads successfully
    */
   private def next(key: LongWritable, value: Text): Boolean = {
-    if (readUntilMatch(startTag, withinBlock = false)) {
+    if (readUntilMatch(startTag, withinBlock = false, force = false)) {
       try {
         buffer.write(currentStartTag)
-        if (readUntilMatch(endTag, withinBlock = true)) {
-          key.set(filePosition.getPos)
-          value.set(buffer.getData, 0, buffer.getLength)
-          true
+        if (readUntilMatch(endTag, withinBlock = true, force = false)) {
+          if(tagPattern.findAllIn(new String(buffer.getData)).length>0){
+            if (readUntilMatch(endTag, withinBlock = true, force = true)) {              
+          	  key.set(filePosition.getPos)
+          	  value.set(buffer.getData, 0, buffer.getLength)            
+          	  true
+            }else{
+              false
+            }
+          }else{
+        	  key.set(filePosition.getPos)
+        	  value.set(buffer.getData, 0, buffer.getLength)            
+        	  true
+          }
         } else {
           false
         }
@@ -176,7 +192,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
    * @param withinBlock start offset
    * @return whether it finds the match successfully
    */
-  private def readUntilMatch(mat: Array[Byte], withinBlock: Boolean): Boolean = {
+  private def readUntilMatch(mat: Array[Byte], withinBlock: Boolean, force: Boolean): Boolean = {
     var i: Int = 0
     while(true) {
       val b: Int = in.read
@@ -187,9 +203,9 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       if (withinBlock) {
         buffer.write(b)
       }
-      if (b == mat(i)) {
+      if (b == mat(i) || ((withinBlock) && (!force) && (b==endEmptyTag(i)))) {
         i += 1
-        if (i >= mat.length) {
+        if ((i >= mat.length) || ((withinBlock) && (!force) && (i >= endEmptyTag.length))){
           currentStartTag = startTag
           return true
         }
@@ -197,10 +213,11 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       else {
         // The start tag might have attributes. In this case, we decide it by the space after tag
         if (i == (mat.length - angleBracket.length) && !withinBlock) {
-          if (checkAttributes(b)){
-            return true
-          }
+    		  if (checkAttributes(b)){
+    			  return true
+    		  }
         }
+
         i = 0
       }
       if (!withinBlock && i == 0 && filePosition.getPos > end) {
@@ -217,7 +234,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       len += 1
       if (len >= space.length) {
         currentStartTag = startTag.take(startTag.length - angleBracket.length) ++ space
-        return true
+       return true
       }
       b = in.read
     }
