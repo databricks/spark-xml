@@ -19,7 +19,6 @@ import java.io.CharArrayWriter
 import java.nio.charset.Charset
 import javax.xml.stream.XMLOutputFactory
 
-
 import scala.collection.Map
 
 import com.databricks.spark.xml.parsers.StaxXmlGenerator
