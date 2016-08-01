@@ -10,23 +10,25 @@ The structure and test tools are mostly copied from [CSV Data Source for Spark](
 
 ## Requirements
 
-This library requires Spark 1.3+
+This library requires Spark 2.0+ for 0.4.x. For Spark 1.3.+, 0.3.x version works with it.
 
 
 ## Linking
 You can link against this library in your program at the following coordinates:
 
 ### Scala 2.10
+
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.10
-version: 0.3.3
+version: 0.4.0-SNAPSHOT
 ```
 ### Scala 2.11
+
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.11
-version: 0.3.3
+version: 0.4.0-SNAPSHOT
 ```
 
 ## Using with Spark shell
@@ -169,7 +171,6 @@ OPTIONS (path "books.xml", rowTag "book")
 ```
 
 ### Scala API
-__Spark 1.4+:__
 
 ```scala
 import org.apache.spark.sql.SQLContext
@@ -218,50 +219,7 @@ selectedData.write
     .save("newbooks.xml")
 ```
 
-__Spark 1.3:__
-
-```scala
-import org.apache.spark.sql.SQLContext
-
-val sqlContext = new SQLContext(sc)
-val df = sqlContext.load(
-    "com.databricks.spark.xml",
-    Map("path" -> "books.xml", "rowTag" -> "book"))
-
-val selectedData = df.select("author", "@id")
-selectedData.save("com.databricks.spark.xml",
-	SaveMode.ErrorIfExists,
-	Map("path" -> "newbooks.xml", "rootTag" -> "books", "rowTag" -> "book"))
-```
-
-You can manually specify the schema when reading data:
-```scala
-import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.types.{StructType, StructField, StringType, IntegerType};
-
-val sqlContext = new SQLContext(sc)
-val customSchema = StructType(Array(
-    StructField("@id", StringType, nullable = true),
-    StructField("author", StringType, nullable = true),
-    StructField("description", StringType, nullable = true),
-    StructField("genre", StringType ,nullable = true),
-    StructField("price", DoubleType, nullable = true),
-    StructField("publish_date", StringType, nullable = true),
-    StructField("title", StringType, nullable = true)))
-
-val df = sqlContext.load(
-    "com.databricks.spark.xml",
-    schema = customSchema,
-    Map("path" -> "books.xml", "rowTag" -> "book"))
-
-val selectedData = df.select("author", "@id")
-selectedData.save("com.databricks.spark.xml",
-	SaveMode.ErrorIfExists,
-	Map("path" -> "newbooks.xml", "rootTag" -> "books", "rowTag" -> "book"))
-```
-
 ### Java API
-__Spark 1.4+:__
 
 ```java
 import org.apache.spark.sql.SQLContext
@@ -309,57 +267,7 @@ df.select("author", "@id").write()
 ```
 
 
-
-__Spark 1.3:__
-
-```java
-import org.apache.spark.sql.SQLContext
-
-SQLContext sqlContext = new SQLContext(sc);
-
-HashMap<String, String> options = new HashMap<String, String>();
-options.put("rowTag", "book");
-options.put("path", "books.xml");
-DataFrame df = sqlContext.load("com.databricks.spark.xml", options);
-
-HashMap<String, String> options = new HashMap<String, String>();
-options.put("rowTag", "book");
-options.put("rootTag", "books");
-options.put("path", "newbooks.xml");
-df.select("author", "@id").save("com.databricks.spark.xml", SaveMode.ErrorIfExists, options)
-```
-
-You can manually specify schema:
-```java
-import org.apache.spark.sql.SQLContext;
-import org.apache.spark.sql.types.*;
-
-SQLContext sqlContext = new SQLContext(sc);
-StructType customSchema = new StructType(new StructField[] {
-    new StructField("@id", DataTypes.StringType, true, Metadata.empty()),
-    new StructField("author", DataTypes.StringType, true, Metadata.empty()),
-    new StructField("description", DataTypes.StringType, true, Metadata.empty()),
-    new StructField("genre", DataTypes.StringType, true, Metadata.empty()),
-    new StructField("price", DataTypes.DoubleType, true, Metadata.empty()),
-    new StructField("publish_date", DataTypes.StringType, true, Metadata.empty()),
-    new StructField("title", DataTypes.StringType, true, Metadata.empty())
-});
-
-HashMap<String, String> options = new HashMap<String, String>();
-options.put("rowTag", "book");
-options.put("path", "books.xml");
-DataFrame df = sqlContext.load("com.databricks.spark.xml", customSchema, options);
-
-HashMap<String, String> options = new HashMap<String, String>();
-options.put("rowTag", "book");
-options.put("rootTag", "books");
-options.put("path", "newbooks.xml");
-df.select("author", "@id").save("com.databricks.spark.xml", SaveMode.ErrorIfExists, options)
-```
-
 ### Python API
-
-__Spark 1.4+:__
 
 ```python
 from pyspark.sql import SQLContext
@@ -399,38 +307,7 @@ df.select("author", "@id").write \
 ```
 
 
-__Spark 1.3:__
-
-```python
-from pyspark.sql import SQLContext
-sqlContext = SQLContext(sc)
-
-df = sqlContext.load(source="com.databricks.spark.xml", rowTag = 'book', path = 'books.xml')
-df.select("author", "@id").save('newbooks.xml', rootTag = 'books', rowTag = 'book', path = 'newbooks.xml')
-```
-
-You can manually specify schema:
-```python
-from pyspark.sql import SQLContext
-from pyspark.sql.types import *
-
-sqlContext = SQLContext(sc)
-customSchema = StructType([ \
-    StructField("@id", StringType(), True), \
-    StructField("author", StringType(), True), \
-    StructField("description", StringType(), True), \
-    StructField("genre", StringType(), True), \
-    StructField("price", DoubleType(), True), \
-    StructField("publish_date", StringType(), True), \
-    StructField("title", StringType(), True)])
-
-df = sqlContext.load(source="com.databricks.spark.xml", rowTag = 'book', schema = customSchema, path = 'books.xml')
-df.select("author", "@id").save('newbooks.xml', rootTag = 'books', rowTag = 'book', path = 'newbooks.xml')
-```
-
-
 ### R API
-__Spark 1.4+:__
 
 Automatically infer schema (data types)
 ```R
@@ -492,4 +369,3 @@ This library is built with [SBT](http://www.scala-sbt.org/0.13/docs/Command-Line
 ## Acknowledgements
 
 This project was initially created by [HyukjinKwon](https://github.com/HyukjinKwon) and donated to [Databricks](https://databricks.com).
-
