@@ -81,7 +81,12 @@ package object xml {
     def saveAsXmlFile(
         path: String, parameters: Map[String, String] = Map(),
         compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
-      XmlFile.saveAsXmlFile(dataFrame, path, parameters)
+      val mutableParams = collection.mutable.Map(parameters.toSeq: _*)
+      val safeCodec = mutableParams.get("codec")
+        .orElse(Option(compressionCodec).map(_.getCanonicalName))
+        .orNull
+      mutableParams.put("codec", safeCodec)
+      XmlFile.saveAsXmlFile(dataFrame, path, mutableParams.toMap)
     }
   }
 }

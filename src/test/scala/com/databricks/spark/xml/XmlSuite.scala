@@ -377,8 +377,10 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val copyFilePath = tempEmptyDir + "books-copy.xml"
 
     val books = sqlContext.xmlFile(booksComplicatedFile, rowTag = booksTag)
-    books.saveAsXmlFile(copyFilePath,
-      Map("rootTag" -> booksRootTag, "rowTag" -> booksTag))
+    books.write
+      .options(Map("rootTag" -> booksRootTag, "rowTag" -> booksTag))
+      .format("xml")
+      .save(copyFilePath)
 
     val booksCopy = sqlContext.xmlFile(copyFilePath + "/", rowTag = booksTag)
     assert(booksCopy.count == books.count)
@@ -392,8 +394,10 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val copyFilePath = tempEmptyDir + "books-copy.xml"
 
     val books = sqlContext.xmlFile(booksComplicatedFile, rowTag = booksTag)
-    books.saveAsXmlFile(copyFilePath,
-      Map("rootTag" -> booksRootTag, "rowTag" -> booksTag, "nullValue" -> ""))
+    books.write
+      .options(Map("rootTag" -> booksRootTag, "rowTag" -> booksTag, "nullValue" -> ""))
+      .format("xml")
+      .save(copyFilePath)
 
     val booksCopy =
       sqlContext.xmlFile(copyFilePath, rowTag = booksTag, treatEmptyValuesAsNulls = true)
@@ -413,7 +417,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val data = sqlContext.sparkContext.parallelize(
       List(List(List("aa", "bb"), List("aa", "bb")))).map(Row(_))
     val df = sqlContext.createDataFrame(data, schema)
-    df.saveAsXmlFile(copyFilePath)
+    df.write.format("xml").save(copyFilePath)
 
     // When [[ArrayType]] has [[ArrayType]] as elements, it is confusing what is the element
     // name for XML file. Now, it is "item". So, "item" field is additionally added
@@ -458,7 +462,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val data = sqlContext.sparkContext.parallelize(Seq(row))
 
     val df = sqlContext.createDataFrame(data, schema)
-    df.saveAsXmlFile(copyFilePath)
+    df.write.format("xml").save(copyFilePath)
 
     val dfCopy = new XmlReader()
             .withSchema(schema)
