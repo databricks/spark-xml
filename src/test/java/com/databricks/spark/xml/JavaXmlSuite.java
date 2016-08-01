@@ -49,9 +49,9 @@ public class JavaXmlSuite {
 
     @Test
     public void testXmlParser() {
-        DataFrame df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(sqlContext, booksFile);
+        Dataset df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(sqlContext, booksFile);
         String prefix = XmlOptions.DEFAULT_ATTRIBUTE_PREFIX();
-        int result = df.select(prefix + "id").collect().length;
+        long result = df.select(prefix + "id").count();
         Assert.assertEquals(result, numBooks);
     }
 
@@ -61,19 +61,19 @@ public class JavaXmlSuite {
         options.put("rowTag", booksFileTag);
         options.put("path", booksFile);
 
-        DataFrame df = sqlContext.load("com.databricks.spark.xml", options);
-        int result = df.select("description").collect().length;
+        Dataset df = sqlContext.load("com.databricks.spark.xml", options);
+        long result = df.select("description").count();
         Assert.assertEquals(result, numBooks);
     }
 
     @Test
     public void testSave() {
-        DataFrame df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(sqlContext, booksFile);
+        Dataset df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(sqlContext, booksFile);
         TestUtils.deleteRecursively(new File(tempDir));
-        df.select("price", "description").save(tempDir, "com.databricks.spark.xml");
+        df.select("price", "description").write().format("xml").save(tempDir);
 
-        DataFrame newDf = (new XmlReader()).xmlFile(sqlContext, tempDir);
-        int result = newDf.select("price").collect().length;
+        Dataset newDf = (new XmlReader()).xmlFile(sqlContext, tempDir);
+        long result = newDf.select("price").count();
         Assert.assertEquals(result, numBooks);
     }
 }

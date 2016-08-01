@@ -1,6 +1,6 @@
 name := "spark-xml"
 
-version := "0.3.3"
+version := "0.4.0-SNAPSHOT"
 
 organization := "com.databricks"
 
@@ -10,7 +10,7 @@ spName := "databricks/spark-xml"
 
 crossScalaVersions := Seq("2.10.5", "2.11.7")
 
-sparkVersion := "1.6.0"
+sparkVersion := "2.0.0"
 
 val testSparkVersion = settingKey[String]("The version of Spark to test against.")
 

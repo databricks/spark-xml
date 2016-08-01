@@ -24,7 +24,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.sources.{PrunedScan, InsertableRelation, BaseRelation, TableScan}
 import org.apache.spark.sql.types._
-import com.databricks.spark.xml.util.{CompressionCodecs, InferSchema}
+import com.databricks.spark.xml.util.{InferSchema, XmlFile}
 import com.databricks.spark.xml.parsers.StaxXmlParser
 
 case class XmlRelation protected[spark] (
@@ -106,8 +106,7 @@ case class XmlRelation protected[spark] (
               + s" to INSERT OVERWRITE a XML table:\n${e.toString}")
       }
       // Write the data. We assume that schema isn't changed, and we won't update it.
-      val codecClass = CompressionCodecs.getCodecClass(options.codec)
-      data.saveAsXmlFile(filesystemPath.toString, parameters, codecClass)
+      XmlFile.saveAsXmlFile(data, filesystemPath.toString, parameters)
     } else {
       sys.error("XML tables only support INSERT OVERWRITE for now.")
     }

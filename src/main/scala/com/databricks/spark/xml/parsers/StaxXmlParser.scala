@@ -95,7 +95,6 @@ private[xml] object StaxXmlParser {
       case dt: StructType => convertObject(parser, dt, options)
       case MapType(StringType, vt, _) => convertMap(parser, vt, options)
       case ArrayType(st, _) => convertField(parser, st, options)
-      case udt: UserDefinedType[_] => convertField(parser, udt.sqlType, options)
       case _: StringType => StaxXmlParserUtils.currentStructureAsString(parser)
     }
 
@@ -141,7 +140,7 @@ private[xml] object StaxXmlParser {
     case (v, ByteType) => castTo(v, ByteType)
     case (v, ShortType) => castTo(v, ShortType)
     case (v, IntegerType) => signSafeToInt(v)
-    case (v, _: DecimalType) => castTo(v, new DecimalType(None))
+    case (v, dt: DecimalType) => castTo(v, dt)
     case (_, dataType) =>
       sys.error(s"Failed to parse a value for data type $dataType.")
   }
