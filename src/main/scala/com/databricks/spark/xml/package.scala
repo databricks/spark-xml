@@ -27,6 +27,7 @@ package object xml {
    * Adds a method, `xmlFile`, to [[SQLContext]] that allows reading XML data.
    */
   implicit class XmlContext(sqlContext: SQLContext) extends Serializable {
+    @deprecated("Use DataFrameReader.read()", "0.4.0")
     def xmlFile(
         filePath: String,
         rowTag: String = XmlOptions.DEFAULT_ROW_TAG,
