@@ -475,11 +475,11 @@ which you may make direct use of as follows:
 import com.databricks.spark.xml.XmlInputFormat
 
 // This will detect the tags including attributes
-sc.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, "<books>")
-sc.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, "</books>")
+sc.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, "<book>")
+sc.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, "</book>")
 sc.hadoopConfiguration.set(XmlInputFormat.ENCODING_KEY, "utf-8")
 
-val records = context.newAPIHadoopFile(
+val records = sc.newAPIHadoopFile(
   path,
   classOf[XmlInputFormat],
   classOf[LongWritable],
