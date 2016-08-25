@@ -479,7 +479,7 @@ sc.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, "<book>")
 sc.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, "</book>")
 sc.hadoopConfiguration.set(XmlInputFormat.ENCODING_KEY, "utf-8")
 
-val records = context.newAPIHadoopFile(
+val records = sc.newAPIHadoopFile(
   path,
   classOf[XmlInputFormat],
   classOf[LongWritable],
