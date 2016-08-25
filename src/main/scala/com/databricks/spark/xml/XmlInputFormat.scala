@@ -150,10 +150,10 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
    * @return whether it reads successfully
    */
   private def next(key: LongWritable, value: Text): Boolean = {
-    if (readUntilMatch(startTag, withinBlock = false)) {
+    if (readUntilStartElement()) {
       try {
         buffer.write(currentStartTag)
-        if (readUntilMatch(endTag, withinBlock = true)) {
+        if (readUntilEndElement()) {
           key.set(filePosition.getPos)
           value.set(buffer.getData, 0, buffer.getLength)
           true
@@ -168,46 +168,58 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     }
   }
 
-  /**
-   * Read until the given data are matched with `mat`.
-   * When withinBlock is true, it saves the data came in.
-   *
-   * @param mat bytes to match
-   * @param withinBlock start offset
-   * @return whether it finds the match successfully
-   */
-  private def readUntilMatch(mat: Array[Byte], withinBlock: Boolean): Boolean = {
-    var i: Int = 0
-    while(true) {
-      val b: Int = in.read
-      if (b == -1) {
-        currentStartTag = startTag
-        return false
-      }
-      if (withinBlock) {
-        buffer.write(b)
-      }
-      if (b == mat(i)) {
-        i += 1
-        if (i >= mat.length) {
-          currentStartTag = startTag
-          return true
-        }
-      }
-      else {
-        // The start tag might have attributes. In this case, we decide it by the space after tag
-        if (i == (mat.length - angleBracket.length) && !withinBlock) {
-          if (checkAttributes(b)){
-            return true
+  // TODO: Write a readUntilStartElement and readUntilEndElement
+
+  private def readUntilStartElement(): Boolean = {
+    @annotation.tailrec
+    def loop(i: Int): Boolean = {
+      val b = in.read()
+      // Check for EOF.
+      if (b == -1 || (i == 0 && filePosition.getPos > end)) {
+        false
+      } else {
+        // Check for matching element byte.
+        if (b == startTag(i)) {
+          // Check for end of match.
+          if (i >= startTag.length - 1) {
+            true
+          } else {
+            loop(i + 1)
+          }
+        } else {
+          // Check for attributes.
+          if (i == (startTag.length - angleBracket.length) && checkAttributes(b)) {
+            true
+          } else {
+            loop(0)
           }
         }
-        i = 0
-      }
-      if (!withinBlock && i == 0 && filePosition.getPos > end) {
-        return false
       }
     }
-    false
+    currentStartTag = startTag
+    loop(0)
+  }
+
+  private def readUntilEndElement(): Boolean = {
+    @annotation.tailrec
+    def loop(i: Int): Boolean = {
+      val b = in.read()
+      if (b == -1) {
+        false
+      } else {
+        buffer.write(b)
+        if (b == endTag(i)) {
+          if (i >= endTag.length - 1) {
+            true
+          } else {
+            loop(i + 1)
+          }
+        } else {
+          loop(0)
+        }
+      }
+    }
+    loop(0)
   }
 
   private def checkAttributes(current: Int): Boolean = {
