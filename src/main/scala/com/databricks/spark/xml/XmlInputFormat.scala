@@ -168,26 +168,20 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     }
   }
 
-  // TODO: Write a readUntilStartElement and readUntilEndElement
-
   private def readUntilStartElement(): Boolean = {
     @annotation.tailrec
     def loop(i: Int): Boolean = {
       val b = in.read()
-      // Check for EOF.
       if (b == -1 || (i == 0 && filePosition.getPos > end)) {
         false
       } else {
-        // Check for matching element byte.
         if (b == startTag(i)) {
-          // Check for end of match.
           if (i >= startTag.length - 1) {
             true
           } else {
             loop(i + 1)
           }
         } else {
-          // Check for attributes.
           if (i == (startTag.length - angleBracket.length) && checkAttributes(b)) {
             true
           } else {
@@ -202,24 +196,36 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
 
   private def readUntilEndElement(): Boolean = {
     @annotation.tailrec
-    def loop(i: Int): Boolean = {
+    def loop(si: Int, ei: Int, depth: Int): Boolean = {
       val b = in.read()
       if (b == -1) {
         false
       } else {
         buffer.write(b)
-        if (b == endTag(i)) {
-          if (i >= endTag.length - 1) {
-            true
+        if (b == startTag(si) && b == endTag(ei)) {
+          loop(si + 1, ei + 1, depth)
+        } else if (b == startTag(si)) {
+          if (si >= startTag.length - 1) {
+            loop(0, 0, depth + 1)
           } else {
-            loop(i + 1)
+            loop(si + 1, 0, depth)
+          }
+        } else if (b == endTag(ei)) {
+          if (ei >= endTag.length - 1) {
+            if (depth == 0) {
+              true
+            } else {
+              loop(0, 0, depth - 1)
+            }
+          } else {
+            loop(0, ei + 1, depth)
           }
         } else {
-          loop(0)
+          loop(0, 0, depth)
         }
       }
     }
-    loop(0)
+    loop(0, 0, 0)
   }
 
   private def checkAttributes(current: Int): Boolean = {
