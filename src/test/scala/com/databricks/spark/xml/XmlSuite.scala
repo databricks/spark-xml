@@ -716,10 +716,10 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("Nested element with same name as parent schema inferance") {
-    val df = sqlContext.read
-      .format("com.databricks.spark.xml")
-      .option("rowTag", "parent")
-      .load(nestedElementWithNameOfParent)
+    val df = new XmlReader()
+      .withRowTag("parent")
+      .xmlFile(sqlContext, nestedElementWithNameOfParent)
+
     val nestedSchema = StructType(
       Seq(
         StructField("child", StringType, nullable = true)))
