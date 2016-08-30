@@ -174,23 +174,29 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     while (true) {
       val b = in.read()
       if (b == -1 || (i == 0 && filePosition.getPos > end)) {
+        // End of file or end of split.
         return false
       } else {
         if (b == startTag(i)) {
           if (i >= startTag.length - 1) {
+            // Found start tag.
             return true
           } else {
+            // In start tag.
             i += 1
           }
         } else {
           if (i == (startTag.length - angleBracket.length) && checkAttributes(b)) {
+            // Found start tag with attributes.
             return true
           } else {
+            // Not in start tag.
             i = 0
           }
         }
       }
     }
+    // Unreachable.
     false
   }
 
@@ -201,40 +207,49 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     while (true) {
       val b = in.read()
       if (b == -1) {
+        // End of file (ignore end of split).
         return false
       } else {
         buffer.write(b)
         if (b == startTag(si) && b == endTag(ei)) {
+          // In start tag or end tag.
           si += 1
           ei += 1
         } else if (b == startTag(si)) {
           if (si >= startTag.length - 1) {
+            // Found start tag.
             si = 0
             ei = 0
             depth += 1
           } else {
+            // In start tag.
             si += 1
             ei = 0
           }
         } else if (b == endTag(ei)) {
           if (ei >= endTag.length - 1) {
             if (depth == 0) {
+              // Found closing end tag.
               return true
             } else {
+              // Found nested end tag.
               si = 0
               ei = 0
               depth -= 1
             }
           } else {
+            // In end tag.
             si = 0
             ei += 1
           }
         } else {
+          // Not in start tag or end tag.
           si = 0
           ei = 0
         }
       }
     }
+    // Unreachable.
     false
   }
 
