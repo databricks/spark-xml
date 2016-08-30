@@ -169,63 +169,73 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   }
 
   private def readUntilStartElement(): Boolean = {
-    @annotation.tailrec
-    def loop(i: Int): Boolean = {
+    currentStartTag = startTag
+    var i = 0
+    while (true) {
       val b = in.read()
       if (b == -1 || (i == 0 && filePosition.getPos > end)) {
-        false
+        return false
       } else {
         if (b == startTag(i)) {
           if (i >= startTag.length - 1) {
-            true
+            return true
           } else {
-            loop(i + 1)
+            i += 1
           }
         } else {
           if (i == (startTag.length - angleBracket.length) && checkAttributes(b)) {
-            true
+            return true
           } else {
-            loop(0)
+            i = 0
           }
         }
       }
     }
-    currentStartTag = startTag
-    loop(0)
+    false
   }
 
   private def readUntilEndElement(): Boolean = {
-    @annotation.tailrec
-    def loop(si: Int, ei: Int, depth: Int): Boolean = {
+    var si = 0
+    var ei = 0
+    var depth = 0
+    while (true) {
       val b = in.read()
       if (b == -1) {
-        false
+        return false
       } else {
         buffer.write(b)
         if (b == startTag(si) && b == endTag(ei)) {
-          loop(si + 1, ei + 1, depth)
+          si += 1
+          ei += 1
         } else if (b == startTag(si)) {
           if (si >= startTag.length - 1) {
-            loop(0, 0, depth + 1)
+            si = 0
+            ei = 0
+            depth += 1
           } else {
-            loop(si + 1, 0, depth)
+            si += 1
+            ei = 0
           }
         } else if (b == endTag(ei)) {
           if (ei >= endTag.length - 1) {
             if (depth == 0) {
-              true
+              return true
             } else {
-              loop(0, 0, depth - 1)
+              si = 0
+              ei = 0
+              depth -= 1
             }
           } else {
-            loop(0, ei + 1, depth)
+            si = 0
+            ei += 1
           }
         } else {
-          loop(0, 0, depth)
+          si = 0
+          ei = 0
         }
       }
     }
-    loop(0, 0, 0)
+    false
   }
 
   private def checkAttributes(current: Int): Boolean = {
