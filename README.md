@@ -62,13 +62,13 @@ When writing files the API accepts several options:
 * `nullValue`: The value to write `null` value. Default is string `null`. When this is `null`, it does not write attributes and elements for fields.
 * `attributePrefix`: The prefix for attributes so that we can differentiating attributes and elements. This will be the prefix for field names. Default is `_`.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
-* `codec`: compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec` or one of case-insensitive shorten names (`bzip2`, `gzip`, `lz4`, and `snappy`). Defaults to no compression when a codec is not specified.
+* `compression`: compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec` or one of case-insensitive shorten names (`bzip2`, `gzip`, `lz4`, and `snappy`). Defaults to no compression when a codec is not specified.
 
-Currently it supports the shorten name useage. You can use just `xml` instead of `com.databricks.spark.xml` from Spark 1.5.0+
+Currently it supports the shortened name usage. You can use just `xml` instead of `com.databricks.spark.xml` from Spark 1.5.0+
 
 ## Structure Conversion
 
-Due to the structure differences between `DataFrame` and XML, there are some conversion rules from XML data to `DataFrame` and from `DataFrame` to XML data. Note that hanlding attributes can be disbaled with the option `excludeAttribute`.
+Due to the structure differences between `DataFrame` and XML, there are some conversion rules from XML data to `DataFrame` and from `DataFrame` to XML data. Note that handling attributes can be disabled with the option `excludeAttribute`.
 
 
 ### Conversion from XML to `DataFrame`
@@ -385,7 +385,7 @@ customSchema = StructType([ \
     StructField("genre", StringType(), True), \
     StructField("price", DoubleType(), True), \
     StructField("publish_date", StringType(), True), \
-    StructField("title", StringType(), True]))
+    StructField("title", StringType(), True)])
 
 df = sqlContext.read \
     .format('com.databricks.spark.xml') \
@@ -422,7 +422,7 @@ customSchema = StructType([ \
     StructField("genre", StringType(), True), \
     StructField("price", DoubleType(), True), \
     StructField("publish_date", StringType(), True), \
-    StructField("title", StringType(), True]))
+    StructField("title", StringType(), True)])
 
 df = sqlContext.load(source="com.databricks.spark.xml", rowTag = 'book', schema = customSchema, path = 'books.xml')
 df.select("author", "_id").save('newbooks.xml', rootTag = 'books', rowTag = 'book', path = 'newbooks.xml')
@@ -475,11 +475,11 @@ which you may make direct use of as follows:
 import com.databricks.spark.xml.XmlInputFormat
 
 // This will detect the tags including attributes
-sc.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, "<books>")
-sc.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, "</books>")
+sc.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, "<book>")
+sc.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, "</book>")
 sc.hadoopConfiguration.set(XmlInputFormat.ENCODING_KEY, "utf-8")
 
-val records = context.newAPIHadoopFile(
+val records = sc.newAPIHadoopFile(
   path,
   classOf[XmlInputFormat],
   classOf[LongWritable],
