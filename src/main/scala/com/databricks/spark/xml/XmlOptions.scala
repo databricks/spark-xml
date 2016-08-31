@@ -23,7 +23,7 @@ private[xml] class XmlOptions(
   extends Serializable{
 
   val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
-  val codec = parameters.get("codec").orNull
+  val codec = parameters.get("compression").orElse(parameters.get("codec")).orNull
   val rowTag = parameters.getOrElse("rowTag", XmlOptions.DEFAULT_ROW_TAG)
   val rootTag = parameters.getOrElse("rootTag", XmlOptions.DEFAULT_ROOT_TAG)
   val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)

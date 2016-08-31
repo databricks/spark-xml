@@ -359,7 +359,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     val cars = sqlContext.xmlFile(carsFile)
     cars.save("com.databricks.spark.xml", SaveMode.Overwrite,
-      Map("path" -> copyFilePath, "codec" -> "gZiP"))
+      Map("path" -> copyFilePath, "compression" -> "gZiP"))
     val carsCopyPartFile = new File(copyFilePath, "part-00000.gz")
     // Check that the part file has a .gz extension
     assert(carsCopyPartFile.exists())
