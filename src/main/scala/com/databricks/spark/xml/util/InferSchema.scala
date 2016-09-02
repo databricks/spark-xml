@@ -143,6 +143,7 @@ private[xml] object InferSchema {
           case _: EndElement if data.isEmpty => NullType
           case _: EndElement if options.treatEmptyValuesAsNulls => NullType
           case _: EndElement => StringType
+          case _ => inferField(parser, options)
         }
       case c: Characters if !c.isWhiteSpace =>
         // This means data exists

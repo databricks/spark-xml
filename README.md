@@ -64,7 +64,7 @@ When writing files the API accepts several options:
 * `nullValue`: The value to write `null` value. Default is string `null`. When this is `null`, it does not write attributes and elements for fields.
 * `attributePrefix`: The prefix for attributes so that we can differentiating attributes and elements. This will be the prefix for field names. Default is `@`.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `#VALUE`.
-* `codec`: compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec` or one of case-insensitive shorten names (`bzip2`, `gzip`, `lz4`, and `snappy`). Defaults to no compression when a codec is not specified.
+* `compression`: compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec` or one of case-insensitive shorten names (`bzip2`, `gzip`, `lz4`, and `snappy`). Defaults to no compression when a codec is not specified.
 
 Currently it supports the shortened name usage. You can use just `xml` instead of `com.databricks.spark.xml` from Spark 1.5.0+
 
@@ -352,11 +352,11 @@ which you may make direct use of as follows:
 import com.databricks.spark.xml.XmlInputFormat
 
 // This will detect the tags including attributes
-sc.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, "<books>")
-sc.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, "</books>")
+sc.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, "<book>")
+sc.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, "</book>")
 sc.hadoopConfiguration.set(XmlInputFormat.ENCODING_KEY, "utf-8")
 
-val records = context.newAPIHadoopFile(
+val records = sc.newAPIHadoopFile(
   path,
   classOf[XmlInputFormat],
   classOf[LongWritable],

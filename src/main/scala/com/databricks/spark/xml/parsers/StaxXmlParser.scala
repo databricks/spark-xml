@@ -111,6 +111,7 @@ private[xml] object StaxXmlParser {
           case _: EndElement if data.isEmpty => null
           case _: EndElement if options.treatEmptyValuesAsNulls => null
           case _: EndElement => data
+          case _ => convertField(parser, dataType, options)
         }
 
       case (c: Characters, ArrayType(st, _)) =>
