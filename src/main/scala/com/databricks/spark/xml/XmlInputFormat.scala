@@ -65,7 +65,8 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private var in: InputStream = _
   private var filePosition: Seekable = _
   private var decompressor: Decompressor = _
-
+  private var compressRatio: Double = _
+  
   private val buffer: DataOutputBuffer = new DataOutputBuffer
 
   override def initialize(split: InputSplit, context: TaskAttemptContext): Unit = {
@@ -113,6 +114,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
             sc.createInputStream(fsin, decompressor, start,
               end, SplittableCompressionCodec.READ_MODE.BYBLOCK)
           }
+          compressRatio = cIn.getAdjustedEnd / end
           start = cIn.getAdjustedStart
           end = cIn.getAdjustedEnd
           (cIn, cIn)
@@ -150,7 +152,11 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
    * @return whether it reads successfully
    */
   private def next(key: LongWritable, value: Text): Boolean = {
-    if (readUntilMatch(startTag, withinBlock = false)) {
+    //Stop if reaching the end of the current input split
+    if(in.isInstanceOf[SplitCompressionInputStream] && filePosition.getPos * compressRatio > end) false
+    else if(!in.isInstanceOf[CompressionInputStream] && filePosition.getPos > end) false
+    else 
+      if (readUntilMatch(startTag, withinBlock = false)) {
       try {
         buffer.write(currentStartTag)
         if (readUntilMatch(endTag, withinBlock = true)) {
@@ -202,9 +208,6 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
           }
         }
         i = 0
-      }
-      if (!withinBlock && i == 0 && filePosition.getPos > end) {
-        return false
       }
     }
     false
