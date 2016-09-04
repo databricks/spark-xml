@@ -114,7 +114,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
             sc.createInputStream(fsin, decompressor, start,
               end, SplittableCompressionCodec.READ_MODE.BYBLOCK)
           }
-          compressRatio = cIn.getAdjustedEnd / end
+          compressRatio = cIn.getAdjustedEnd / end.toDouble
           start = cIn.getAdjustedStart
           end = cIn.getAdjustedEnd
           (cIn, cIn)
