@@ -238,14 +238,15 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test for permissive mode for corrupt records") {
-    val cars = new XmlReader()
+    val carsDf = new XmlReader()
       .withParseMode(ParseModes.PERMISSIVE_MODE)
+      .withColumnNameOfCorruptRecord("_malformed_records")
       .xmlFile(sqlContext, carsMalformedFile)
-      .collect()
+    val cars = carsDf.collect()
     assert(cars.length == 3)
 
-    val malformedRowOne = cars(0).toSeq.head.toString
-    val malformedRowTwo = cars(1).toSeq.head.toString
+    val malformedRowOne = carsDf.select("_malformed_records").first().toSeq.head.toString
+    val malformedRowTwo = carsDf.select("_malformed_records").take(2).last.toSeq.head.toString
     val expectedMalformedRowOne = "<ROW><year>2012</year><make>Tesla</make><model>>S" +
       "<comment>No comment</comment></ROW>"
     val expectedMalformedRowTwo = "<ROW></year><make>Ford</make><model>E350</model>model></model>" +

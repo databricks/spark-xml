@@ -77,6 +77,11 @@ class XmlReader extends Serializable {
     this
   }
 
+  def withColumnNameOfCorruptRecord(name: String): XmlReader = {
+    parameters += ("columnNameOfCorruptRecord" -> name)
+    this
+  }
+
   def withSchema(schema: StructType): XmlReader = {
     this.schema = schema
     this

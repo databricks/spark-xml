@@ -39,6 +39,8 @@ private[xml] class XmlOptions(
     parameters.getOrElse("attributePrefix", XmlOptions.DEFAULT_ATTRIBUTE_PREFIX)
   val valueTag = parameters.getOrElse("valueTag", XmlOptions.DEFAULT_VALUE_TAG)
   val nullValue = parameters.getOrElse("nullValue", XmlOptions.DEFAULT_NULL_VALUE)
+  val columnNameOfCorruptRecord =
+    parameters.getOrElse("columnNameOfCorruptRecord", "_corrupt_record")
 
   // Leave this option for backwards compatibility.
   private val failFastFlag = parameters.get("failFast").map(_.toBoolean).getOrElse(false)
@@ -56,8 +58,6 @@ private[xml] class XmlOptions(
   val failFast = ParseModes.isFailFastMode(parseMode)
   val dropMalformed = ParseModes.isDropMalformedMode(parseMode)
   val permissive = ParseModes.isPermissiveMode(parseMode)
-
-  val columnNameOfCorruptRecord = "_corrupt_record"
 
   require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")
   require(attributePrefix.nonEmpty, "'attributePrefix' option should not be empty string.")
