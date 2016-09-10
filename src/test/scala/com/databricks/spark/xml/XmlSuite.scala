@@ -564,15 +564,35 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test parsing and inferring attribute in elements having no child element") {
+    // Default value.
+    val resultsOne = new XmlReader()
+      .withRowTag(booksTag)
+      .xmlFile(sqlContext, booksAttributesInNoChild)
+
+    val schemaOne = StructType(List(
+      StructField("_id", StringType, nullable = true),
+      StructField("author", StringType, nullable = true),
+      StructField("price", StructType(
+        List(StructField("_VALUE", StringType, nullable = true),
+          StructField(s"_unit", StringType, nullable = true))),
+        nullable = true),
+      StructField("publish_date", StringType, nullable = true),
+      StructField("title", StringType, nullable = true))
+    )
+
+    assert(resultsOne.schema === schemaOne)
+    assert(resultsOne.count == numBooks)
+
+    // Explicitly set
     val attributePrefix = "@#"
     val valueTag = "#@@value"
-    val results = new XmlReader()
+    val resultsTwo = new XmlReader()
       .withRowTag(booksTag)
       .withAttributePrefix(attributePrefix)
       .withValueTag(valueTag)
       .xmlFile(sqlContext, booksAttributesInNoChild)
 
-    val schema = StructType(List(
+    val schemaTwo = StructType(List(
       StructField(s"${attributePrefix}id", StringType, nullable = true),
       StructField("author", StringType, nullable = true),
       StructField("price", StructType(
@@ -583,8 +603,8 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("title", StringType, nullable = true))
     )
 
-    assert(results.schema === schema)
-    assert(results.count == numBooks)
+    assert(resultsTwo.schema === schemaTwo)
+    assert(resultsTwo.count == numBooks)
   }
 
   test("DSL test schema (excluding tags) inferred correctly") {
