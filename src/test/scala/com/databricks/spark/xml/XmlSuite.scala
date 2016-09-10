@@ -31,6 +31,7 @@ import org.apache.spark.{SparkException, SparkContext}
 import org.apache.spark.sql.{SaveMode, Row, SQLContext}
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions._
+import com.databricks.spark.xml.util.ParseModes
 
 class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val tempEmptyDir = "target/test/empty/"
@@ -211,58 +212,52 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test for parsing a malformed XML file") {
     val results = new XmlReader()
-      .withFailFast(false)
+      .withParseMode(ParseModes.DROP_MALFORMED_MODE)
       .xmlFile(sqlContext, carsMalformedFile)
 
     assert(results.count() === 1)
   }
 
   test("DSL test for dropping malformed rows") {
-    val schema = new StructType(
-      Array(
-        StructField("color", IntegerType, true),
-        StructField("make", TimestampType, true),
-        StructField("model", DoubleType, true),
-        StructField("comment", StringType, true),
-        StructField("year", DoubleType, true)
-      )
-    )
-    val results = new XmlReader()
-      .withSchema(schema)
-      .xmlFile(sqlContext, carsUnbalancedFile)
-      .count()
+    val cars = new XmlReader()
+      .withParseMode(ParseModes.DROP_MALFORMED_MODE)
+      .xmlFile(sqlContext, carsMalformedFile)
 
-    assert(results === 0)
+    assert(cars.count() == 1)
+    assert(cars.head().toSeq === Seq("Chevy", "Volt", 2015))
   }
 
   test("DSL test for failing fast") {
-    // Fail fast in type inference
-    val exceptionInSchema = intercept[SparkException] {
-      new XmlReader()
-        .withFailFast(true)
-        .xmlFile(sqlContext, carsMalformedFile)
-        .printSchema()
-    }
-    assert(exceptionInSchema.getMessage.contains("Malformed row (failing fast)"))
-
-    // Fail fast in parsing data
-    val schema = new StructType(
-      Array(
-        StructField("color", StringType, true),
-        StructField("make", StringType, true),
-        StructField("model", StringType, true),
-        StructField("comment", StringType, true),
-        StructField("year", StringType, true)
-      )
-    )
     val exceptionInParse = intercept[SparkException] {
       new XmlReader()
         .withFailFast(true)
-        .withSchema(schema)
         .xmlFile(sqlContext, carsMalformedFile)
         .collect()
     }
-    assert(exceptionInParse.getMessage.contains("Malformed row (failing fast)"))
+    assert(exceptionInParse.getMessage.contains("Malformed line in FAILFAST mode"))
+  }
+
+  test("DSL test for permissive mode for corrupt records") {
+    val carsDf = new XmlReader()
+      .withParseMode(ParseModes.PERMISSIVE_MODE)
+      .withColumnNameOfCorruptRecord("_malformed_records")
+      .xmlFile(sqlContext, carsMalformedFile)
+    val cars = carsDf.collect()
+    assert(cars.length == 3)
+
+    val malformedRowOne = carsDf.select("_malformed_records").first().toSeq.head.toString
+    val malformedRowTwo = carsDf.select("_malformed_records").take(2).last.toSeq.head.toString
+    val expectedMalformedRowOne = "<ROW><year>2012</year><make>Tesla</make><model>>S" +
+      "<comment>No comment</comment></ROW>"
+    val expectedMalformedRowTwo = "<ROW></year><make>Ford</make><model>E350</model>model></model>" +
+      "<comment>Go get one now they are going fast</comment></ROW>"
+
+    assert(malformedRowOne.replaceAll("\\s", "") === expectedMalformedRowOne.replaceAll("\\s", ""))
+    assert(malformedRowTwo.replaceAll("\\s", "") === expectedMalformedRowTwo.replaceAll("\\s", ""))
+    assert(cars(2).toSeq.head === null)
+    assert(cars(0).toSeq.takeRight(3) === Seq(null, null, null))
+    assert(cars(1).toSeq.takeRight(3) === Seq(null, null, null))
+    assert(cars(2).toSeq.takeRight(3) === Seq("Chevy", "Volt", 2015))
   }
 
   test("DSL test with empty file and known schema") {
@@ -421,7 +416,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val schemaCopy = StructType(
       List(StructField("a", ArrayType(
         StructType(List(StructField("item", ArrayType(StringType), nullable = true)))),
-          nullable = true)))
+        nullable = true)))
     val dfCopy = sqlContext.xmlFile(copyFilePath + "/")
 
     assert(dfCopy.count == df.count)
@@ -461,8 +456,8 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     df.saveAsXmlFile(copyFilePath)
 
     val dfCopy = new XmlReader()
-            .withSchema(schema)
-            .xmlFile(sqlContext, copyFilePath + "/")
+      .withSchema(schema)
+      .xmlFile(sqlContext, copyFilePath + "/")
 
     assert(dfCopy.collect() === df.collect())
     assert(dfCopy.schema === df.schema)
@@ -551,11 +546,11 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("price", DoubleType, nullable = true),
       StructField("publish_dates", StructType(
         List(StructField("publish_date",
-            ArrayType(StructType(
-                List(StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}tag", StringType, nullable = true),
-                  StructField("day", LongType, nullable = true),
-                  StructField("month", LongType, nullable = true),
-                  StructField("year", LongType, nullable = true))))))),
+          ArrayType(StructType(
+            List(StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}tag", StringType, nullable = true),
+              StructField("day", LongType, nullable = true),
+              StructField("month", LongType, nullable = true),
+              StructField("year", LongType, nullable = true))))))),
         nullable = true),
       StructField("title", StringType, nullable = true))
     ))
@@ -656,9 +651,11 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test nullable fields") {
+    val schema = StructType(
+      StructField("name", StringType, false) ::
+      StructField("age", StringType, true) :: Nil)
     val results = new XmlReader()
-      .withSchema(StructType(List(StructField("name", StringType, false),
-                                  StructField("age", StringType, true))))
+      .withSchema(schema)
       .xmlFile(sqlContext, nullNumbersFile)
       .collect()
 
