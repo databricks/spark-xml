@@ -595,15 +595,35 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test parsing and inferring attribute in elements having no child element") {
+    // Default value.
+    val resultsOne = new XmlReader()
+      .withRowTag(booksTag)
+      .xmlFile(sqlContext, booksAttributesInNoChild)
+
+    val schemaOne = StructType(List(
+      StructField("_id", StringType, nullable = true),
+      StructField("author", StringType, nullable = true),
+      StructField("price", StructType(
+        List(StructField("_VALUE", StringType, nullable = true),
+          StructField(s"_unit", StringType, nullable = true))),
+        nullable = true),
+      StructField("publish_date", StringType, nullable = true),
+      StructField("title", StringType, nullable = true))
+    )
+
+    assert(resultsOne.schema === schemaOne)
+    assert(resultsOne.count == numBooks)
+
+    // Explicitly set
     val attributePrefix = "@#"
     val valueTag = "#@@value"
-    val results = new XmlReader()
+    val resultsTwo = new XmlReader()
       .withRowTag(booksTag)
       .withAttributePrefix(attributePrefix)
       .withValueTag(valueTag)
       .xmlFile(sqlContext, booksAttributesInNoChild)
 
-    val schema = StructType(List(
+    val schemaTwo = StructType(List(
       StructField(s"${attributePrefix}id", StringType, nullable = true),
       StructField("author", StringType, nullable = true),
       StructField("price", StructType(
@@ -614,8 +634,8 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("title", StringType, nullable = true))
     )
 
-    assert(results.schema === schema)
-    assert(results.count == numBooks)
+    assert(resultsTwo.schema === schemaTwo)
+    assert(resultsTwo.count == numBooks)
   }
 
   test("DSL test schema (excluding tags) inferred correctly") {
@@ -747,7 +767,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(lastActual === lastExpected)
   }
 
-  test("Nested element with same name as parent schema inferance") {
+  test("Nested element with same name as parent schema inference") {
     val df = new XmlReader()
       .withRowTag("parent")
       .xmlFile(sqlContext, nestedElementWithNameOfParent)
@@ -762,5 +782,23 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     df.schema.printTreeString()
     schema.printTreeString()
     assert(df.schema == schema)
+  }
+
+  test("Empty string not allowed for rowTag, attributePrefix and valueTag.") {
+    val messageOne = intercept[IllegalArgumentException] {
+      sqlContext.xmlFile(carsFile, rowTag = "").collect()
+    }.getMessage
+    assert(messageOne == "requirement failed: 'rowTag' option should not be empty string.")
+
+    val messageTwo = intercept[IllegalArgumentException] {
+      sqlContext.xmlFile(carsFile, attributePrefix = "").collect()
+    }.getMessage
+    assert(
+      messageTwo == "requirement failed: 'attributePrefix' option should not be empty string.")
+
+    val messageThree = intercept[IllegalArgumentException] {
+      sqlContext.xmlFile(carsFile, valueTag = "").collect()
+    }.getMessage
+    assert(messageThree == "requirement failed: 'valueTag' option should not be empty string.")
   }
 }

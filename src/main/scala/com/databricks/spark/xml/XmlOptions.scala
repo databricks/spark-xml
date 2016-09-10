@@ -35,11 +35,15 @@ private[xml] class XmlOptions(
     parameters.getOrElse("attributePrefix", XmlOptions.DEFAULT_ATTRIBUTE_PREFIX)
   val valueTag = parameters.getOrElse("valueTag", XmlOptions.DEFAULT_VALUE_TAG)
   val nullValue = parameters.getOrElse("nullValue", XmlOptions.DEFAULT_NULL_VALUE)
+
+  require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")
+  require(attributePrefix.nonEmpty, "'attributePrefix' option should not be empty string.")
+  require(valueTag.nonEmpty, "'valueTag' option should not be empty string.")
 }
 
 private[xml] object XmlOptions {
-  val DEFAULT_ATTRIBUTE_PREFIX = "@"
-  val DEFAULT_VALUE_TAG = "#VALUE"
+  val DEFAULT_ATTRIBUTE_PREFIX = "_"
+  val DEFAULT_VALUE_TAG = "_VALUE"
   val DEFAULT_ROW_TAG = "ROW"
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_CHARSET = "UTF-8"
