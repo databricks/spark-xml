@@ -75,26 +75,3 @@ ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := {
   if (scalaBinaryVersion.value == "2.10") false
   else true
 }
-
-// -- MiMa binary compatibility checks ------------------------------------------------------------
-
-//import com.typesafe.tools.mima.core._
-//import com.typesafe.tools.mima.plugin.MimaKeys.binaryIssueFilters
-//import com.typesafe.tools.mima.plugin.MimaKeys.previousArtifact
-//import com.typesafe.tools.mima.plugin.MimaPlugin.mimaDefaultSettings
-//
-//mimaDefaultSettings ++ Seq(
-//  previousArtifact := Some("org.apache" %% "spark-xml" % "1.2.0"),
-//  binaryIssueFilters ++= Seq(
-//    // These classes are not intended to be public interfaces:
-//    ProblemFilters.excludePackage("org.apache.spark.xml.XmlRelation"),
-//    ProblemFilters.excludePackage("org.apache.spark.xml.util.InferSchema"),
-//    ProblemFilters.excludePackage("org.apache.spark.sql.readers"),
-//    ProblemFilters.excludePackage("org.apache.spark.xml.util.TypeCast"),
-//    // We allowed the private `XmlRelation` type to leak into the public method signature:
-//    ProblemFilters.exclude[IncompatibleResultTypeProblem](
-//      "org.apache.spark.xml.DefaultSource.createRelation")
-//  )
-//)
-
-// ------------------------------------------------------------------------------------------------
