@@ -44,9 +44,10 @@ private[xml] object StaxXmlParser {
     def failedRecord(record: String): Option[Row] = {
       // create a row even if no corrupt record column is present
       if (options.failFast) {
-        throw new RuntimeException(s"Malformed line in FAILFAST mode: $record")
+        throw new RuntimeException(
+          s"Malformed line in FAILFAST mode: ${record.replaceAll("\n", "")}")
       } else if (options.dropMalformed) {
-        logger.warn(s"Dropping malformed line: $record")
+        logger.warn(s"Dropping malformed line: ${record.replaceAll("\n", "")}")
         None
       } else {
         val row = new Array[Any](schema.length)
