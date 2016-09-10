@@ -15,23 +15,19 @@
  */
 package com.databricks.spark
 
-import java.io.CharArrayWriter
-import javax.xml.stream.XMLOutputFactory
-
 import scala.collection.Map
 
-import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter
 import org.apache.hadoop.io.compress.CompressionCodec
 
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import com.databricks.spark.xml.util.XmlFile
-import com.databricks.spark.xml.parsers.StaxXmlGenerator
 
 package object xml {
   /**
    * Adds a method, `xmlFile`, to [[SQLContext]] that allows reading XML data.
    */
   implicit class XmlContext(sqlContext: SQLContext) extends Serializable {
+    @deprecated("Use DataFrameReader.read()", "0.4.0")
     def xmlFile(
         filePath: String,
         rowTag: String = XmlOptions.DEFAULT_ROW_TAG,
@@ -82,69 +78,16 @@ package object xml {
     //   </fieldA>
     //
     // Namely, roundtrip in writing and reading can end up in different schema structure.
+    @deprecated("Use DataFrameWriter.write()", "0.4.0")
     def saveAsXmlFile(
         path: String, parameters: Map[String, String] = Map(),
         compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
-      val options = XmlOptions(parameters.toMap)
-      val startElement = s"<${options.rootTag}>"
-      val endElement = s"</${options.rootTag}>"
-      val rowSchema = dataFrame.schema
-      val indent = XmlFile.DEFAULT_INDENT
-      val rowSeparator = XmlFile.DEFAULT_ROW_SEPARATOR
-
-      val xmlRDD = dataFrame.rdd.mapPartitions { iter =>
-        val factory = XMLOutputFactory.newInstance()
-        val writer = new CharArrayWriter()
-        val xmlWriter = factory.createXMLStreamWriter(writer)
-        val indentingXmlWriter = new IndentingXMLStreamWriter(xmlWriter)
-        indentingXmlWriter.setIndentStep(indent)
-
-        new Iterator[String] {
-          var firstRow: Boolean = true
-          var lastRow: Boolean = true
-
-          override def hasNext: Boolean = iter.hasNext || firstRow || lastRow
-
-          override def next: String = {
-            if (iter.nonEmpty) {
-              val xml = {
-                StaxXmlGenerator(
-                  rowSchema,
-                  indentingXmlWriter,
-                  options)(iter.next())
-                writer.toString
-              }
-              writer.reset()
-
-              // Here it needs to add indentations for the start of each line,
-              // in order to insert the start element and end element.
-              val indentedXml = indent + xml.replaceAll(rowSeparator, rowSeparator + indent)
-              if (firstRow) {
-                firstRow = false
-                startElement + rowSeparator + indentedXml
-              } else {
-                indentedXml
-              }
-            } else {
-              indentingXmlWriter.close()
-              if (!firstRow) {
-                lastRow = false
-                endElement
-              } else {
-                // This means the iterator was initially empty.
-                firstRow = false
-                lastRow = false
-                ""
-              }
-            }
-          }
-        }
-      }
-
-      compressionCodec match {
-        case null => xmlRDD.saveAsTextFile(path)
-        case codec => xmlRDD.saveAsTextFile(path, codec)
-      }
+      val mutableParams = collection.mutable.Map(parameters.toSeq: _*)
+      val safeCodec = mutableParams.get("codec")
+        .orElse(Option(compressionCodec).map(_.getCanonicalName))
+        .orNull
+      mutableParams.put("codec", safeCodec)
+      XmlFile.saveAsXmlFile(dataFrame, path, mutableParams.toMap)
     }
   }
 }

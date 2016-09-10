@@ -28,7 +28,7 @@ class TypeCastSuite extends FunSuite {
   test("Can parse decimal type values") {
     val stringValues = Seq("10.05", "1,000.01", "158,058,049.001")
     val decimalValues = Seq(10.05, 1000.01, 158058049.001)
-    val decimalType = new DecimalType(None)
+    val decimalType = DecimalType.SYSTEM_DEFAULT
 
     stringValues.zip(decimalValues).foreach { case (strVal, decimalVal) =>
       assert(TypeCast.castTo(strVal, decimalType) === new BigDecimal(decimalVal.toString))

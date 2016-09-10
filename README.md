@@ -496,4 +496,3 @@ This library is built with [SBT](http://www.scala-sbt.org/0.13/docs/Command-Line
 ## Acknowledgements
 
 This project was initially created by [HyukjinKwon](https://github.com/HyukjinKwon) and donated to [Databricks](https://databricks.com).
-
