@@ -715,7 +715,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(lastActual === lastExpected)
   }
 
-  test("Nested element with same name as parent schema inferance") {
+  test("Nested element with same name as parent schema inference") {
     val df = new XmlReader()
       .withRowTag("parent")
       .xmlFile(sqlContext, nestedElementWithNameOfParent)
@@ -730,5 +730,23 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     df.schema.printTreeString()
     schema.printTreeString()
     assert(df.schema == schema)
+  }
+
+  test("Empty string not allowed for rowTag, attributePrefix and valueTag.") {
+    val messageOne = intercept[IllegalArgumentException] {
+      sqlContext.xmlFile(carsFile, rowTag = "").collect()
+    }.getMessage
+    assert(messageOne == "requirement failed: 'rowTag' option should not be empty string.")
+
+    val messageTwo = intercept[IllegalArgumentException] {
+      sqlContext.xmlFile(carsFile, attributePrefix = "").collect()
+    }.getMessage
+    assert(
+      messageTwo == "requirement failed: 'attributePrefix' option should not be empty string.")
+
+    val messageThree = intercept[IllegalArgumentException] {
+      sqlContext.xmlFile(carsFile, valueTag = "").collect()
+    }.getMessage
+    assert(messageThree == "requirement failed: 'valueTag' option should not be empty string.")
   }
 }
