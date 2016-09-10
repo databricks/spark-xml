@@ -33,15 +33,15 @@ package object xml {
    */
   implicit class XmlContext(sqlContext: SQLContext) extends Serializable {
     def xmlFile(
-                 filePath: String,
-                 rowTag: String = XmlOptions.DEFAULT_ROW_TAG,
-                 samplingRatio: Double = 1.0,
-                 excludeAttribute: Boolean = false,
-                 treatEmptyValuesAsNulls: Boolean = false,
-                 failFast: Boolean = false,
-                 attributePrefix: String = XmlOptions.DEFAULT_ATTRIBUTE_PREFIX,
-                 valueTag: String = XmlOptions.DEFAULT_VALUE_TAG,
-                 charset: String = XmlOptions.DEFAULT_CHARSET): DataFrame = {
+        filePath: String,
+        rowTag: String = XmlOptions.DEFAULT_ROW_TAG,
+        samplingRatio: Double = 1.0,
+        excludeAttribute: Boolean = false,
+        treatEmptyValuesAsNulls: Boolean = false,
+        failFast: Boolean = false,
+        attributePrefix: String = XmlOptions.DEFAULT_ATTRIBUTE_PREFIX,
+        valueTag: String = XmlOptions.DEFAULT_VALUE_TAG,
+        charset: String = XmlOptions.DEFAULT_CHARSET): DataFrame = {
 
       val parameters = Map(
         "rowTag" -> rowTag,
@@ -82,8 +82,9 @@ package object xml {
     //   </fieldA>
     //
     // Namely, roundtrip in writing and reading can end up in different schema structure.
-    def saveAsXmlFile(path: String, parameters: Map[String, String] = Map(),
-                      compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
+    def saveAsXmlFile(
+        path: String, parameters: Map[String, String] = Map(),
+        compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
       val options = XmlOptions(parameters.toMap)
       val startElement = s"<${options.rootTag}>"
       val endElement = s"</${options.rootTag}>"

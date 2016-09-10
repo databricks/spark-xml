@@ -28,7 +28,7 @@ private[xml] class XmlOptions(
   private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
   val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
-  val codec = parameters.get("codec").orNull
+  val codec = parameters.get("compression").orElse(parameters.get("codec")).orNull
   val rowTag = parameters.getOrElse("rowTag", XmlOptions.DEFAULT_ROW_TAG)
   val rootTag = parameters.getOrElse("rootTag", XmlOptions.DEFAULT_ROOT_TAG)
   val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
@@ -58,11 +58,15 @@ private[xml] class XmlOptions(
   val permissive = ParseModes.isPermissiveMode(parseMode)
 
   val columnNameOfCorruptRecord = "_corrupt_record"
+
+  require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")
+  require(attributePrefix.nonEmpty, "'attributePrefix' option should not be empty string.")
+  require(valueTag.nonEmpty, "'valueTag' option should not be empty string.")
 }
 
 private[xml] object XmlOptions {
-  val DEFAULT_ATTRIBUTE_PREFIX = "@"
-  val DEFAULT_VALUE_TAG = "#VALUE"
+  val DEFAULT_ATTRIBUTE_PREFIX = "_"
+  val DEFAULT_VALUE_TAG = "_VALUE"
   val DEFAULT_ROW_TAG = "ROW"
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_CHARSET = "UTF-8"

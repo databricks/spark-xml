@@ -19,7 +19,12 @@ import java.io.File
 import java.nio.charset.UnsupportedCharsetException
 import java.sql.{Date, Timestamp}
 
+import scala.io.Source
+
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.io.LongWritable
+import org.apache.hadoop.io.Text
 import org.apache.hadoop.io.compress.GzipCodec
 
 import org.apache.spark.{SparkException, SparkContext}
@@ -47,6 +52,10 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val emptyFile = "src/test/resources/empty.xml"
   val topicsFile = "src/test/resources/topics-namespaces.xml"
   val gpsEmptyField = "src/test/resources/gps-empty-field.xml"
+  val agesMixedTypes = "src/test/resources/ages-mixed-types.xml"
+  val nullNestedStructFile = "src/test/resources/null-nested-struct.xml"
+  val simpleNestedObjects = "src/test/resources/simple-nested-objects.xml"
+  val nestedElementWithNameOfParent = "src/test/resources/nested-element-with-name-of-parent.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -118,6 +127,12 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .asInstanceOf[Row]
       .get(1)
     assert(nullValue == null)
+  }
+
+  test("DSL test with mixed elements (struct, string)") {
+    val results = sqlContext
+      .xmlFile(agesMixedTypes, rowTag = agesTag).collect()
+    assert(results.size === numAges)
   }
 
   test("DSL test with elements in array having attributes") {
@@ -338,7 +353,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     val cars = sqlContext.xmlFile(carsFile)
     cars.save("com.databricks.spark.xml", SaveMode.Overwrite,
-      Map("path" -> copyFilePath, "codec" -> "gZiP"))
+      Map("path" -> copyFilePath, "compression" -> "gZiP"))
     val carsCopyPartFile = new File(copyFilePath, "part-00000.gz")
     // Check that the part file has a .gz extension
     assert(carsCopyPartFile.exists())
@@ -543,15 +558,35 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test parsing and inferring attribute in elements having no child element") {
+    // Default value.
+    val resultsOne = new XmlReader()
+      .withRowTag(booksTag)
+      .xmlFile(sqlContext, booksAttributesInNoChild)
+
+    val schemaOne = StructType(List(
+      StructField("_id", StringType, nullable = true),
+      StructField("author", StringType, nullable = true),
+      StructField("price", StructType(
+        List(StructField("_VALUE", StringType, nullable = true),
+          StructField(s"_unit", StringType, nullable = true))),
+        nullable = true),
+      StructField("publish_date", StringType, nullable = true),
+      StructField("title", StringType, nullable = true))
+    )
+
+    assert(resultsOne.schema === schemaOne)
+    assert(resultsOne.count == numBooks)
+
+    // Explicitly set
     val attributePrefix = "@#"
     val valueTag = "#@@value"
-    val results = new XmlReader()
+    val resultsTwo = new XmlReader()
       .withRowTag(booksTag)
       .withAttributePrefix(attributePrefix)
       .withValueTag(valueTag)
       .xmlFile(sqlContext, booksAttributesInNoChild)
 
-    val schema = StructType(List(
+    val schemaTwo = StructType(List(
       StructField(s"${attributePrefix}id", StringType, nullable = true),
       StructField("author", StringType, nullable = true),
       StructField("price", StructType(
@@ -562,8 +597,8 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("title", StringType, nullable = true))
     )
 
-    assert(results.schema === schema)
-    assert(results.count == numBooks)
+    assert(resultsTwo.schema === schemaTwo)
+    assert(resultsTwo.count == numBooks)
   }
 
   test("DSL test schema (excluding tags) inferred correctly") {
@@ -645,5 +680,89 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .collect()
 
     assert(results.size === numTopics)
+  }
+
+  test("Missing nested struct represented as null instead of empty Row") {
+    val result = sqlContext
+      .xmlFile(nullNestedStructFile, rowTag = "item")
+      .select("b.es")
+      .collect()
+
+    assert(result(1).toSeq === Seq(null))
+  }
+
+  test("Produces correct order of columns for nested rows when user specifies a schema") {
+    val nestedSchema = StructType(
+      Seq(
+        StructField("b", IntegerType, nullable = true),
+        StructField("a", IntegerType, nullable = true)))
+    val schema = StructType(
+      Seq(
+        StructField("c", nestedSchema, nullable = true)))
+
+    val result = new XmlReader()
+      .withSchema(schema)
+      .xmlFile(sqlContext, simpleNestedObjects)
+      .select("c.a", "c.b")
+      .collect()
+
+    assert(result(0).toSeq === Seq(111, 222))
+  }
+
+  test("Nested element with same name as parent delinination") {
+    val lines = Source.fromFile(nestedElementWithNameOfParent).getLines.toList
+    val firstExpected = lines(2).trim
+    val lastExpected = lines(3).trim
+    val config = new Configuration(sqlContext.sparkContext.hadoopConfiguration)
+    config.set(XmlInputFormat.START_TAG_KEY, "<parent>")
+    config.set(XmlInputFormat.END_TAG_KEY, "</parent>")
+    config.set(XmlInputFormat.ENCODING_KEY, "utf-8")
+    val records = sqlContext.sparkContext.newAPIHadoopFile(
+      nestedElementWithNameOfParent,
+      classOf[XmlInputFormat],
+      classOf[LongWritable],
+      classOf[Text],
+      config)
+    val list = records.values.map(t => t.toString).collect().toList
+    assert(list.length == 2)
+    val firstActual = list.head
+    val lastActual = list.last
+    assert(firstActual === firstExpected)
+    assert(lastActual === lastExpected)
+  }
+
+  test("Nested element with same name as parent schema inference") {
+    val df = new XmlReader()
+      .withRowTag("parent")
+      .xmlFile(sqlContext, nestedElementWithNameOfParent)
+
+    val nestedSchema = StructType(
+      Seq(
+        StructField("child", StringType, nullable = true)))
+    val schema = StructType(
+      Seq(
+        StructField("child", StringType, nullable = true),
+        StructField("parent", nestedSchema, nullable = true)))
+    df.schema.printTreeString()
+    schema.printTreeString()
+    assert(df.schema == schema)
+  }
+
+  test("Empty string not allowed for rowTag, attributePrefix and valueTag.") {
+    val messageOne = intercept[IllegalArgumentException] {
+      sqlContext.xmlFile(carsFile, rowTag = "").collect()
+    }.getMessage
+    assert(messageOne == "requirement failed: 'rowTag' option should not be empty string.")
+
+    val messageTwo = intercept[IllegalArgumentException] {
+      sqlContext.xmlFile(carsFile, attributePrefix = "").collect()
+    }.getMessage
+    assert(
+      messageTwo == "requirement failed: 'attributePrefix' option should not be empty string.")
+
+    val messageThree = intercept[IllegalArgumentException] {
+      sqlContext.xmlFile(carsFile, valueTag = "").collect()
+    }.getMessage
+    assert(messageThree == "requirement failed: 'valueTag' option should not be empty string.")
   }
 }

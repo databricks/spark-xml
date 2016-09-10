@@ -17,7 +17,7 @@ package com.databricks.spark.xml.util
 
 import java.io.ByteArrayInputStream
 import javax.xml.stream.events._
-import javax.xml.stream.{XMLStreamConstants, XMLStreamException, XMLEventReader, XMLInputFactory}
+import javax.xml.stream._
 
 import com.databricks.spark.xml.parsers.StaxXmlParserUtils
 import org.slf4j.LoggerFactory
@@ -80,11 +80,18 @@ private[xml] object InferSchema {
       val factory = XMLInputFactory.newInstance()
       factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
       factory.setProperty(XMLInputFactory.IS_COALESCING, true)
+      val filter = new EventFilter {
+        override def accept(event: XMLEvent): Boolean =
+          // Ignore comments. This library does not treat comments.
+          event.getEventType != XMLStreamConstants.COMMENT
+      }
+
       iter.flatMap { xml =>
         // It does not have to skip for white space, since [[XmlInputFormat]]
         // always finds the root tag without a heading space.
         val reader = new ByteArrayInputStream(xml.getBytes)
-        val parser = factory.createXMLEventReader(reader)
+        val eventReader = factory.createXMLEventReader(reader)
+        val parser = factory.createFilteredReader(eventReader, filter)
         try {
           val rootEvent =
             StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
@@ -135,6 +142,7 @@ private[xml] object InferSchema {
           case _: EndElement if data.isEmpty => NullType
           case _: EndElement if options.treatEmptyValuesAsNulls => NullType
           case _: EndElement => StringType
+          case _ => inferField(parser, options)
         }
       case c: Characters if !c.isWhiteSpace =>
         // This means data exists
@@ -147,7 +155,8 @@ private[xml] object InferSchema {
   /**
    * Infer the type of a xml document from the parser's token stream
    */
-  private def inferObject(parser: XMLEventReader,
+  private def inferObject(
+      parser: XMLEventReader,
       options: XmlOptions,
       rootAttributes: Array[Attribute] = Array.empty): DataType = {
     val builder = Seq.newBuilder[StructField]
@@ -196,7 +205,7 @@ private[xml] object InferSchema {
           nameToDataType += (field -> dataTypes)
 
         case _: EndElement =>
-          shouldStop = StaxXmlParserUtils.checkEndElement(parser, options)
+          shouldStop = StaxXmlParserUtils.checkEndElement(parser)
 
         case _ =>
           shouldStop = shouldStop && parser.hasNext

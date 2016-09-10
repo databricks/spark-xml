@@ -150,10 +150,10 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
    * @return whether it reads successfully
    */
   private def next(key: LongWritable, value: Text): Boolean = {
-    if (readUntilMatch(startTag, withinBlock = false)) {
+    if (readUntilStartElement()) {
       try {
         buffer.write(currentStartTag)
-        if (readUntilMatch(endTag, withinBlock = true)) {
+        if (readUntilEndElement()) {
           key.set(filePosition.getPos)
           value.set(buffer.getData, 0, buffer.getLength)
           true
@@ -168,45 +168,88 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     }
   }
 
-  /**
-   * Read until the given data are matched with `mat`.
-   * When withinBlock is true, it saves the data came in.
-   *
-   * @param mat bytes to match
-   * @param withinBlock start offset
-   * @return whether it finds the match successfully
-   */
-  private def readUntilMatch(mat: Array[Byte], withinBlock: Boolean): Boolean = {
-    var i: Int = 0
-    while(true) {
-      val b: Int = in.read
-      if (b == -1) {
-        currentStartTag = startTag
+  private def readUntilStartElement(): Boolean = {
+    currentStartTag = startTag
+    var i = 0
+    while (true) {
+      val b = in.read()
+      if (b == -1 || (i == 0 && filePosition.getPos > end)) {
+        // End of file or end of split.
         return false
-      }
-      if (withinBlock) {
-        buffer.write(b)
-      }
-      if (b == mat(i)) {
-        i += 1
-        if (i >= mat.length) {
-          currentStartTag = startTag
-          return true
-        }
-      }
-      else {
-        // The start tag might have attributes. In this case, we decide it by the space after tag
-        if (i == (mat.length - angleBracket.length) && !withinBlock) {
-          if (checkAttributes(b)){
+      } else {
+        if (b == startTag(i)) {
+          if (i >= startTag.length - 1) {
+            // Found start tag.
             return true
+          } else {
+            // In start tag.
+            i += 1
+          }
+        } else {
+          if (i == (startTag.length - angleBracket.length) && checkAttributes(b)) {
+            // Found start tag with attributes.
+            return true
+          } else {
+            // Not in start tag.
+            i = 0
           }
         }
-        i = 0
-      }
-      if (!withinBlock && i == 0 && filePosition.getPos > end) {
-        return false
       }
     }
+    // Unreachable.
+    false
+  }
+
+  private def readUntilEndElement(): Boolean = {
+    var si = 0
+    var ei = 0
+    var depth = 0
+    while (true) {
+      val b = in.read()
+      if (b == -1) {
+        // End of file (ignore end of split).
+        return false
+      } else {
+        buffer.write(b)
+        if (b == startTag(si) && b == endTag(ei)) {
+          // In start tag or end tag.
+          si += 1
+          ei += 1
+        } else if (b == startTag(si)) {
+          if (si >= startTag.length - 1) {
+            // Found start tag.
+            si = 0
+            ei = 0
+            depth += 1
+          } else {
+            // In start tag.
+            si += 1
+            ei = 0
+          }
+        } else if (b == endTag(ei)) {
+          if (ei >= endTag.length - 1) {
+            if (depth == 0) {
+              // Found closing end tag.
+              return true
+            } else {
+              // Found nested end tag.
+              si = 0
+              ei = 0
+              depth -= 1
+            }
+          } else {
+            // In end tag.
+            si = 0
+            ei += 1
+          }
+        } else {
+          // Not in start tag or end tag.
+          si = 0
+          ei = 0
+        }
+      }
+    }
+    // Unreachable.
     false
   }
 

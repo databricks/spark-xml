@@ -33,7 +33,8 @@ private[xml] object StaxXmlGenerator {
     * @param options options for XML datasource.
     * @param row The row to convert
     */
-  def apply(schema: StructType,
+  def apply(
+      schema: StructType,
       writer: IndentingXMLStreamWriter,
       options: XmlOptions)(row: Row): Unit = {
     def writeChildElement: (String, DataType, Any) => Unit = {

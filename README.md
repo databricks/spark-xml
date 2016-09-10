@@ -1,4 +1,4 @@
-# XML Data Source for Spark
+# XML Data Source for Apache Spark
 
 [![Build Status](https://travis-ci.org/databricks/spark-xml.svg?branch=master)](https://travis-ci.org/databricks/spark-xml) [![codecov.io](http://codecov.io/github/databricks/spark-xml/coverage.svg?branch=master)](http://codecov.io/github/databricks/spark-xml?branch=master)
 
@@ -20,13 +20,13 @@ You can link against this library in your program at the following coordinates:
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.10
-version: 0.3.2
+version: 0.3.4
 ```
 ### Scala 2.11
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.11
-version: 0.3.2
+version: 0.3.4
 ```
 
 ## Using with Spark shell
@@ -34,16 +34,16 @@ This package can be added to  Spark using the `--packages` command line option. 
 
 ### Spark compiled with Scala 2.10
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.10:0.3.2
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.10:0.3.4
 ```
 
 ### Spark compiled with Scala 2.11
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.3.2
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.3.4
 ```
 
 ## Features
-This package allows reading XML files in local or distributed filesystem as [Spark DataFrames](https://spark.apache.org/docs/1.3.0/sql-programming-guide.html).
+This package allows reading XML files in local or distributed filesystem as [Spark DataFrames](https://spark.apache.org/docs/1.6.0/sql-programming-guide.html).
 When reading files the API accepts several options:
 * `path`: Location of files. Similar to Spark can accept standard Hadoop globbing expressions.
 * `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
@@ -51,8 +51,8 @@ When reading files the API accepts several options:
 * `excludeAttribute` : Whether you want to exclude attributes in elements or not. Default is false.
 * `treatEmptyValuesAsNulls` : Whether you want to treat whitespaces as a null value. Default is false.
 * `failFast` : Whether you want to fail when it fails to parse malformed rows in XML files, instead of dropping the rows. Default is false.
-* `attributePrefix`: The prefix for attributes so that we can differentiate attributes and elements. This will be the prefix for field names. Default is `@`.
-* `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `#VALUE`.
+* `attributePrefix`: The prefix for attributes so that we can differentiate attributes and elements. This will be the prefix for field names. Default is `_`.
+* `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
 * `charset`: Defaults to 'UTF-8' but can be set to other valid charset names
 
 When writing files the API accepts several options:
@@ -60,15 +60,15 @@ When writing files the API accepts several options:
 * `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
 * `rootTag`: The root tag of your xml files to treat as the root. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `books`. Default is `ROWS`.
 * `nullValue`: The value to write `null` value. Default is string `null`. When this is `null`, it does not write attributes and elements for fields.
-* `attributePrefix`: The prefix for attributes so that we can differentiating attributes and elements. This will be the prefix for field names. Default is `@`.
-* `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `#VALUE`.
-* `codec`: compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec` or one of case-insensitive shorten names (`bzip2`, `gzip`, `lz4`, and `snappy`). Defaults to no compression when a codec is not specified.
+* `attributePrefix`: The prefix for attributes so that we can differentiating attributes and elements. This will be the prefix for field names. Default is `_`.
+* `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
+* `compression`: compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec` or one of case-insensitive shorten names (`bzip2`, `gzip`, `lz4`, and `snappy`). Defaults to no compression when a codec is not specified.
 
-Currently it supports the shorten name useage. You can use just `xml` instead of `com.databricks.spark.xml` from Spark 1.5.0+
+Currently it supports the shortened name usage. You can use just `xml` instead of `com.databricks.spark.xml` from Spark 1.5.0+
 
 ## Structure Conversion
 
-Due to the structure differences between `DataFrame` and XML, there are some conversion rules from XML data to `DataFrame` and from `DataFrame` to XML data. Note that hanlding attributes can be disbaled with the option `excludeAttribute`.
+Due to the structure differences between `DataFrame` and XML, there are some conversion rules from XML data to `DataFrame` and from `DataFrame` to XML data. Note that handling attributes can be disabled with the option `excludeAttribute`.
 
 
 ### Conversion from XML to `DataFrame`
@@ -87,7 +87,7 @@ Due to the structure differences between `DataFrame` and XML, there are some con
 
     ```
     root
-     |-- @myOneAttrib: string (nullable = true)
+     |-- _myOneAttrib: string (nullable = true)
      |-- two: string (nullable = true)
      |-- three: string (nullable = true)
     ```
@@ -106,8 +106,8 @@ Due to the structure differences between `DataFrame` and XML, there are some con
     ```
     root
      |-- two: struct (nullable = true)
-     |    |-- #VALUE: string (nullable = true)
-     |    |-- @myTwoAttrib: string (nullable = true)
+     |    |-- _VALUE: string (nullable = true)
+     |    |-- _myTwoAttrib: string (nullable = true)
      |-- three: string (nullable = true)
     ```
 
@@ -163,7 +163,7 @@ OPTIONS (path "books.xml", rowTag "book")
 
 You can also specify column names and types in DDL. In this case, we do not infer schema.
 ```sql
-CREATE TABLE books (author string, description string, genre string, @id string, price double, publish_date string, title string)
+CREATE TABLE books (author string, description string, genre string, _id string, price double, publish_date string, title string)
 USING com.databricks.spark.xml
 OPTIONS (path "books.xml", rowTag "book")
 ```
@@ -180,7 +180,7 @@ val df = sqlContext.read
     .option("rowTag", "book")
     .load("books.xml")
 
-val selectedData = df.select("author", "@id")
+val selectedData = df.select("author", "_id")
 selectedData.write
     .format("com.databricks.spark.xml")
     .option("rootTag", "books")
@@ -195,7 +195,7 @@ import org.apache.spark.sql.types.{StructType, StructField, StringType, DoubleTy
 
 val sqlContext = new SQLContext(sc)
 val customSchema = StructType(Array(
-    StructField("@id", StringType, nullable = true),
+    StructField("_id", StringType, nullable = true),
     StructField("author", StringType, nullable = true),
     StructField("description", StringType, nullable = true),
     StructField("genre", StringType ,nullable = true),
@@ -210,7 +210,7 @@ val df = sqlContext.read
     .schema(customSchema)
     .load("books.xml")
 
-val selectedData = df.select("author", "@id")
+val selectedData = df.select("author", "_id")
 selectedData.write
     .format("com.databricks.spark.xml")
     .option("rootTag", "books")
@@ -228,7 +228,7 @@ val df = sqlContext.load(
     "com.databricks.spark.xml",
     Map("path" -> "books.xml", "rowTag" -> "book"))
 
-val selectedData = df.select("author", "@id")
+val selectedData = df.select("author", "_id")
 selectedData.save("com.databricks.spark.xml",
 	SaveMode.ErrorIfExists,
 	Map("path" -> "newbooks.xml", "rootTag" -> "books", "rowTag" -> "book"))
@@ -241,7 +241,7 @@ import org.apache.spark.sql.types.{StructType, StructField, StringType, IntegerT
 
 val sqlContext = new SQLContext(sc)
 val customSchema = StructType(Array(
-    StructField("@id", StringType, nullable = true),
+    StructField("_id", StringType, nullable = true),
     StructField("author", StringType, nullable = true),
     StructField("description", StringType, nullable = true),
     StructField("genre", StringType ,nullable = true),
@@ -254,7 +254,7 @@ val df = sqlContext.load(
     schema = customSchema,
     Map("path" -> "books.xml", "rowTag" -> "book"))
 
-val selectedData = df.select("author", "@id")
+val selectedData = df.select("author", "_id")
 selectedData.save("com.databricks.spark.xml",
 	SaveMode.ErrorIfExists,
 	Map("path" -> "newbooks.xml", "rootTag" -> "books", "rowTag" -> "book"))
@@ -272,7 +272,7 @@ DataFrame df = sqlContext.read()
     .option("rowTag", "book")
     .load("books.xml");
 
-df.select("author", "@id").write()
+df.select("author", "_id").write()
     .format("com.databricks.spark.xml")
     .option("rootTag", "books")
     .option("rowTag", "book")
@@ -286,7 +286,7 @@ import org.apache.spark.sql.types.*;
 
 SQLContext sqlContext = new SQLContext(sc);
 StructType customSchema = new StructType(new StructField[] {
-    new StructField("@id", DataTypes.StringType, true, Metadata.empty()),
+    new StructField("_id", DataTypes.StringType, true, Metadata.empty()),
     new StructField("author", DataTypes.StringType, true, Metadata.empty()),
     new StructField("description", DataTypes.StringType, true, Metadata.empty()),
     new StructField("genre", DataTypes.StringType, true, Metadata.empty()),
@@ -301,7 +301,7 @@ DataFrame df = sqlContext.read()
     .schema(customSchema)
     .load("books.xml");
 
-df.select("author", "@id").write()
+df.select("author", "_id").write()
     .format("com.databricks.spark.xml")
     .option("rootTag", "books")
     .option("rowTag", "book")
@@ -326,7 +326,7 @@ HashMap<String, String> options = new HashMap<String, String>();
 options.put("rowTag", "book");
 options.put("rootTag", "books");
 options.put("path", "newbooks.xml");
-df.select("author", "@id").save("com.databricks.spark.xml", SaveMode.ErrorIfExists, options)
+df.select("author", "_id").save("com.databricks.spark.xml", SaveMode.ErrorIfExists, options)
 ```
 
 You can manually specify schema:
@@ -336,7 +336,7 @@ import org.apache.spark.sql.types.*;
 
 SQLContext sqlContext = new SQLContext(sc);
 StructType customSchema = new StructType(new StructField[] {
-    new StructField("@id", DataTypes.StringType, true, Metadata.empty()),
+    new StructField("_id", DataTypes.StringType, true, Metadata.empty()),
     new StructField("author", DataTypes.StringType, true, Metadata.empty()),
     new StructField("description", DataTypes.StringType, true, Metadata.empty()),
     new StructField("genre", DataTypes.StringType, true, Metadata.empty()),
@@ -354,7 +354,7 @@ HashMap<String, String> options = new HashMap<String, String>();
 options.put("rowTag", "book");
 options.put("rootTag", "books");
 options.put("path", "newbooks.xml");
-df.select("author", "@id").save("com.databricks.spark.xml", SaveMode.ErrorIfExists, options)
+df.select("author", "_id").save("com.databricks.spark.xml", SaveMode.ErrorIfExists, options)
 ```
 
 ### Python API
@@ -366,7 +366,7 @@ from pyspark.sql import SQLContext
 sqlContext = SQLContext(sc)
 
 df = sqlContext.read.format('com.databricks.spark.xml').options(rowTag='book').load('books.xml')
-df.select("author", "@id").write \
+df.select("author", "_id").write \
     .format('com.databricks.spark.xml') \
     .options(rowTag='book', rootTag='books') \
     .save('newbooks.xml')
@@ -379,20 +379,20 @@ from pyspark.sql.types import *
 
 sqlContext = SQLContext(sc)
 customSchema = StructType([ \
-    StructField("@id", StringType(), True), \
+    StructField("_id", StringType(), True), \
     StructField("author", StringType(), True), \
     StructField("description", StringType(), True), \
     StructField("genre", StringType(), True), \
     StructField("price", DoubleType(), True), \
     StructField("publish_date", StringType(), True), \
-    StructField("title", StringType(), True]))
+    StructField("title", StringType(), True)])
 
 df = sqlContext.read \
     .format('com.databricks.spark.xml') \
     .options(rowTag='book') \
     .load('books.xml', schema = customSchema)
 
-df.select("author", "@id").write \
+df.select("author", "_id").write \
     .format('com.databricks.spark.xml') \
     .options(rowTag='book', rootTag='books') \
     .save('newbooks.xml')
@@ -406,7 +406,7 @@ from pyspark.sql import SQLContext
 sqlContext = SQLContext(sc)
 
 df = sqlContext.load(source="com.databricks.spark.xml", rowTag = 'book', path = 'books.xml')
-df.select("author", "@id").save('newbooks.xml', rootTag = 'books', rowTag = 'book', path = 'newbooks.xml')
+df.select("author", "_id").save('newbooks.xml', rootTag = 'books', rowTag = 'book', path = 'newbooks.xml')
 ```
 
 You can manually specify schema:
@@ -416,16 +416,16 @@ from pyspark.sql.types import *
 
 sqlContext = SQLContext(sc)
 customSchema = StructType([ \
-    StructField("@id", StringType(), True), \
+    StructField("_id", StringType(), True), \
     StructField("author", StringType(), True), \
     StructField("description", StringType(), True), \
     StructField("genre", StringType(), True), \
     StructField("price", DoubleType(), True), \
     StructField("publish_date", StringType(), True), \
-    StructField("title", StringType(), True]))
+    StructField("title", StringType(), True)])
 
 df = sqlContext.load(source="com.databricks.spark.xml", rowTag = 'book', schema = customSchema, path = 'books.xml')
-df.select("author", "@id").save('newbooks.xml', rootTag = 'books', rowTag = 'book', path = 'newbooks.xml')
+df.select("author", "_id").save('newbooks.xml', rootTag = 'books', rowTag = 'book', path = 'newbooks.xml')
 ```
 
 
@@ -436,7 +436,7 @@ Automatically infer schema (data types)
 ```R
 library(SparkR)
 
-Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-xml_2.10:0.3.2" "sparkr-shell"')
+Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-xml_2.10:0.3.4" "sparkr-shell"')
 sqlContext <- sparkRSQL.init(sc)
 
 df <- read.df(sqlContext, "books.xml", source = "com.databricks.spark.xml", rowTag = "book")
@@ -449,10 +449,10 @@ You can manually specify schema:
 ```R
 library(SparkR)
 
-Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:0.3.2" "sparkr-shell"')
+Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:0.3.4" "sparkr-shell"')
 sqlContext <- sparkRSQL.init(sc)
 customSchema <- structType(
-    structField("@id", "string"),
+    structField("_id", "string"),
     structField("author", "string"),
     structField("description", "string"),
     structField("genre", "string"),
@@ -475,11 +475,11 @@ which you may make direct use of as follows:
 import com.databricks.spark.xml.XmlInputFormat
 
 // This will detect the tags including attributes
-sc.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, "<books>")
-sc.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, "</books>")
+sc.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, "<book>")
+sc.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, "</book>")
 sc.hadoopConfiguration.set(XmlInputFormat.ENCODING_KEY, "utf-8")
 
-val records = context.newAPIHadoopFile(
+val records = sc.newAPIHadoopFile(
   path,
   classOf[XmlInputFormat],
   classOf[LongWritable],
