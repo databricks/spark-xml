@@ -86,7 +86,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     endEmptyTag = "/>".getBytes(charset)
     space = " ".getBytes(charset)
     angleBracket = ">".getBytes(charset)
-    tagPattern = ("\\"+new String(startTag).substring(0,new String(startTag).length-1)+"(\\W)(.*)(\\W)*\\<(.*)(\\W)(.*)\\>").r
+    tagPattern = ("\\"+new String(startTag).substring(0,new String(startTag).length-1)+"([^\\>]*)").r
     require(startTag != null, "Start tag cannot be null.")
     require(endTag != null, "End tag cannot be null.")
     require(endEmptyTag != null, "End Empty tag cannot be null.")    
@@ -160,7 +160,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       try {
         buffer.write(currentStartTag)
         if (readUntilMatch(endTag, withinBlock = true, force = false)) {
-          if(tagPattern.findAllIn(new String(buffer.getData)).length>0){
+          if(!tagPattern.findFirstIn(new String(buffer.getData)).get.takeRight(1).equals("/")){
             if (readUntilMatch(endTag, withinBlock = true, force = true)) {              
           	  key.set(filePosition.getPos)
           	  value.set(buffer.getData, 0, buffer.getLength)            

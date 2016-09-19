@@ -80,6 +80,7 @@ private[xml] object StaxXmlParser {
           case _: XMLStreamException if !failFast =>
             logger.warn(s"Dropping malformed row: ${xml.replaceAll("\n", "")}")
             None
+          case _: Exception => None
         }
       }
     }
