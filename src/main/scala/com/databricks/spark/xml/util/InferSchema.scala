@@ -36,7 +36,7 @@ private[xml] object InferSchema {
 
   /**
    * Copied from internal Spark api
-   * [[org.apache.spark.sql.catalyst.analysis.HiveTypeCoercion]]
+   * [[org.apache.spark.sql.catalyst.analysis.TypeCoercion]]
    */
   private val numericPrecedence: IndexedSeq[DataType] =
     IndexedSeq[DataType](
@@ -47,7 +47,7 @@ private[xml] object InferSchema {
       FloatType,
       DoubleType,
       TimestampType,
-      DecimalType.Unlimited)
+      DecimalType.SYSTEM_DEFAULT)
 
   val findTightestCommonTypeOfTwo: (DataType, DataType) => Option[DataType] = {
     case (t1, t2) if t1 == t2 => Some(t1)
@@ -69,12 +69,12 @@ private[xml] object InferSchema {
   def infer(xml: RDD[String], options: XmlOptions): StructType = {
     require(options.samplingRatio > 0,
       s"samplingRatio ($options.samplingRatio) should be greater than 0")
+    val shouldHandleCorruptRecord = options.permissive
     val schemaData = if (options.samplingRatio > 0.99) {
       xml
     } else {
       xml.sample(withReplacement = false, options.samplingRatio, 1)
     }
-    val failFast = options.failFastFlag
     // perform schema inference on each row and merge afterwards
     val rootType = schemaData.mapPartitions { iter =>
       val factory = XMLInputFactory.newInstance()
@@ -100,11 +100,10 @@ private[xml] object InferSchema {
 
           Some(inferObject(parser, options, rootAttributes))
         } catch {
-          case _: XMLStreamException if !failFast =>
-            logger.warn(s"Dropping malformed row: ${xml.replaceAll("\n", "")}")
+          case _: XMLStreamException if shouldHandleCorruptRecord =>
+            Some(StructType(Seq(StructField(options.columnNameOfCorruptRecord, StringType))))
+          case _: XMLStreamException =>
             None
-          case _: XMLStreamException if failFast =>
-            throw new RuntimeException(s"Malformed row (failing fast): ${xml.replaceAll("\n", "")}")
         }
       }
     }.treeAggregate[DataType](StructType(Seq()))(
@@ -143,6 +142,7 @@ private[xml] object InferSchema {
           case _: EndElement if data.isEmpty => NullType
           case _: EndElement if options.treatEmptyValuesAsNulls => NullType
           case _: EndElement => StringType
+          case _ => inferField(parser, options)
         }
       case c: Characters if !c.isWhiteSpace =>
         // This means data exists

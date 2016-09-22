@@ -20,7 +20,6 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
-import com.databricks.spark.xml.util.CompressionCodecs
 import com.databricks.spark.xml.util.XmlFile
 
 /**
@@ -89,9 +88,7 @@ class DefaultSource
     }
     if (doSave) {
       // Only save data when the save mode is not ignore.
-      val codecClass =
-        CompressionCodecs.getCodecClass(XmlOptions(parameters).codec)
-      data.saveAsXmlFile(filesystemPath.toString, parameters, codecClass)
+      XmlFile.saveAsXmlFile(data, filesystemPath.toString, parameters)
     }
     createRelation(sqlContext, parameters, data.schema)
   }

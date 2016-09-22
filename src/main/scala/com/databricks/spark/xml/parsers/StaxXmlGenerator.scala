@@ -85,7 +85,6 @@ private[xml] object StaxXmlGenerator {
       case (ByteType, v: Byte) => writer.writeCharacters(v.toString)
       case (BooleanType, v: Boolean) => writer.writeCharacters(v.toString)
       case (DateType, v) => writer.writeCharacters(v.toString)
-      case (udt: UserDefinedType[_], v) => writeElement(udt.sqlType, udt.serialize(v))
 
       // For the case roundtrip in reading and writing XML files, [[ArrayType]] cannot have
       // [[ArrayType]] as element type. It always wraps the element with [[StructType]]. So,

@@ -41,7 +41,25 @@ private[xml] object StaxXmlParser {
     xml: RDD[String],
     schema: StructType,
     options: XmlOptions): RDD[Row] = {
-    val failFast = options.failFastFlag
+    def failedRecord(record: String): Option[Row] = {
+      // create a row even if no corrupt record column is present
+      if (options.failFast) {
+        throw new RuntimeException(
+          s"Malformed line in FAILFAST mode: ${record.replaceAll("\n", "")}")
+      } else if (options.dropMalformed) {
+        logger.warn(s"Dropping malformed line: ${record.replaceAll("\n", "")}")
+        None
+      } else {
+        val row = new Array[Any](schema.length)
+        val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+        nameToIndex.get(options.columnNameOfCorruptRecord).foreach { corruptIndex =>
+          require(schema(corruptIndex).dataType == StringType)
+          row.update(corruptIndex, record)
+        }
+        Some(Row.fromSeq(row))
+      }
+    }
+
     
     xml.mapPartitions { iter =>
       val factory = XMLInputFactory.newInstance()
@@ -64,23 +82,15 @@ private[xml] object StaxXmlParser {
             StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
           val rootAttributes =
             rootEvent.asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
-
           Some(convertObject(parser, schema, options, rootAttributes))
+            .orElse(failedRecord(xml))
         } catch {
-          case _: java.lang.NumberFormatException if !failFast =>
-            logger.warn("Number format exception. " +
-              s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
-            None
-          case _: java.text.ParseException | _: IllegalArgumentException if !failFast =>
-            logger.warn("Parse exception. " +
-              s"Dropping malformed line: ${xml.replaceAll("\n", "")}")
-            None
-          case _: XMLStreamException if failFast =>
-            throw new RuntimeException(s"Malformed row (failing fast): ${xml.replaceAll("\n", "")}")
-          case _: XMLStreamException if !failFast =>
-            logger.warn(s"Dropping malformed row: ${xml.replaceAll("\n", "")}")
-            None
-          case _: Exception => None
+          case _: java.lang.NumberFormatException =>
+            failedRecord(xml)
+          case _: java.text.ParseException | _: IllegalArgumentException =>
+            failedRecord(xml)
+          case _: XMLStreamException =>
+            failedRecord(xml)
         }
       }
     }
@@ -97,7 +107,6 @@ private[xml] object StaxXmlParser {
       case dt: StructType => convertObject(parser, dt, options)
       case MapType(StringType, vt, _) => convertMap(parser, vt, options)
       case ArrayType(st, _) => convertField(parser, st, options)
-      case udt: UserDefinedType[_] => convertField(parser, udt.sqlType, options)
       case _: StringType => StaxXmlParserUtils.currentStructureAsString(parser)
     }
 
@@ -114,6 +123,7 @@ private[xml] object StaxXmlParser {
           case _: EndElement if data.isEmpty => null
           case _: EndElement if options.treatEmptyValuesAsNulls => null
           case _: EndElement => data
+          case _ => convertField(parser, dataType, options)
         }
 
       case (c: Characters, ArrayType(st, _)) =>
@@ -143,7 +153,7 @@ private[xml] object StaxXmlParser {
     case (v, ByteType) => castTo(v, ByteType)
     case (v, ShortType) => castTo(v, ShortType)
     case (v, IntegerType) => signSafeToInt(v)
-    case (v, _: DecimalType) => castTo(v, new DecimalType(None))
+    case (v, dt: DecimalType) => castTo(v, dt)
     case (_, dataType) =>
       sys.error(s"Failed to parse a value for data type $dataType.")
   }
