@@ -24,6 +24,7 @@ import scala.util.Try
 import scala.util.control.Exception._
 
 import org.apache.spark.sql.types._
+import com.databricks.spark.xml.XmlOptions
 
 /**
  * Utility functions for type casting
@@ -43,9 +44,11 @@ object TypeCast {
   private[xml] def castTo(
       datum: String,
       castType: DataType,
-      nullable: Boolean = true,
-      treatEmptyValuesAsNulls: Boolean = false): Any = {
-    if (datum == "" && nullable && (!castType.isInstanceOf[StringType] || treatEmptyValuesAsNulls)){
+      options: XmlOptions,
+      nullable: Boolean = true): Any = {
+    if (datum == options.nullValue &&
+      nullable ||
+      (options.treatEmptyValuesAsNulls && datum == "")){
       null
     } else {
       castType match {
@@ -109,55 +112,57 @@ object TypeCast {
     (allCatch opt Timestamp.valueOf(value)).isDefined
   }
 
-  private[xml] def signSafeToLong(value: String): Long = {
+  // TODO: It seems sign-safe is too much and decreases the performance. Maybe
+  // this just should be deprecated and matched to CSV and JSON datasources.
+  private[xml] def signSafeToLong(value: String, options: XmlOptions): Long = {
     if (value.startsWith("+")) {
       val data = value.substring(1)
-      TypeCast.castTo(data, LongType).asInstanceOf[Long]
+      TypeCast.castTo(data, LongType, options).asInstanceOf[Long]
     } else if (value.startsWith("-")) {
       val data = value.substring(1)
-      -TypeCast.castTo(data, LongType).asInstanceOf[Long]
+      -TypeCast.castTo(data, LongType, options).asInstanceOf[Long]
     } else {
       val data = value
-      TypeCast.castTo(data, LongType).asInstanceOf[Long]
+      TypeCast.castTo(data, LongType, options).asInstanceOf[Long]
     }
   }
 
-  private[xml] def signSafeToDouble(value: String): Double = {
+  private[xml] def signSafeToDouble(value: String, options: XmlOptions): Double = {
     if (value.startsWith("+")) {
       val data = value.substring(1)
-      TypeCast.castTo(data, DoubleType).asInstanceOf[Double]
+      TypeCast.castTo(data, DoubleType, options).asInstanceOf[Double]
     } else if (value.startsWith("-")) {
       val data = value.substring(1)
-     -TypeCast.castTo(data, DoubleType).asInstanceOf[Double]
+     -TypeCast.castTo(data, DoubleType, options).asInstanceOf[Double]
     } else {
       val data = value
-      TypeCast.castTo(data, DoubleType).asInstanceOf[Double]
+      TypeCast.castTo(data, DoubleType, options).asInstanceOf[Double]
     }
   }
 
-  private[xml] def signSafeToInt(value: String): Int = {
+  private[xml] def signSafeToInt(value: String, options: XmlOptions): Int = {
     if (value.startsWith("+")) {
       val data = value.substring(1)
-      TypeCast.castTo(data, IntegerType).asInstanceOf[Int]
+      TypeCast.castTo(data, IntegerType, options).asInstanceOf[Int]
     } else if (value.startsWith("-")) {
       val data = value.substring(1)
-      -TypeCast.castTo(data, IntegerType).asInstanceOf[Int]
+      -TypeCast.castTo(data, IntegerType, options).asInstanceOf[Int]
     } else {
       val data = value
-      TypeCast.castTo(data, IntegerType).asInstanceOf[Int]
+      TypeCast.castTo(data, IntegerType, options).asInstanceOf[Int]
     }
   }
 
-  private[xml] def signSafeToFloat(value: String): Float = {
+  private[xml] def signSafeToFloat(value: String, options: XmlOptions): Float = {
     if (value.startsWith("+")) {
       val data = value.substring(1)
-      TypeCast.castTo(data, FloatType).asInstanceOf[Float]
+      TypeCast.castTo(data, FloatType, options).asInstanceOf[Float]
     } else if (value.startsWith("-")) {
       val data = value.substring(1)
-      -TypeCast.castTo(data, FloatType).asInstanceOf[Float]
+      -TypeCast.castTo(data, FloatType, options).asInstanceOf[Float]
     } else {
       val data = value
-      TypeCast.castTo(data, FloatType).asInstanceOf[Float]
+      TypeCast.castTo(data, FloatType, options).asInstanceOf[Float]
     }
   }
 }

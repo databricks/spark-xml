@@ -54,7 +54,7 @@ When reading files the API accepts several options:
 * `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
 * `samplingRatio`: Sampling ratio for inferring schema (0.0 ~ 1). Default is 1. Possible types are `StructType`, `ArrayType`, `StringType`, `LongType`, `DoubleType`, `BooleanType`, `TimestampType` and `NullType`, unless user provides a schema for this.
 * `excludeAttribute` : Whether you want to exclude attributes in elements or not. Default is false.
-* `treatEmptyValuesAsNulls` : Whether you want to treat whitespaces as a null value. Default is false.
+* `treatEmptyValuesAsNulls` : (DEPRECATED: use `nullValue` set to `""`) Whether you want to treat whitespaces as a null value. Default is false
 * `mode`: The mode for dealing with corrupt records during parsing. Default is `PERMISSIVE`.
   * `PERMISSIVE` : sets other fields to `null` when it meets a corrupted record, and puts the malformed string into a new field configured by `columnNameOfCorruptRecord`. When a schema is set by user, it sets `null` for extra fields.
   * `DROPMALFORMED` : ignores the whole corrupted records.

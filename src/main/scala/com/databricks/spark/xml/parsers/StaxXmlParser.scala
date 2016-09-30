@@ -127,33 +127,38 @@ private[xml] object StaxXmlParser {
 
       case (c: Characters, ArrayType(st, _)) =>
         // For `ArrayType`, it needs to return the type of element. The values are merged later.
-        convertTo(c.getData, st)
+        convertTo(c.getData, st, options)
       case (c: Characters, st: StructType) =>
         // This case can be happen when current data type is inferred as `StructType`
         // due to `valueTag` for elements having attributes but no child.
         val dt = st.filter(_.name == options.valueTag).head.dataType
-        convertTo(c.getData, dt)
+        convertTo(c.getData, dt, options)
       case (c: Characters, dt: DataType) =>
-        convertTo(c.getData, dt)
+        convertTo(c.getData, dt, options)
       case (e: XMLEvent, dt: DataType) =>
         sys.error(s"Failed to parse a value for data type $dt with event ${e.toString}")
     }
   }
 
-  private def convertTo: (String, DataType) => Any = {
-    case (null, _) | (_, NullType) => null
-    case (v, LongType) => signSafeToLong(v)
-    case (v, DoubleType) => signSafeToDouble(v)
-    case (v, BooleanType) => castTo(v, BooleanType)
-    case (v, StringType) => castTo(v, StringType)
-    case (v, DateType) => castTo(v, DateType)
-    case (v, TimestampType) => castTo(v, TimestampType)
-    case (v, FloatType) => signSafeToFloat(v)
-    case (v, ByteType) => castTo(v, ByteType)
-    case (v, ShortType) => castTo(v, ShortType)
-    case (v, IntegerType) => signSafeToInt(v)
-    case (v, dt: DecimalType) => castTo(v, dt)
-    case (_, dataType) =>
+  // TODO: This function unnecessarily does type dispatch. This should be removed
+  // as removing the support for signed numbers.
+  private def convertTo(
+      value: String,
+      dataType: DataType,
+      options: XmlOptions): Any = dataType match {
+    case NullType if value == null => null
+    case LongType => signSafeToLong(value, options)
+    case DoubleType => signSafeToDouble(value, options)
+    case BooleanType => castTo(value, BooleanType, options)
+    case StringType => castTo(value, StringType, options)
+    case DateType => castTo(value, DateType, options)
+    case TimestampType => castTo(value, TimestampType, options)
+    case FloatType => signSafeToFloat(value, options)
+    case ByteType => castTo(value, ByteType, options)
+    case ShortType => castTo(value, ShortType, options)
+    case IntegerType => signSafeToInt(value, options)
+    case dt: DecimalType => castTo(value, dt, options)
+    case _ =>
       sys.error(s"Failed to parse a value for data type $dataType.")
   }
 
@@ -193,7 +198,7 @@ private[xml] object StaxXmlParser {
     valuesMap.foreach { case (f, v) =>
       val nameToIndex = schema.map(_.name).zipWithIndex.toMap
       nameToIndex.get(f).foreach { i =>
-        convertedValuesMap(f) = convertTo(v, schema(i).dataType)
+        convertedValuesMap(f) = convertTo(v, schema(i).dataType, options)
       }
     }
     convertedValuesMap.toMap
