@@ -305,4 +305,3 @@ private[xml] object StaxXmlParser {
     Row.fromSeq(row)
   }
 }
-

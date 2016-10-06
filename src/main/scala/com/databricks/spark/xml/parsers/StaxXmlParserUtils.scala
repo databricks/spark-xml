@@ -111,17 +111,15 @@ private[xml] object StaxXmlParserUtils {
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
-          parser.peek match {
-            case c: Characters if c.isWhiteSpace =>
-              // There can be a `Characters` event between `StartElement`s.
-              // So, we need to check further to decide if this is a data or just
-              // a whitespace between them.
-              parser.next
-              parser.peek match {
-                case _: StartElement => skipChildren(parser)
-                case _: XMLEvent => // In case, just skip.
-              }
-            case _: XMLEvent => // In case, just skip.
+          val e = parser.peek
+          if (e.isCharacters && e.asCharacters.isWhiteSpace) {
+            // There can be a `Characters` event between `StartElement`s.
+            // So, we need to check further to decide if this is a data or just
+            // a whitespace between them.
+            parser.next
+            if (parser.peek.isStartElement) {
+              skipChildren(parser)
+            }
           }
         case _: EndElement =>
           shouldStop = checkEndElement(parser)
