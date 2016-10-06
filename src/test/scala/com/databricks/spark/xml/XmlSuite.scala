@@ -788,7 +788,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .selectExpr("publish_dates")
       .collect()
     results.foreach { row =>
-      // All nested fields should have four elements.
+      // All nested fields should not have nulls but arrays.
       assert(!row.anyNull)
     }
   }
