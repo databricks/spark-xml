@@ -781,6 +781,18 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(df.schema == schema)
   }
 
+  test("Select correctly all child fields regardless of pushed down projection") {
+    val results = sqlContext.read.format("xml")
+      .option("rowTag", "book")
+      .load(booksComplicatedFile)
+      .selectExpr("publish_dates")
+      .collect()
+    results.foreach { row =>
+      // All nested fields should have four elements.
+      assert(!row.anyNull)
+    }
+  }
+
   test("Empty string not allowed for rowTag, attributePrefix and valueTag.") {
     val messageOne = intercept[IllegalArgumentException] {
       sqlContext.read.format("xml").option("rowTag", "").load(carsFile)
