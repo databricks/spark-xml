@@ -250,36 +250,39 @@ private[xml] object StaxXmlParser {
         case e: StartElement =>
           val nameToIndex = schema.map(_.name).zipWithIndex.toMap
           // If there are attributes, then we process them first.
-          convertAttributes(rootAttributes, schema, options).toSeq.foreach {
-            case (f, v) =>
-              nameToIndex.get(f).foreach { row(_) = v }
+          convertAttributes(rootAttributes, schema, options).toSeq.foreach { case (f, v) =>
+            nameToIndex.get(f).foreach { row(_) = v }
           }
 
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           val field = e.asStartElement.getName.getLocalPart
 
-          nameToIndex.get(field).foreach { index =>
-            schema(index).dataType match {
-              case st: StructType =>
-                row(index) = convertObjectWithAttributes(parser, st, options, attributes)
+          nameToIndex.get(field) match {
+            case Some(index) =>
+              schema(index).dataType match {
+                case st: StructType =>
+                  row(index) = convertObjectWithAttributes(parser, st, options, attributes)
 
-              case ArrayType(dt: DataType, _) =>
-                val values = Option(row(index))
-                  .map(_.asInstanceOf[ArrayBuffer[Any]])
-                  .getOrElse(ArrayBuffer.empty[Any])
-                val newValue = {
-                  dt match {
-                    case st: StructType =>
-                      convertObjectWithAttributes(parser, st, options, attributes)
-                    case dt: DataType =>
-                      convertField(parser, dt, options)
+                case ArrayType(dt: DataType, _) =>
+                  val values = Option(row(index))
+                    .map(_.asInstanceOf[ArrayBuffer[Any]])
+                    .getOrElse(ArrayBuffer.empty[Any])
+                  val newValue = {
+                    dt match {
+                      case st: StructType =>
+                        convertObjectWithAttributes(parser, st, options, attributes)
+                      case dt: DataType =>
+                        convertField(parser, dt, options)
+                    }
                   }
-                }
-                row(index) = values :+ newValue
+                  row(index) = values :+ newValue
 
-              case dt: DataType =>
-                row(index) = convertField(parser, dt, options)
-            }
+                case dt: DataType =>
+                  row(index) = convertField(parser, dt, options)
+              }
+
+            case None =>
+              StaxXmlParserUtils.skipChildren(parser)
           }
 
         case _: EndElement =>
@@ -292,4 +295,3 @@ private[xml] object StaxXmlParser {
     Row.fromSeq(row)
   }
 }
-

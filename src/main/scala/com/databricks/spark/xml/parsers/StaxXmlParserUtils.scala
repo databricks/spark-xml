@@ -77,6 +77,8 @@ private[xml] object StaxXmlParserUtils {
           parser.peek match {
             case _: StartElement =>
               childrenXmlString += currentStructureAsString(parser)
+            case e: XMLEvent =>
+              childrenXmlString += e.toString
           }
         case e: XMLEvent =>
           childrenXmlString += e.toString
@@ -99,5 +101,31 @@ private[xml] object StaxXmlParserUtils {
       }
     }
     xmlString
+  }
+
+  /**
+   * Skip the children of the current XML element.
+   */
+  def skipChildren(parser: XMLEventReader): Unit = {
+    var shouldStop = checkEndElement(parser)
+    while (!shouldStop) {
+      parser.nextEvent match {
+        case e: StartElement =>
+          val e = parser.peek
+          if (e.isCharacters && e.asCharacters.isWhiteSpace) {
+            // There can be a `Characters` event between `StartElement`s.
+            // So, we need to check further to decide if this is a data or just
+            // a whitespace between them.
+            parser.next
+            if (parser.peek.isStartElement) {
+              skipChildren(parser)
+            }
+          }
+        case _: EndElement =>
+          shouldStop = checkEndElement(parser)
+        case _: XMLEvent =>
+          shouldStop = shouldStop && parser.hasNext
+      }
+    }
   }
 }
