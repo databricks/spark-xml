@@ -733,10 +733,10 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("Select correctly all child fields regardless of pushed down projection") {
-    val results = sqlContext.read.format("xml")
-      .option("rowTag", "book")
-      .load(booksComplicatedFile)
-      .selectExpr("publish_dates")
+    val results = new XmlReader()
+      .withRowTag("book")
+      .xmlFile(sqlContext, booksComplicatedFile)
+      .select("publish_dates")
       .collect()
     results.foreach { row =>
       // All nested fields should not have nulls but arrays.
