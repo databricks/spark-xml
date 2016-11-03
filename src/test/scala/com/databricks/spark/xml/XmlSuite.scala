@@ -776,8 +776,6 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       Seq(
         StructField("child", StringType, nullable = true),
         StructField("parent", nestedSchema, nullable = true)))
-    df.schema.printTreeString()
-    schema.printTreeString()
     assert(df.schema == schema)
   }
 
@@ -809,5 +807,19 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       sqlContext.read.format("xml").option("valueTag", "").load(carsFile)
     }.getMessage
     assert(messageThree == "requirement failed: 'valueTag' option should not be empty string.")
+  }
+
+  test("nullValue and treatEmptyValuesAsNulls test") {
+    val resultsOne = sqlContext.read.format("xml")
+      .option("treatEmptyValuesAsNulls", "true")
+      .load(gpsEmptyField)
+    assert(resultsOne.selectExpr("extensions.TrackPointExtension").head().isNullAt(0))
+    assert(resultsOne.collect().size === numGPS)
+
+    val resultsTwo = sqlContext.read.format("xml")
+      .option("nullValue", "2013-01-24T06:18:43Z")
+      .load(gpsEmptyField)
+    assert(resultsTwo.selectExpr("time").head().isNullAt(0))
+    assert(resultsTwo.collect().size === numGPS)
   }
 }
