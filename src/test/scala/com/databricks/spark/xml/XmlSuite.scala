@@ -728,13 +728,11 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       Seq(
         StructField("child", StringType, nullable = true),
         StructField("parent", nestedSchema, nullable = true)))
-    df.schema.printTreeString()
-    schema.printTreeString()
     assert(df.schema == schema)
   }
 
   test("Skip and project currecntly XML files without indentation") {
-    val df = sqlContext.read.format("xml").load(carsNoIndentationFile)
+    val df = sqlContext.xmlFile(carsNoIndentationFile)
     val results = df.select("model").collect()
     val years = results.map(_.toSeq.head).toSet
     assert(years == Set("S", "E350", "Volt"))
