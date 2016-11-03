@@ -43,6 +43,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val carsFile8859 = "src/test/resources/cars-iso-8859-1.xml"
   val carsFileGzip = "src/test/resources/cars.xml.gz"
   val carsFileBzip2 = "src/test/resources/cars.xml.bz2"
+  val carsNoIndentationFile = "src/test/resources/cars-no-indentation.xml"
   val carsMixedAttrNoChildFile = "src/test/resources/cars-mixed-attr-no-child.xml"
   val booksAttributesInNoChild = "src/test/resources/books-attributes-in-no-child.xml"
   val carsUnbalancedFile = "src/test/resources/cars-unbalanced-elements.xml"
@@ -730,6 +731,13 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     df.schema.printTreeString()
     schema.printTreeString()
     assert(df.schema == schema)
+  }
+
+  test("Skip and project currecntly XML files without indentation") {
+    val df = sqlContext.read.format("xml").load(carsNoIndentationFile)
+    val results = df.select("model").collect()
+    val years = results.map(_.toSeq.head).toSet
+    assert(years == Set("S", "E350", "Volt"))
   }
 
   test("Select correctly all child fields regardless of pushed down projection") {
