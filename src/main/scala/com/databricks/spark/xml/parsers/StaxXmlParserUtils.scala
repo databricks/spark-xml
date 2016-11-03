@@ -117,9 +117,9 @@ private[xml] object StaxXmlParserUtils {
             // So, we need to check further to decide if this is a data or just
             // a whitespace between them.
             parser.next
-            if (parser.peek.isStartElement) {
-              skipChildren(parser)
-            }
+          }
+          if (parser.peek.isStartElement) {
+            skipChildren(parser)
           }
         case _: EndElement =>
           shouldStop = checkEndElement(parser)
