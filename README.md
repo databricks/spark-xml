@@ -23,7 +23,7 @@ You can link against this library in your program at the following coordinates:
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.10
-version: 0.4.0
+version: 0.4.1
 ```
 
 ### Scala 2.11
@@ -31,7 +31,7 @@ version: 0.4.0
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.11
-version: 0.4.0
+version: 0.4.1
 ```
 
 ## Using with Spark shell
@@ -39,12 +39,12 @@ This package can be added to  Spark using the `--packages` command line option. 
 
 ### Spark compiled with Scala 2.10
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.10:0.4.0
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.10:0.4.1
 ```
 
 ### Spark compiled with Scala 2.11
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.4.0
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.4.1
 ```
 
 ## Features
@@ -319,7 +319,7 @@ Automatically infer schema (data types)
 ```R
 library(SparkR)
 
-Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-xml_2.10:0.4.0" "sparkr-shell"')
+Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-xml_2.10:0.4.1" "sparkr-shell"')
 sqlContext <- sparkRSQL.init(sc)
 
 df <- read.df(sqlContext, "books.xml", source = "com.databricks.spark.xml", rowTag = "book")
@@ -332,7 +332,7 @@ You can manually specify schema:
 ```R
 library(SparkR)
 
-Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:0.4.0" "sparkr-shell"')
+Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:0.4.1" "sparkr-shell"')
 sqlContext <- sparkRSQL.init(sc)
 customSchema <- structType(
     structField("_id", "string"),
