@@ -140,28 +140,6 @@ private[xml] object StaxXmlParser {
     }
   }
 
-  // TODO: This function unnecessarily does type dispatch. This should be removed
-  // as removing the support for signed numbers.
-  private def convertTo(
-      value: String,
-      dataType: DataType,
-      options: XmlOptions): Any = dataType match {
-    case NullType if value == null => null
-    case LongType => signSafeToLong(value, options)
-    case DoubleType => signSafeToDouble(value, options)
-    case BooleanType => castTo(value, BooleanType, options)
-    case StringType => castTo(value, StringType, options)
-    case DateType => castTo(value, DateType, options)
-    case TimestampType => castTo(value, TimestampType, options)
-    case FloatType => signSafeToFloat(value, options)
-    case ByteType => castTo(value, ByteType, options)
-    case ShortType => castTo(value, ShortType, options)
-    case IntegerType => signSafeToInt(value, options)
-    case dt: DecimalType => castTo(value, dt, options)
-    case _ =>
-      sys.error(s"Failed to parse a value for data type $dataType.")
-  }
-
   /**
    * Parse an object as map.
    */

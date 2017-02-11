@@ -117,15 +117,18 @@ private[xml] object InferSchema {
     }
   }
 
-  private def inferFrom: String => DataType = {
-    case null => NullType
-    case v if v.isEmpty => NullType
-    case v if isLong(v) => LongType
-    case v if isInteger(v) => IntegerType
-    case v if isDouble(v) => DoubleType
-    case v if isBoolean(v) => BooleanType
-    case v if isTimestamp(v) => TimestampType
-    case v => StringType
+  private def inferFrom(datum: String, options: XmlOptions): DataType = {
+    val value = if (options.ignoreSurroundingSpaces) datum.trim() else datum
+    value match {
+      case null => NullType
+      case v if v.isEmpty => NullType
+      case v if isLong(v) => LongType
+      case v if isInteger(v) => IntegerType
+      case v if isDouble(v) => DoubleType
+      case v if isBoolean(v) => BooleanType
+      case v if isTimestamp(v) => TimestampType
+      case v => StringType
+    }
   }
 
   private def inferField(parser: XMLEventReader, options: XmlOptions): DataType = {
@@ -146,7 +149,7 @@ private[xml] object InferSchema {
         }
       case c: Characters if !c.isWhiteSpace =>
         // This means data exists
-        inferFrom(c.getData)
+        inferFrom(c.getData, options)
       case e: XMLEvent =>
         sys.error(s"Failed to parse data with unexpected event ${e.toString}")
     }
@@ -170,7 +173,7 @@ private[xml] object InferSchema {
             StaxXmlParserUtils.convertAttributesToValuesMap(rootAttributes, options)
           rootValuesMap.foreach {
             case (f, v) =>
-              nameToDataType += (f -> ArrayBuffer(inferFrom(v)))
+              nameToDataType += (f -> ArrayBuffer(inferFrom(v, options)))
           }
 
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
@@ -182,7 +185,7 @@ private[xml] object InferSchema {
               nestedBuilder ++= st.fields
               valuesMap.foreach {
                 case (f, v) =>
-                  nestedBuilder += StructField(f, inferFrom(v), nullable = true)
+                  nestedBuilder += StructField(f, inferFrom(v, options), nullable = true)
               }
               StructType(nestedBuilder.result().sortBy(_.name))
 
@@ -192,7 +195,7 @@ private[xml] object InferSchema {
               nestedBuilder += StructField(options.valueTag, dt, nullable = true)
               valuesMap.foreach {
                 case (f, v) =>
-                  nestedBuilder += StructField(f, inferFrom(v), nullable = true)
+                  nestedBuilder += StructField(f, inferFrom(v, options), nullable = true)
               }
               StructType(nestedBuilder.result().sortBy(_.name))
 
