@@ -118,7 +118,12 @@ private[xml] object InferSchema {
   }
 
   private def inferFrom(datum: String, options: XmlOptions): DataType = {
-    val value = if (options.ignoreSurroundingSpaces) datum.trim() else datum
+    val value = if (datum != null && options.ignoreSurroundingSpaces) {
+      datum.trim()
+    } else {
+      datum
+    }
+
     value match {
       case null => NullType
       case v if v.isEmpty => NullType

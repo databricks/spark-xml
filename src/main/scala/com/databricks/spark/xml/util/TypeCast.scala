@@ -75,7 +75,12 @@ object TypeCast {
       datum: String,
       dataType: DataType,
       options: XmlOptions): Any = {
-    val value = if (options.ignoreSurroundingSpaces) datum.trim() else datum
+    val value = if (datum != null && options.ignoreSurroundingSpaces) {
+      datum.trim()
+    } else {
+      datum
+    }
+
     dataType match {
       case NullType => castTo(value, StringType, options)
       case LongType => signSafeToLong(value, options)
