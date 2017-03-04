@@ -62,8 +62,8 @@ class XmlReader extends Serializable {
     this
   }
 
-  def withParseMode(valueTag: String): XmlReader = {
-    parameters += ("mode" -> valueTag)
+  def withParseMode(mode: String): XmlReader = {
+    parameters += ("mode" -> mode)
     this
   }
 
@@ -79,6 +79,11 @@ class XmlReader extends Serializable {
 
   def withColumnNameOfCorruptRecord(name: String): XmlReader = {
     parameters += ("columnNameOfCorruptRecord" -> name)
+    this
+  }
+
+  def withIgnoreSurroundingSpaces(ignore: Boolean): XmlReader = {
+    parameters += ("ignoreSurroundingSpaces" -> ignore.toString)
     this
   }
 
