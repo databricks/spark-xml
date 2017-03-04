@@ -63,6 +63,7 @@ When reading files the API accepts several options:
 * `attributePrefix`: The prefix for attributes so that we can differentiate attributes and elements. This will be the prefix for field names. Default is `_`.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
 * `charset`: Defaults to 'UTF-8' but can be set to other valid charset names
+* `ignoreSurroundingSpaces`: Defines whether or not surrounding whitespaces from values being read should be skipped. Default is false.
 
 When writing files the API accepts several options:
 * `path`: Location to write files.

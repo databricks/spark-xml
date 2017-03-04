@@ -41,6 +41,8 @@ private[xml] class XmlOptions(
   val nullValue = parameters.getOrElse("nullValue", XmlOptions.DEFAULT_NULL_VALUE)
   val columnNameOfCorruptRecord =
     parameters.getOrElse("columnNameOfCorruptRecord", "_corrupt_record")
+  val ignoreSurroundingSpaces =
+    parameters.get("ignoreSurroundingSpaces").map(_.toBoolean).getOrElse(false)
 
   // Leave this option for backwards compatibility.
   private val failFastFlag = parameters.get("failFast").map(_.toBoolean).getOrElse(false)

@@ -36,6 +36,7 @@ import com.databricks.spark.xml.util.ParseModes
 class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val tempEmptyDir = "target/test/empty/"
   val agesFile = "src/test/resources/ages.xml"
+  val agesWithSpacesFile = "src/test/resources/ages-with-spaces.xml"
   val booksFile = "src/test/resources/books.xml"
   val booksNestedObjectFile = "src/test/resources/books-nested-object.xml"
   val booksNestedArrayFile = "src/test/resources/books-nested-array.xml"
@@ -829,5 +830,18 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .load(gpsEmptyField)
     assert(resultsTwo.selectExpr("time").head().isNullAt(0))
     assert(resultsTwo.collect().size === numGPS)
+  }
+
+  test("ignoreSurroundingSpaces test") {
+    val results = new XmlReader()
+      .withIgnoreSurroundingSpaces(true)
+      .withRowTag(agesTag)
+      .xmlFile(sqlContext, agesWithSpacesFile)
+      .collect()
+    val attrValOne = results(0).get(0).asInstanceOf[Row](1)
+    val attrValTwo = results(1).get(0).asInstanceOf[Row](0)
+    assert(attrValOne === "1990-02-24")
+    assert(attrValTwo === 30)
+    assert(results.length === numAges)
   }
 }
