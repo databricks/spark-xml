@@ -80,68 +80,13 @@ private[xml] object XmlFile {
       parameters: Map[String, String] = Map()): Unit = {
     val options = XmlOptions(parameters.toMap)
     val codecClass = CompressionCodecs.getCodecClass(options.codec)
-    val rowSchema = dataFrame.schema
-    val indent = XmlFile.DEFAULT_INDENT
-    val rowSeparator = XmlFile.DEFAULT_ROW_SEPARATOR
 
-    val xmlRDD = dataFrame.rdd.mapPartitions { iter =>
-      val factory = XMLOutputFactory.newInstance()
-      val writer = new CharArrayWriter()
-      val xmlWriter = factory.createXMLStreamWriter(writer)
-      val indentingXmlWriter = new IndentingXMLStreamWriter(xmlWriter)
-      indentingXmlWriter.setIndentStep(indent)
-
-      indentingXmlWriter.writeStartElement(options.rootTag)
-      for ((name, value) <- options.rootAttributes) {
-        indentingXmlWriter.writeAttribute(name, value)
-      }
-      val startElement = writer.toString
-      writer.reset()
-
-      new Iterator[String] {
-        var firstRow: Boolean = true
-        var lastRow: Boolean = true
-
-        override def hasNext: Boolean = iter.hasNext || firstRow || lastRow
-
-        override def next: String = {
-          if (iter.nonEmpty) {
-            val xml = {
-              StaxXmlGenerator(
-                rowSchema,
-                indentingXmlWriter,
-                options)(iter.next())
-              writer.toString
-            }
-            writer.reset()
-
-            if (firstRow) {
-              firstRow = false
-              startElement + xml
-            } else {
-              xml.stripPrefix(rowSeparator)
-            }
-          } else {
-            indentingXmlWriter.writeEndDocument()
-            val endElement = writer.toString
-            indentingXmlWriter.close()
-            if (!firstRow) {
-              lastRow = false
-              endElement
-            } else {
-              // This means the iterator was initially empty.
-              firstRow = false
-              lastRow = false
-              ""
-            }
-          }
-        }
-      }
-    }
+    val xmlRdd = XmlRDD(dataFrame, parameters)
 
     codecClass match {
-      case null => xmlRDD.saveAsTextFile(path)
-      case codec => xmlRDD.saveAsTextFile(path, codec)
+      case null => xmlRdd.saveAsTextFile(path)
+      case codec => xmlRdd.saveAsTextFile(path, codec)
     }
   }
+
 }

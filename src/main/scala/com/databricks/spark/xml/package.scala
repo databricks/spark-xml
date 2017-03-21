@@ -20,7 +20,7 @@ import scala.collection.Map
 import org.apache.hadoop.io.compress.CompressionCodec
 
 import org.apache.spark.sql.{DataFrame, SQLContext}
-import com.databricks.spark.xml.util.XmlFile
+import com.databricks.spark.xml.util.{XmlFile, XmlRDD}
 
 package object xml {
   /**
@@ -82,12 +82,10 @@ package object xml {
     def saveAsXmlFile(
         path: String, parameters: Map[String, String] = Map(),
         compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
-      val mutableParams = collection.mutable.Map(parameters.toSeq: _*)
-      val safeCodec = mutableParams.get("codec")
+      val codecOpt = parameters.get("codec")
         .orElse(Option(compressionCodec).map(_.getCanonicalName))
-        .orNull
-      mutableParams.put("codec", safeCodec)
-      XmlFile.saveAsXmlFile(dataFrame, path, mutableParams.toMap)
+      val paramsWithCodec = codecOpt.map(c => parameters + ("codec" -> c)).getOrElse(parameters)
+      XmlFile.saveAsXmlFile(dataFrame, path, paramsWithCodec)
     }
   }
 }
