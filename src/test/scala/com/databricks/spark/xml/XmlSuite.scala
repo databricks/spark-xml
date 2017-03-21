@@ -458,6 +458,43 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       |</books>""".stripMargin)
   }
 
+  test("save with root element attributes") {
+    TestUtils.deleteRecursively(new File(tempEmptyDir))
+    new File(tempEmptyDir).mkdirs()
+    val filePath = tempEmptyDir + "data-null-attrs.xml"
+    val schema = StructType(List(
+      StructField("title", StringType),
+      StructField("author", StructType(List(
+        StructField("VALUE", StringType),
+        StructField("_a:starSign", StringType)
+      )))
+    ))
+    val data = sqlContext.sparkContext.parallelize(List(
+      List("Harry Potter and the Philosopher's Stone", Row("J K Rowling", "Leo")),
+      List("The Winds of Winter", Row("George R R Martin", "Virgo")),
+      List("Paradise Lost", Row("John Milton", "Sagittarius"))
+    )).map(Row.fromSeq)
+    val df = sqlContext.createDataFrame(data, schema)
+    df.coalesce(1).saveAsXmlFile(filePath, Map("rowTag" -> booksTag, "rootTag" -> booksRootTag, "nullValue" -> null,
+      "attributePrefix" -> "_", "_xmlns" -> "http://example.com/books", "_xmlns:a" -> "http://example.com/authors",
+      "valueTag" -> "VALUE"))
+    val xml = Files.readAllLines(Paths.get(filePath + "/part-00000"), Charset.defaultCharset()).asScala.mkString("\n")
+    assert(xml === """<books xmlns="http://example.com/books" xmlns:a="http://example.com/authors">
+      |    <book>
+      |        <title>Harry Potter and the Philosopher's Stone</title>
+      |        <author a:starSign="Leo">J K Rowling</author>
+      |    </book>
+      |    <book>
+      |        <title>The Winds of Winter</title>
+      |        <author a:starSign="Virgo">George R R Martin</author>
+      |    </book>
+      |    <book>
+      |        <title>Paradise Lost</title>
+      |        <author a:starSign="Sagittarius">John Milton</author>
+      |    </book>
+      |</books>""".stripMargin)
+  }
+
   test("DSL save dataframe not read from a XML file") {
     // Create temp directory
     TestUtils.deleteRecursively(new File(tempEmptyDir))

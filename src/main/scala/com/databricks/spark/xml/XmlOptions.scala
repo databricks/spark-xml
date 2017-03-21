@@ -61,6 +61,11 @@ private[xml] class XmlOptions(
   val dropMalformed = ParseModes.isDropMalformedMode(parseMode)
   val permissive = ParseModes.isPermissiveMode(parseMode)
 
+  val rootAttributes: Map[String, String] = parameters.collect {
+    case (k, v) if k.startsWith(attributePrefix) && k.size > attributePrefix.length =>
+      k.substring(attributePrefix.length) -> v
+  }
+
   require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")
   require(attributePrefix.nonEmpty, "'attributePrefix' option should not be empty string.")
   require(valueTag.nonEmpty, "'valueTag' option should not be empty string.")

@@ -80,8 +80,6 @@ private[xml] object XmlFile {
       parameters: Map[String, String] = Map()): Unit = {
     val options = XmlOptions(parameters.toMap)
     val codecClass = CompressionCodecs.getCodecClass(options.codec)
-    val startElement = s"<${options.rootTag}>"
-    val endElement = s"</${options.rootTag}>"
     val rowSchema = dataFrame.schema
     val indent = XmlFile.DEFAULT_INDENT
     val rowSeparator = XmlFile.DEFAULT_ROW_SEPARATOR
@@ -92,6 +90,13 @@ private[xml] object XmlFile {
       val xmlWriter = factory.createXMLStreamWriter(writer)
       val indentingXmlWriter = new IndentingXMLStreamWriter(xmlWriter)
       indentingXmlWriter.setIndentStep(indent)
+
+      indentingXmlWriter.writeStartElement(options.rootTag)
+      for ((name, value) <- options.rootAttributes) {
+        indentingXmlWriter.writeAttribute(name, value)
+      }
+      val startElement = writer.toString
+      writer.reset()
 
       new Iterator[String] {
         var firstRow: Boolean = true
@@ -110,16 +115,15 @@ private[xml] object XmlFile {
             }
             writer.reset()
 
-            // Here it needs to add indentations for the start of each line,
-            // in order to insert the start element and end element.
-            val indentedXml = indent + xml.replaceAll(rowSeparator, rowSeparator + indent)
             if (firstRow) {
               firstRow = false
-              startElement + rowSeparator + indentedXml
+              startElement + xml
             } else {
-              indentedXml
+              xml.stripPrefix(rowSeparator)
             }
           } else {
+            indentingXmlWriter.writeEndDocument()
+            val endElement = writer.toString
             indentingXmlWriter.close()
             if (!firstRow) {
               lastRow = false
