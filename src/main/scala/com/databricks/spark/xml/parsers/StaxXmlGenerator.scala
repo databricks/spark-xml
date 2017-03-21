@@ -127,6 +127,10 @@ private[xml] object StaxXmlGenerator {
     // Writing attributes
     writer.writeStartElement(options.rowTag)
     attributes.foreach {
+      case (f, v) if f.name.startsWith(options.attributePrefix) && (v == null || f.dataType == NullType) =>
+          Option(options.nullValue).foreach {
+            writer.writeAttribute(f.name.substring(options.attributePrefix.length), _)
+          }
       case (f, v) =>
         writer.writeAttribute(f.name.substring(options.attributePrefix.length), v.toString)
     }

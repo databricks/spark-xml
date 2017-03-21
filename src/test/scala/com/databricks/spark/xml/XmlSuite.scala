@@ -16,10 +16,12 @@
 package com.databricks.spark.xml
 
 import java.io.File
-import java.nio.charset.UnsupportedCharsetException
+import java.nio.charset.{Charset, UnsupportedCharsetException}
+import java.nio.file.{Files, Paths}
 import java.sql.{Date, Timestamp}
 
 import scala.io.Source
+import scala.collection.JavaConverters._
 
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 import org.apache.hadoop.conf.Configuration
@@ -424,6 +426,36 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     assert(booksCopy.count == books.count)
     assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+  }
+
+  test("save with null attribute values") {
+    TestUtils.deleteRecursively(new File(tempEmptyDir))
+    new File(tempEmptyDir).mkdirs()
+    val filePath = tempEmptyDir + "data-null-attrs.xml"
+    val schema = StructType(List(
+      StructField("title", StringType),
+      StructField("author", StringType),
+      StructField("_publishDate", StringType),
+      StructField("_genre", StringType)
+    ))
+    val data = sqlContext.sparkContext.parallelize(List(
+      List("Harry Potter and the Philosopher's Stone", "J K Rowling", "1997", null),
+      List("The Winds of Winter", "George R R Martin", null, "fantasy")
+    )).map(Row.fromSeq)
+    val df = sqlContext.createDataFrame(data, schema)
+    df.coalesce(1).saveAsXmlFile(filePath, Map("rowTag" -> booksTag, "rootTag" -> booksRootTag, "nullValue" -> null,
+      "attributePrefix" -> "_"))
+    val xml = Files.readAllLines(Paths.get(filePath + "/part-00000"), Charset.defaultCharset()).asScala.mkString("\n")
+    assert(xml === """<books>
+      |    <book publishDate="1997">
+      |        <title>Harry Potter and the Philosopher's Stone</title>
+      |        <author>J K Rowling</author>
+      |    </book>
+      |    <book genre="fantasy">
+      |        <title>The Winds of Winter</title>
+      |        <author>George R R Martin</author>
+      |    </book>
+      |</books>""".stripMargin)
   }
 
   test("DSL save dataframe not read from a XML file") {
