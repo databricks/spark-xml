@@ -443,9 +443,10 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       List("The Winds of Winter", "George R R Martin", null, "fantasy")
     )).map(Row.fromSeq)
     val df = sqlContext.createDataFrame(data, schema)
-    df.coalesce(1).saveAsXmlFile(filePath, Map("rowTag" -> booksTag, "rootTag" -> booksRootTag, "nullValue" -> null,
-      "attributePrefix" -> "_"))
-    val xml = Files.readAllLines(Paths.get(filePath + "/part-00000"), Charset.defaultCharset()).asScala.mkString("\n")
+    df.coalesce(1).saveAsXmlFile(filePath, Map("rowTag" -> booksTag, "rootTag" -> booksRootTag,
+      "nullValue" -> null, "attributePrefix" -> "_"))
+    val xml = Files.readAllLines(Paths.get(filePath + "/part-00000"),
+      Charset.defaultCharset()).asScala.mkString("\n")
     assert(xml === """<books>
       |    <book publishDate="1997">
       |        <title>Harry Potter and the Philosopher's Stone</title>
@@ -475,10 +476,11 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       List("Paradise Lost", Row("John Milton", "Sagittarius"))
     )).map(Row.fromSeq)
     val df = sqlContext.createDataFrame(data, schema)
-    df.coalesce(1).saveAsXmlFile(filePath, Map("rowTag" -> booksTag, "rootTag" -> booksRootTag, "nullValue" -> null,
-      "attributePrefix" -> "_", "_xmlns" -> "http://example.com/books", "_xmlns:a" -> "http://example.com/authors",
-      "valueTag" -> "VALUE"))
-    val xml = Files.readAllLines(Paths.get(filePath + "/part-00000"), Charset.defaultCharset()).asScala.mkString("\n")
+    df.coalesce(1).saveAsXmlFile(filePath, Map("rowTag" -> booksTag, "rootTag" -> booksRootTag,
+      "nullValue" -> null, "attributePrefix" -> "_", "_xmlns" -> "http://example.com/books",
+      "_xmlns:a" -> "http://example.com/authors", "valueTag" -> "VALUE"))
+    val xml = Files.readAllLines(Paths.get(filePath + "/part-00000"),
+      Charset.defaultCharset()).asScala.mkString("\n")
     assert(xml === """<books xmlns="http://example.com/books" xmlns:a="http://example.com/authors">
       |    <book>
       |        <title>Harry Potter and the Philosopher's Stone</title>

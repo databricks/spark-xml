@@ -29,8 +29,7 @@ class XmlRDDSuite extends FunSuite with BeforeAndAfterAll {
     val rows: RDD[Row] = sqlContext.sparkContext.parallelize(Seq[Row]())
     val df = sqlContext.createDataFrame(rows, StructType(Array(StructField("ROW", StringType))))
     val xmlRdd = XmlRDD(df, Map())
-    xmlRdd.collect().foreach(println)
-    assert(xmlRdd.isEmpty)
+    assert(xmlRdd.collect().isEmpty)
   }
 
   test("RDD contains a string for each row of the dataframe plus opening and closing root tags") {
