@@ -182,49 +182,68 @@ OPTIONS (path "books.xml", rowTag "book")
 
 ```scala
 import org.apache.spark.sql.SQLContext
+import com.databricks.spark.xml._
 
 val sqlContext = new SQLContext(sc)
 val df = sqlContext.read
-    .format("com.databricks.spark.xml")
-    .option("rowTag", "book")
-    .load("books.xml")
+  .option("rowTag", "book")
+  .xml("books.xml")
 
 val selectedData = df.select("author", "_id")
 selectedData.write
-    .format("com.databricks.spark.xml")
-    .option("rootTag", "books")
-    .option("rowTag", "book")
-    .save("newbooks.xml")
+  .option("rootTag", "books")
+  .option("rowTag", "book")
+  .xml("newbooks.xml")
+```
+
+Alternatively you can specify the format to use instead:
+
+```scala
+import org.apache.spark.sql.SQLContext
+
+val sqlContext = new SQLContext(sc)
+val df = sqlContext.read
+  .format("com.databricks.spark.xml")
+  .option("rowTag", "book")
+  .load("books.xml")
+
+val selectedData = df.select("author", "_id")
+selectedData.write
+  .format("com.databricks.spark.xml")
+  .option("rootTag", "books")
+  .option("rowTag", "book")
+  .save("newbooks.xml")
 ```
 
 You can manually specify the schema when reading data:
+
 ```scala
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.types.{StructType, StructField, StringType, DoubleType};
 
 val sqlContext = new SQLContext(sc)
 val customSchema = StructType(Array(
-    StructField("_id", StringType, nullable = true),
-    StructField("author", StringType, nullable = true),
-    StructField("description", StringType, nullable = true),
-    StructField("genre", StringType ,nullable = true),
-    StructField("price", DoubleType, nullable = true),
-    StructField("publish_date", StringType, nullable = true),
-    StructField("title", StringType, nullable = true)))
+  StructField("_id", StringType, nullable = true),
+  StructField("author", StringType, nullable = true),
+  StructField("description", StringType, nullable = true),
+  StructField("genre", StringType ,nullable = true),
+  StructField("price", DoubleType, nullable = true),
+  StructField("publish_date", StringType, nullable = true),
+  StructField("title", StringType, nullable = true)))
 
 
 val df = sqlContext.read
-    .format("com.databricks.spark.xml")
-    .option("rowTag", "book")
-    .schema(customSchema)
-    .load("books.xml")
+  .format("com.databricks.spark.xml")
+  .option("rowTag", "book")
+  .schema(customSchema)
+  .load("books.xml")
 
 val selectedData = df.select("author", "_id")
 selectedData.write
-    .format("com.databricks.spark.xml")
-    .option("rootTag", "books")
-    .option("rowTag", "book")
-    .save("newbooks.xml")
+  .format("com.databricks.spark.xml")
+  .option("rootTag", "books")
+  .option("rowTag", "book")
+  .save("newbooks.xml")
 ```
 
 ### Java API
@@ -234,15 +253,15 @@ import org.apache.spark.sql.SQLContext
 
 SQLContext sqlContext = new SQLContext(sc);
 DataFrame df = sqlContext.read()
-    .format("com.databricks.spark.xml")
-    .option("rowTag", "book")
-    .load("books.xml");
+  .format("com.databricks.spark.xml")
+  .option("rowTag", "book")
+  .load("books.xml");
 
 df.select("author", "_id").write()
-    .format("com.databricks.spark.xml")
-    .option("rootTag", "books")
-    .option("rowTag", "book")
-    .save("newbooks.xml");
+  .format("com.databricks.spark.xml")
+  .option("rootTag", "books")
+  .option("rowTag", "book")
+  .save("newbooks.xml");
 ```
 
 You can manually specify schema:
@@ -252,30 +271,29 @@ import org.apache.spark.sql.types.*;
 
 SQLContext sqlContext = new SQLContext(sc);
 StructType customSchema = new StructType(new StructField[] {
-    new StructField("_id", DataTypes.StringType, true, Metadata.empty()),
-    new StructField("author", DataTypes.StringType, true, Metadata.empty()),
-    new StructField("description", DataTypes.StringType, true, Metadata.empty()),
-    new StructField("genre", DataTypes.StringType, true, Metadata.empty()),
-    new StructField("price", DataTypes.DoubleType, true, Metadata.empty()),
-    new StructField("publish_date", DataTypes.StringType, true, Metadata.empty()),
-    new StructField("title", DataTypes.StringType, true, Metadata.empty())
+  new StructField("_id", DataTypes.StringType, true, Metadata.empty()),
+  new StructField("author", DataTypes.StringType, true, Metadata.empty()),
+  new StructField("description", DataTypes.StringType, true, Metadata.empty()),
+  new StructField("genre", DataTypes.StringType, true, Metadata.empty()),
+  new StructField("price", DataTypes.DoubleType, true, Metadata.empty()),
+  new StructField("publish_date", DataTypes.StringType, true, Metadata.empty()),
+  new StructField("title", DataTypes.StringType, true, Metadata.empty())
 });
 
 DataFrame df = sqlContext.read()
-    .format("com.databricks.spark.xml")
-    .option("rowTag", "book")
-    .schema(customSchema)
-    .load("books.xml");
+  .format("com.databricks.spark.xml")
+  .option("rowTag", "book")
+  .schema(customSchema)
+  .load("books.xml");
 
 df.select("author", "_id").write()
-    .format("com.databricks.spark.xml")
-    .option("rootTag", "books")
-    .option("rowTag", "book")
-    .save("newbooks.xml");
+  .format("com.databricks.spark.xml")
+  .option("rootTag", "books")
+  .option("rowTag", "book")
+  .save("newbooks.xml");
 ```
 
 ### Python API
-
 
 ```python
 from pyspark.sql import SQLContext
