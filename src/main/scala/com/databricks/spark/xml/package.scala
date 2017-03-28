@@ -19,7 +19,7 @@ import scala.collection.Map
 
 import org.apache.hadoop.io.compress.CompressionCodec
 
-import org.apache.spark.sql.{DataFrame, SQLContext}
+import org.apache.spark.sql._
 import com.databricks.spark.xml.util.XmlFile
 
 package object xml {
@@ -27,7 +27,7 @@ package object xml {
    * Adds a method, `xmlFile`, to [[SQLContext]] that allows reading XML data.
    */
   implicit class XmlContext(sqlContext: SQLContext) extends Serializable {
-    @deprecated("Use DataFrameReader.read()", "0.4.0")
+    @deprecated("Use read.format(\"xml\") or read.xml", "0.4.0")
     def xmlFile(
         filePath: String,
         rowTag: String = XmlOptions.DEFAULT_ROW_TAG,
@@ -62,6 +62,32 @@ package object xml {
    * Note that a codec entry in the parameters map will be ignored.
    */
   implicit class XmlSchemaRDD(dataFrame: DataFrame) {
+    @deprecated("Use write.format(\"xml\") or write.xml", "0.4.0")
+    def saveAsXmlFile(
+        path: String, parameters: Map[String, String] = Map(),
+        compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
+      val mutableParams = collection.mutable.Map(parameters.toSeq: _*)
+      val safeCodec = mutableParams.get("codec")
+        .orElse(Option(compressionCodec).map(_.getCanonicalName))
+        .orNull
+      mutableParams.put("codec", safeCodec)
+      XmlFile.saveAsXmlFile(dataFrame, path, mutableParams.toMap)
+    }
+  }
+
+  /**
+   * Adds a method, `xml`, to DataFrameReader that allows you to read avro files using
+   * the DataFileReader
+   */
+  implicit class XmlDataFrameReader(reader: DataFrameReader) {
+    def xml: String => DataFrame = reader.format("com.databricks.spark.xml").load
+  }
+
+  /**
+   * Adds a method, `xml`, to DataFrameWriter that allows you to write avro files using
+   * the DataFileWriter
+   */
+  implicit class XmlDataFrameWriter[T](writer: DataFrameWriter[T]) {
     // Note that writing a XML file from [[DataFrame]] having a field [[ArrayType]] with
     // its element as [[ArrayType]] would have an additional nested field for the element.
     // For example, the [[DataFrame]] having a field below,
@@ -78,16 +104,6 @@ package object xml {
     //   </fieldA>
     //
     // Namely, roundtrip in writing and reading can end up in different schema structure.
-    @deprecated("Use DataFrameWriter.write()", "0.4.0")
-    def saveAsXmlFile(
-        path: String, parameters: Map[String, String] = Map(),
-        compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
-      val mutableParams = collection.mutable.Map(parameters.toSeq: _*)
-      val safeCodec = mutableParams.get("codec")
-        .orElse(Option(compressionCodec).map(_.getCanonicalName))
-        .orNull
-      mutableParams.put("codec", safeCodec)
-      XmlFile.saveAsXmlFile(dataFrame, path, mutableParams.toMap)
-    }
+    def xml: String => Unit = writer.format("com.databricks.spark.xml").save
   }
 }

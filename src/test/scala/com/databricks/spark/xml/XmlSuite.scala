@@ -96,9 +96,9 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test with xml having unbalanced datatypes") {
-    val results = sqlContext.read.format("xml")
+    val results = sqlContext.read
       .option("treatEmptyValuesAsNulls", "true")
-      .load(gpsEmptyField)
+      .xml(gpsEmptyField)
 
     assert(results.collect().size === numGPS)
   }
@@ -468,7 +468,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val data = sqlContext.sparkContext.parallelize(
       List(List(List("aa", "bb"), List("aa", "bb")))).map(Row(_))
     val df = sqlContext.createDataFrame(data, schema)
-    df.write.format("xml").save(copyFilePath)
+    df.write.xml(copyFilePath)
 
     // When [[ArrayType]] has [[ArrayType]] as elements, it is confusing what is the element
     // name for XML file. Now, it is "item". So, "item" field is additionally added
