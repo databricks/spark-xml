@@ -27,7 +27,15 @@ import com.databricks.spark.xml.util.XmlFile
  * JDBC server).
  */
 class DefaultSource
-  extends RelationProvider with SchemaRelationProvider with CreatableRelationProvider {
+  extends RelationProvider
+  with SchemaRelationProvider
+  with CreatableRelationProvider
+  with DataSourceRegister {
+
+  /**
+   * Short alias for spark-xml data source.
+   */
+  override def shortName(): String = "xml"
 
   private def checkPath(parameters: Map[String, String]): String = {
     parameters.getOrElse("path", sys.error("'path' must be specified for XML data."))
