@@ -64,6 +64,8 @@ private[xml] class XmlOptions(
   require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")
   require(attributePrefix.nonEmpty, "'attributePrefix' option should not be empty string.")
   require(valueTag.nonEmpty, "'valueTag' option should not be empty string.")
+  require(valueTag != attributePrefix,
+    "'valueTag' and 'attributePrefix' options should not be the same.")
 }
 
 private[xml] object XmlOptions {

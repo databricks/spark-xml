@@ -54,11 +54,12 @@ private[xml] object StaxXmlGenerator {
     def writeChild(name: String, dt: DataType, v: Any): Unit = {
       (dt, v) match {
         // If this is meant to be attribute, write an attribute
-        case (_, null) | (NullType, _) if name.startsWith(options.attributePrefix) =>
+        case (_, null) | (NullType, _)
+          if name.startsWith(options.attributePrefix) && name != options.valueTag =>
           Option(options.nullValue).foreach {
             writer.writeAttribute(name.substring(options.attributePrefix.length), _)
           }
-        case _ if name.startsWith(options.attributePrefix) =>
+        case _ if name.startsWith(options.attributePrefix) && name != options.valueTag =>
           writer.writeAttribute(name.substring(options.attributePrefix.length), v.toString)
 
         // For ArrayType, we just need to write each as XML element.
@@ -97,8 +98,8 @@ private[xml] object StaxXmlGenerator {
         }
 
       case (MapType(kv, vt, _), mv: Map[_, _]) =>
-        val (attributes, elements) = mv.toSeq.partition {
-          case (f, _) => f.toString.startsWith(options.attributePrefix)
+        val (attributes, elements) = mv.toSeq.partition { case (f, _) =>
+          f.toString.startsWith(options.attributePrefix) && f.toString != options.valueTag
         }
         // We need to write attributes first before the value.
         (attributes ++ elements).foreach {
@@ -107,8 +108,8 @@ private[xml] object StaxXmlGenerator {
         }
 
       case (StructType(ty), r: Row) =>
-        val (attributes, elements) = ty.zip(r.toSeq).partition {
-          case (f, _) => f.name.startsWith(options.attributePrefix)
+        val (attributes, elements) = ty.zip(r.toSeq).partition { case (f, _) =>
+          f.name.startsWith(options.attributePrefix) && f.name != options.valueTag
         }
         // We need to write attributes first before the value.
         (attributes ++ elements).foreach {
@@ -121,13 +122,12 @@ private[xml] object StaxXmlGenerator {
           s"Failed to convert value $v (class of ${v.getClass}) in type $dt to XML.")
     }
 
-    val (attributes, elements) = schema.zip(row.toSeq).partition {
-      case (f, v) => f.name.startsWith(options.attributePrefix)
+    val (attributes, elements) = schema.zip(row.toSeq).partition { case (f, v) =>
+      f.name.startsWith(options.attributePrefix) && f.name != options.valueTag
     }
     // Writing attributes
     writer.writeStartElement(options.rowTag)
-    attributes.foreach {
-      case (f, v) =>
+    attributes.foreach { case (f, v) =>
         writer.writeAttribute(f.name.substring(options.attributePrefix.length), v.toString)
     }
     // Writing elements

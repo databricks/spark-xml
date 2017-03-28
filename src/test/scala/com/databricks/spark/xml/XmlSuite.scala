@@ -426,6 +426,37 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
   }
 
+  test("Write values properly as given to valueTag even if it starts with attributePrefix") {
+    // Create temp directory
+    TestUtils.deleteRecursively(new File(tempEmptyDir))
+    new File(tempEmptyDir).mkdirs()
+    val copyFilePath = tempEmptyDir + "books-copy.xml"
+
+    val rootTag = "catalog"
+    val books = sqlContext.read.format("xml")
+      .option("valueTag", "#VALUE")
+      .option("attributePrefix", "#")
+      .option("rowTag", booksTag)
+      .load(booksAttributesInNoChild)
+
+    books.write
+      .format("xml")
+      .option("valueTag", "#VALUE")
+      .option("attributePrefix", "#")
+      .option("rootTag", rootTag)
+      .option("rowTag", booksTag)
+      .save(copyFilePath)
+
+    val booksCopy = sqlContext.read.format("xml")
+      .option("valueTag", "#VALUE")
+      .option("attributePrefix", "_")
+      .option("rowTag", booksTag)
+      .load(copyFilePath)
+
+    assert(booksCopy.count == books.count)
+    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+  }
+
   test("DSL save dataframe not read from a XML file") {
     // Create temp directory
     TestUtils.deleteRecursively(new File(tempEmptyDir))
@@ -816,6 +847,17 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       sqlContext.read.format("xml").option("valueTag", "").load(carsFile)
     }.getMessage
     assert(messageThree == "requirement failed: 'valueTag' option should not be empty string.")
+  }
+
+  test("valueTag and attributePrefix should not be the same.") {
+    val messageOne = intercept[IllegalArgumentException] {
+      sqlContext.read.format("xml")
+        .option("valueTag", "#abc")
+        .option("attributePrefix", "#abc")
+        .load(carsFile)
+    }.getMessage
+    assert(messageOne ==
+      "requirement failed: 'valueTag' and 'attributePrefix' options should not be the same.")
   }
 
   test("nullValue and treatEmptyValuesAsNulls test") {
