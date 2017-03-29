@@ -558,6 +558,23 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.collect().size === numBooks)
   }
 
+  test("DSL test schema inferred correctly with sampling ratio") {
+    val results = sqlContext
+      .xmlFile(booksFile, rootTag = booksFileTag, samplingRatio = 0.5)
+
+    assert(results.schema == StructType(List(
+      StructField("author", StringType, nullable = true),
+      StructField("description", StringType, nullable = true),
+      StructField("genre", StringType, nullable = true),
+      StructField("id", StringType, nullable = true),
+      StructField("price", DoubleType, nullable = true),
+      StructField("publish_date", StringType, nullable = true),
+      StructField("title", StringType, nullable = true))
+    ))
+
+    assert(results.collect().size === numBooks)
+  }
+
   test("DSL test schema (object) inferred correctly") {
     val results = sqlContext.read.format("xml")
       .option("rowTag", booksTag)
