@@ -102,6 +102,19 @@ class TypeCastSuite extends FunSuite {
     assert(TypeCast.isTimestamp(timestamp))
   }
 
+  test("Types with sign are cast correctly") {
+    assert(TypeCast.signSafeToInt("+10") == 10)
+    assert(TypeCast.signSafeToLong("-10") == -10)
+    assert(TypeCast.signSafeToFloat("1.00") == 1.0)
+    assert(TypeCast.signSafeToDouble("-1.00") == -1.0)
+  }
+
+  test("Types with sign are checked correctly") {
+    assert(TypeCast.isBoolean("true"))
+    assert(TypeCast.isLong("10"))
+    assert(TypeCast.isDouble("+10.1"))
+  }
+
   test("Float and Double Types are cast correctly with Locale") {
     val options = new XmlOptions(Map.empty[String, String])
     val locale : Locale = new Locale("fr", "FR")
