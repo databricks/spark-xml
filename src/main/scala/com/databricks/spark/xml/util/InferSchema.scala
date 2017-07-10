@@ -16,20 +16,21 @@
 package com.databricks.spark.xml.util
 
 import java.io.ByteArrayInputStream
-import javax.xml.stream.events._
 import javax.xml.stream._
+import javax.xml.stream.events._
 
-import com.databricks.spark.xml.parsers.StaxXmlParserUtils
-import org.slf4j.LoggerFactory
-
+import scala.collection.JavaConversions._
 import scala.collection.Seq
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConversions._
+import scala.util.control.NonFatal
 
+import org.slf4j.LoggerFactory
+
+import com.databricks.spark.xml.XmlOptions
+import com.databricks.spark.xml.parsers.StaxXmlParserUtils
+import com.databricks.spark.xml.util.TypeCast._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
-import com.databricks.spark.xml.util.TypeCast._
-import com.databricks.spark.xml.XmlOptions
 
 private[xml] object InferSchema {
   private val logger = LoggerFactory.getLogger(InferSchema.getClass)
@@ -100,9 +101,9 @@ private[xml] object InferSchema {
 
           Some(inferObject(parser, options, rootAttributes))
         } catch {
-          case _: XMLStreamException if shouldHandleCorruptRecord =>
+          case NonFatal(_) if shouldHandleCorruptRecord =>
             Some(StructType(Seq(StructField(options.columnNameOfCorruptRecord, StringType))))
-          case _: XMLStreamException =>
+          case NonFatal(_) =>
             None
         }
       }

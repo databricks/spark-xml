@@ -16,8 +16,11 @@
 package com.databricks.spark.xml;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashMap;
 
+import org.apache.spark.SparkConf;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -25,7 +28,6 @@ import org.junit.Test;
 
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.*;
-import com.databricks.spark.xml.XmlOptions;
 
 public class JavaXmlSuite {
     private transient SQLContext sqlContext;
@@ -37,8 +39,12 @@ public class JavaXmlSuite {
     private String tempDir = "target/test/xmlData/";
 
     @Before
-    public void setUp() {
-        sqlContext = new SQLContext(new SparkContext("local[2]", "JavaXmlSuite"));
+    public void setUp() throws IOException {
+        // Fix Spark 2.0.0 on windows, see https://issues.apache.org/jira/browse/SPARK-15893
+        SparkConf conf = new SparkConf().set(
+                "spark.sql.warehouse.dir",
+                Files.createTempDirectory("spark-warehouse").toString());
+        sqlContext = new SQLContext(new SparkContext("local[2]", "JavaXmlSuite", conf));
     }
 
     @After
