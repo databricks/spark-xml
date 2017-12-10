@@ -22,6 +22,7 @@ import javax.xml.stream._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConversions._
+import scala.util.control.NonFatal
 
 import org.slf4j.LoggerFactory
 
@@ -84,11 +85,7 @@ private[xml] object StaxXmlParser {
           Some(convertObject(parser, schema, options, rootAttributes))
             .orElse(failedRecord(xml))
         } catch {
-          case _: java.lang.NumberFormatException =>
-            failedRecord(xml)
-          case _: java.text.ParseException | _: IllegalArgumentException =>
-            failedRecord(xml)
-          case _: XMLStreamException =>
+          case NonFatal(_) =>
             failedRecord(xml)
         }
       }

@@ -17,21 +17,21 @@ package com.databricks.spark.xml
 
 import java.io.File
 import java.nio.charset.UnsupportedCharsetException
+import java.nio.file.Files
 import java.sql.{Date, Timestamp}
 
 import scala.io.Source
 
-import org.scalatest.{BeforeAndAfterAll, FunSuite}
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.io.LongWritable
-import org.apache.hadoop.io.Text
+import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.io.compress.GzipCodec
+import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
-import org.apache.spark.{SparkException, SparkContext}
-import org.apache.spark.sql.{SaveMode, Row, SQLContext}
-import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions._
 import com.databricks.spark.xml.util.ParseModes
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.{Row, SQLContext, SaveMode}
+import org.apache.spark.{SparkConf, SparkContext, SparkException}
 
 class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val tempEmptyDir = "target/test/empty/"
@@ -58,6 +58,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val nullNestedStructFile = "src/test/resources/null-nested-struct.xml"
   val simpleNestedObjects = "src/test/resources/simple-nested-objects.xml"
   val nestedElementWithNameOfParent = "src/test/resources/nested-element-with-name-of-parent.xml"
+  val booksMalformedAttributes = "src/test/resources/books-malformed-attributes.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -75,7 +76,11 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    sqlContext = new SQLContext(new SparkContext("local[2]", "XmlSuite"))
+    // Fix Spark 2.0.0 on windows, see https://issues.apache.org/jira/browse/SPARK-15893
+    val conf = new SparkConf().set(
+      "spark.sql.warehouse.dir",
+      Files.createTempDirectory("spark-warehouse").toString)
+    sqlContext = new SQLContext(new SparkContext("local[2]", "XmlSuite", conf))
   }
 
   override protected def afterAll(): Unit = {
@@ -885,5 +890,17 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(attrValOne === "1990-02-24")
     assert(attrValTwo === 30)
     assert(results.length === numAges)
+  }
+
+  test("DSL test with malformed attributes") {
+    val results = new XmlReader()
+      .withParseMode(ParseModes.DROP_MALFORMED_MODE)
+        .withRowTag(booksTag)
+        .xmlFile(sqlContext, booksMalformedAttributes)
+        .collect()
+
+    assert(results.length === 2)
+    assert(results(0)(0) === "bk111")
+    assert(results(1)(0) === "bk112")
   }
 }
