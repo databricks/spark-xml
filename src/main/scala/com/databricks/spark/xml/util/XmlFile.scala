@@ -32,7 +32,6 @@ import com.databricks.spark.xml.{XmlOptions, XmlInputFormat}
 
 private[xml] object XmlFile {
   val DEFAULT_INDENT = "    "
-  val DEFAULT_ROW_SEPARATOR = "\n"
 
   def withCharset(
       context: SparkContext,
@@ -80,11 +79,8 @@ private[xml] object XmlFile {
       parameters: Map[String, String] = Map()): Unit = {
     val options = XmlOptions(parameters.toMap)
     val codecClass = CompressionCodecs.getCodecClass(options.codec)
-    val startElement = s"<${options.rootTag}>"
-    val endElement = s"</${options.rootTag}>"
     val rowSchema = dataFrame.schema
     val indent = XmlFile.DEFAULT_INDENT
-    val rowSeparator = XmlFile.DEFAULT_ROW_SEPARATOR
 
     val xmlRDD = dataFrame.rdd.mapPartitions { iter =>
       val factory = XMLOutputFactory.newInstance()
