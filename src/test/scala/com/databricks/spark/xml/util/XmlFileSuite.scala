@@ -22,9 +22,13 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 class XmlFileSuite extends FunSuite with BeforeAndAfterAll {
   val booksFile = "src/test/resources/books.xml"
+  val booksUnicodeInTagNameFile = "src/test/resources/books-unicode-in-tag-name.xml"
+
   val booksFileTag = "book"
+  val booksUnicodeFileTag = "\u66F8" // scalastyle:ignore
 
   val numBooks = 12
+  val numBooksUnicodeInTagName = 3
 
   val utf8 = "utf-8"
 
@@ -46,6 +50,12 @@ class XmlFileSuite extends FunSuite with BeforeAndAfterAll {
   test("read utf-8 encoded file") {
     val baseRDD = XmlFile.withCharset(sparkContext, booksFile, utf8, rowTag = booksFileTag)
     assert(baseRDD.count() === numBooks)
+  }
+
+  test("read file with unicode chars in row tag name") {
+    val baseRDD = XmlFile.withCharset(
+      sparkContext, booksUnicodeInTagNameFile, utf8, rowTag = booksUnicodeFileTag)
+    assert(baseRDD.count() === numBooksUnicodeInTagName)
   }
 
   test("unsupported charset") {

@@ -164,7 +164,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
         // End of file or end of split.
         return false
       } else {
-        if (b == startTag(i)) {
+        if (b.toByte == startTag(i)) {
           if (i >= startTag.length - 1) {
             // Found start tag.
             return true
@@ -192,12 +192,13 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     var ei = 0
     var depth = 0
     while (true) {
-      val b = in.read()
-      if (b == -1) {
+      val rb = in.read()
+      if (rb == -1) {
         // End of file (ignore end of split).
         return false
       } else {
-        buffer.write(b)
+        buffer.write(rb)
+        val b = rb.toByte
         if (b == startTag(si) && b == endTag(ei)) {
           // In start tag or end tag.
           si += 1
