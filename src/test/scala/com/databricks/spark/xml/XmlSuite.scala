@@ -28,7 +28,8 @@ import org.apache.hadoop.io.compress.GzipCodec
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 import com.databricks.spark.xml.XmlOptions._
-import com.databricks.spark.xml.util.ParseModes
+import com.databricks.spark.xml.util.{ParseModes, XmlFile}
+
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Row, SQLContext, SaveMode}
 import org.apache.spark.{SparkConf, SparkContext, SparkException}
@@ -59,11 +60,13 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val simpleNestedObjects = "src/test/resources/simple-nested-objects.xml"
   val nestedElementWithNameOfParent = "src/test/resources/nested-element-with-name-of-parent.xml"
   val booksMalformedAttributes = "src/test/resources/books-malformed-attributes.xml"
+  val fiasHouse = "src/test/resources/fias_house.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
   val topicsTag = "Topic"
   val agesTag = "person"
+  val fiasRowTag = "House"
 
   val numAges = 3
   val numCars = 3
@@ -71,6 +74,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val numBooksComplicated = 3
   val numTopics = 1
   val numGPS = 2
+  val numFiasHouses = 37
 
   private var sqlContext: SQLContext = _
 
@@ -902,5 +906,15 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.length === 2)
     assert(results(0)(0) === "bk111")
     assert(results(1)(0) === "bk112")
+  }
+
+  test("read utf-8 encoded file with empty tag") {
+    val df = sqlContext.read.format("xml")
+      .option("excludeAttribute", "false")
+      .option("rowTag", fiasRowTag)
+      .xml(fiasHouse)
+
+    assert(df.collect().length == numFiasHouses)
+    assert(df.select().where("_HOUSEID is null").count() == 0)
   }
 }

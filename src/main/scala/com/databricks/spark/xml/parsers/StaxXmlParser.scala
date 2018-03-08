@@ -234,16 +234,15 @@ private[xml] object StaxXmlParser {
       options: XmlOptions,
       rootAttributes: Array[Attribute] = Array.empty): Row = {
     val row = new Array[Any](schema.length)
+    val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+    // If there are attributes, then we process them first.
+    convertAttributes(rootAttributes, schema, options).toSeq.foreach { case (f, v) =>
+      nameToIndex.get(f).foreach { row(_) = v }
+    }
     var shouldStop = false
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
-          val nameToIndex = schema.map(_.name).zipWithIndex.toMap
-          // If there are attributes, then we process them first.
-          convertAttributes(rootAttributes, schema, options).toSeq.foreach { case (f, v) =>
-            nameToIndex.get(f).foreach { row(_) = v }
-          }
-
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           val field = e.asStartElement.getName.getLocalPart
 

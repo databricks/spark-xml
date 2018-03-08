@@ -57,12 +57,13 @@ private[xml] class XmlOptions(
     logger.warn(s"$parseMode is not a valid parse mode. Using ${ParseModes.DEFAULT}.")
   }
 
+  require(attributePrefix.nonEmpty, "'attributePrefix' option should not be empty string.")
+
   val failFast = ParseModes.isFailFastMode(parseMode)
   val dropMalformed = ParseModes.isDropMalformedMode(parseMode)
   val permissive = ParseModes.isPermissiveMode(parseMode)
 
   require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")
-  require(attributePrefix.nonEmpty, "'attributePrefix' option should not be empty string.")
   require(valueTag.nonEmpty, "'valueTag' option should not be empty string.")
   require(valueTag != attributePrefix,
     "'valueTag' and 'attributePrefix' options should not be the same.")
