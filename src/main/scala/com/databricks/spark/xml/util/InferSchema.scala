@@ -101,7 +101,8 @@ private[xml] object InferSchema {
 
           Some(inferObject(parser, options, rootAttributes))
         } catch {
-          case NonFatal(_) if shouldHandleCorruptRecord =>
+          case NonFatal(x) if shouldHandleCorruptRecord =>
+            x.printStackTrace()
             Some(StructType(Seq(StructField(options.columnNameOfCorruptRecord, StringType))))
           case NonFatal(_) =>
             None
@@ -222,7 +223,8 @@ private[xml] object InferSchema {
     }
     // We need to manually merges the fields having the sames so that
     // This can be inferred as ArrayType.
-    nameToDataType.foreach{
+    val rootMap = rootAttributes.map(x => (x.getName.toString, ArrayBuffer.empty[DataType] += inferFrom(x.getValue, options))).toMap
+    (rootMap ++ nameToDataType.toMap).foreach {
       case (field, dataTypes) if dataTypes.length > 1 =>
         val elementType = dataTypes.reduceLeft(InferSchema.compatibleType(options))
         builder += StructField(field, ArrayType(elementType), nullable = true)

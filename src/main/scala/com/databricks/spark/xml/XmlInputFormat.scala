@@ -193,6 +193,12 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     var si = 0
     var ei = 0
     var depth = 0
+
+    def checkEmptyTag(currentLetter: Int, position: Int): Boolean = {
+      if (position >= endEmptyTag.length) false
+      else currentLetter == endEmptyTag(position)
+    }
+
     while (true) {
       val b = in.read()
       if (b == -1) {
@@ -200,7 +206,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
         return false
       } else {
         buffer.write(b)
-        if (b == startTag(si) && (b == endTag(ei) || b == endEmptyTag(ei))) {
+        if (b == startTag(si) && (b == endTag(ei) || checkEmptyTag(b, ei))) {
           // In start tag or end tag.
           si += 1
           ei += 1
@@ -215,8 +221,9 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
             si += 1
             ei = 0
           }
-        } else if (b == endTag(ei) || b == endEmptyTag(ei)) {
-          if (ei >= endTag.length - 1 || ei >= endEmptyTag.length - 1) {
+        } else if (b == endTag(ei) || checkEmptyTag(b, ei)) {
+          if ((b == endTag(ei) && ei >= endTag.length - 1) ||
+            (checkEmptyTag(b, ei) && ei >= endEmptyTag.length - 1)) {
             if (depth == 0) {
               // Found closing end tag.
               return true
