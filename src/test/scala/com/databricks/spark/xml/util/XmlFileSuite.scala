@@ -55,6 +55,7 @@ class XmlFileSuite extends FunSuite with BeforeAndAfterAll {
   test("read utf-8 encoded file with empty tag") {
     val baseRDD = XmlFile.withCharset(sparkContext, fiasHouse, utf8, rowTag = fiasRowTag)
     assert(baseRDD.count() == numHouses)
+    baseRDD.collect().foreach(x => assert(x.contains("/>")))
   }
 
   test("unsupported charset") {
