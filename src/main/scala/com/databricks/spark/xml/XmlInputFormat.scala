@@ -54,6 +54,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private var startTag: Array[Byte] = _
   private var currentStartTag: Array[Byte] = _
   private var endTag: Array[Byte] = _
+  private var endEmptyTag: Array[Byte] = _
   private var space: Array[Byte] = _
   private var angleBracket: Array[Byte] = _
 
@@ -75,6 +76,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       Charset.forName(conf.get(XmlInputFormat.ENCODING_KEY, XmlOptions.DEFAULT_CHARSET))
     startTag = conf.get(XmlInputFormat.START_TAG_KEY).getBytes(charset)
     endTag = conf.get(XmlInputFormat.END_TAG_KEY).getBytes(charset)
+    endEmptyTag = "/>".getBytes(charset)
     space = " ".getBytes(charset)
     angleBracket = ">".getBytes(charset)
     require(startTag != null, "Start tag cannot be null.")
@@ -198,7 +200,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
         return false
       } else {
         buffer.write(b)
-        if (b == startTag(si) && b == endTag(ei)) {
+        if (b == startTag(si) && (b == endTag(ei) || b == endEmptyTag(ei))) {
           // In start tag or end tag.
           si += 1
           ei += 1
@@ -213,8 +215,8 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
             si += 1
             ei = 0
           }
-        } else if (b == endTag(ei)) {
-          if (ei >= endTag.length - 1) {
+        } else if (b == endTag(ei) || b == endEmptyTag(ei)) {
+          if (ei >= endTag.length - 1 || ei >= endEmptyTag.length - 1) {
             if (depth == 0) {
               // Found closing end tag.
               return true
