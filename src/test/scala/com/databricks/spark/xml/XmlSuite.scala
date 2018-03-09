@@ -71,7 +71,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val numBooksComplicated = 3
   val numTopics = 1
   val numGPS = 2
-  val numHouses = 37
+  val numFiasHouses = 37
 
   private var sqlContext: SQLContext = _
 
@@ -911,11 +911,9 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .option("rowTag", fiasRowTag)
       .xml(fiasHouse)
 
-    df.printSchema()
-    df.show(10)
     val results = df
       .collect()
-
-    results.foreach(println)
+    assert(results.length == numFiasHouses)
+    assert(df.select().where("_HOUSEID is null").count() == 0)
   }
 }
