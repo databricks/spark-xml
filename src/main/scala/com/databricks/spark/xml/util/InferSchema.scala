@@ -171,18 +171,17 @@ private[xml] object InferSchema {
       rootAttributes: Array[Attribute] = Array.empty): DataType = {
     val builder = Seq.newBuilder[StructField]
     val nameToDataType = collection.mutable.Map.empty[String, ArrayBuffer[DataType]]
+    // If there are attributes, then we should process them first.
+    val rootValuesMap =
+      StaxXmlParserUtils.convertAttributesToValuesMap(rootAttributes, options)
+    rootValuesMap.foreach {
+      case (f, v) =>
+        nameToDataType += (f -> ArrayBuffer(inferFrom(v, options)))
+    }
     var shouldStop = false
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
-          // If there are attributes, then we should process them first.
-          val rootValuesMap =
-            StaxXmlParserUtils.convertAttributesToValuesMap(rootAttributes, options)
-          rootValuesMap.foreach {
-            case (f, v) =>
-              nameToDataType += (f -> ArrayBuffer(inferFrom(v, options)))
-          }
-
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           val valuesMap = StaxXmlParserUtils.convertAttributesToValuesMap(attributes, options)
           val inferredType = inferField(parser, options) match {
@@ -223,8 +222,7 @@ private[xml] object InferSchema {
     }
     // We need to manually merges the fields having the sames so that
     // This can be inferred as ArrayType.
-    val rootMap = rootAttributes.map(x => (x.getName.toString, ArrayBuffer.empty[DataType] += inferFrom(x.getValue, options))).toMap
-    (rootMap ++ nameToDataType.toMap).foreach {
+    nameToDataType.foreach {
       case (field, dataTypes) if dataTypes.length > 1 =>
         val elementType = dataTypes.reduceLeft(InferSchema.compatibleType(options))
         builder += StructField(field, ArrayType(elementType), nullable = true)

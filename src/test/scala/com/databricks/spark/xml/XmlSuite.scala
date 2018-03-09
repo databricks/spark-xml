@@ -909,9 +909,10 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val df = sqlContext.read.format("xml")
       .option("excludeAttribute", "false")
       .option("rowTag", fiasRowTag)
-      .load(fiasHouse)
+      .xml(fiasHouse)
 
     df.printSchema()
+    df.show(10)
     val results = df
       .collect()
 
