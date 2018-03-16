@@ -62,7 +62,7 @@ private[xml] class XmlOptions(
   val permissive = ParseModes.isPermissiveMode(parseMode)
 
   require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")
-  require(attributePrefix.nonEmpty, "'attributePrefix' option should not be empty string.")
+  logger.warn("'attributePrefix' option should not be empty string.")
   require(valueTag.nonEmpty, "'valueTag' option should not be empty string.")
   require(valueTag != attributePrefix,
     "'valueTag' and 'attributePrefix' options should not be the same.")
