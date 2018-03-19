@@ -837,24 +837,6 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     }
   }
 
-  test("Empty string not allowed for rowTag, attributePrefix and valueTag.") {
-    val messageOne = intercept[IllegalArgumentException] {
-      sqlContext.read.format("xml").option("rowTag", "").load(carsFile)
-    }.getMessage
-    assert(messageOne == "requirement failed: 'rowTag' option should not be empty string.")
-
-    val messageTwo = intercept[IllegalArgumentException] {
-      sqlContext.read.format("xml").option("attributePrefix", "").load(carsFile)
-    }.getMessage
-    assert(
-      messageTwo == "requirement failed: 'attributePrefix' option should not be empty string.")
-
-    val messageThree = intercept[IllegalArgumentException] {
-      sqlContext.read.format("xml").option("valueTag", "").load(carsFile)
-    }.getMessage
-    assert(messageThree == "requirement failed: 'valueTag' option should not be empty string.")
-  }
-
   test("valueTag and attributePrefix should not be the same.") {
     val messageOne = intercept[IllegalArgumentException] {
       sqlContext.read.format("xml")
