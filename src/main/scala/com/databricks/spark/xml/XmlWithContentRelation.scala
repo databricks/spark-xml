@@ -54,7 +54,8 @@ case class XmlWithContentRelation protected[spark](
     }
   }
 
-  private def getBaseRDD(baseRDD: RDD[Row]): RDD[String] = baseRDD.map( _.getAs(options.contentCol).asInstanceOf[String])
+  private def getBaseRDD(baseRDD: RDD[Row]): RDD[String] =
+    baseRDD.map( _.getAs(options.contentCol).asInstanceOf[String])
 
   override def buildScan(): RDD[Row] = {
     StaxXmlParser.parse(

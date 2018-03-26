@@ -72,3 +72,5 @@ private[xml] class RowTracker(xmlOptions: XmlOptions)
   def errorFields: mutable.Stack[String] = _errorFields.distinct
 
 }
+
+

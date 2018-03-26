@@ -103,7 +103,8 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val corruptFieldCol = "_corrupt_fields"
   val extraFieldCol = "_extra_fields"
   val corrupt2 = Array("cost", "date", "owner/_eyeballs", "comments/_likes").sorted
-  val extras12 = Array("model", "owner/age", "owner/_hair", "city", "color", "comments/reposts").sorted
+  val extras12 = Array("model", "owner/age", "owner/_hair", "city", "color", "comments/reposts")
+    .sorted
   // TODO Because "Person" is defined as a non-StructType in the explicit schema, the "person"
   //    field's attributes are ignored. Add this element back in to extras12 when the parser
   //    is able to check for stray attributes on non-structs: "comments/person/_mood"
@@ -277,7 +278,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.select("date").collect().map(_(0)).sameElements(dates))
     val errors = results.select(corruptFieldCol).take(3)
     assert(errors.apply(0).getSeq(0).isEmpty)
-    assert(errors.apply(1).getSeq(0).sorted === corrupt2 )
+    assert(errors.apply(1).getSeq(0).asInstanceOf[Seq[String]].sorted === corrupt2 )
     assert(errors.apply(2).getSeq(0).isEmpty)
   }
 
@@ -295,8 +296,8 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField(extraFieldCol, ArrayType(StringType), nullable = true)
     ))
     val extras = results.select(extraFieldCol).take(3)
-    assert(extras.apply(0).getSeq(0).sorted === extras12)
-    assert(extras.apply(1).getSeq(0).sorted === extras12 )
+    assert(extras.apply(0).getSeq(0).asInstanceOf[Seq[String]].sorted === extras12)
+    assert(extras.apply(1).getSeq(0).asInstanceOf[Seq[String]].sorted === extras12 )
     assert(extras.apply(2).getSeq(0).isEmpty)
   }
 
@@ -326,11 +327,11 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.select("date").collect().map(_(0)).sameElements(dates))
     val errors = results.select(corruptFieldCol).take(3)
     assert(errors.apply(0).getSeq(0).isEmpty)
-    assert(errors.apply(1).getSeq(0).sorted === corrupt2 )
+    assert(errors.apply(1).getSeq(0).asInstanceOf[Seq[String]].sorted === corrupt2 )
     assert(errors.apply(2).getSeq(0).isEmpty)
     val extras = results.select(extraFieldCol).take(3)
-    assert(extras.apply(0).getSeq(0).sorted === extras12)
-    assert(extras.apply(1).getSeq(0).sorted === extras12 )
+    assert(extras.apply(0).getSeq(0).asInstanceOf[Seq[String]].sorted === extras12)
+    assert(extras.apply(1).getSeq(0).asInstanceOf[Seq[String]].sorted === extras12 )
     assert(extras.apply(2).getSeq(0).isEmpty)
   }
 

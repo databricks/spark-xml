@@ -34,14 +34,17 @@ private[xml] class XmlOptions(
   val rootTag = parameters.getOrElse("rootTag", XmlOptions.DEFAULT_ROOT_TAG)
   val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
   val excludeAttributeFlag = parameters.get("excludeAttribute").map(_.toBoolean).getOrElse(false)
-  val treatEmptyValuesAsNulls = parameters.get("treatEmptyValuesAsNulls").map(_.toBoolean).getOrElse(false)
+  val treatEmptyValuesAsNulls = parameters.get("treatEmptyValuesAsNulls")
+    .map(_.toBoolean).getOrElse(false)
   val attributePrefix = parameters.getOrElse("attributePrefix", XmlOptions.DEFAULT_ATTRIBUTE_PREFIX)
   val valueTag = parameters.getOrElse("valueTag", XmlOptions.DEFAULT_VALUE_TAG)
   val nullValue = parameters.getOrElse("nullValue", XmlOptions.DEFAULT_NULL_VALUE)
-  val columnNameOfCorruptRecord = parameters.getOrElse("columnNameOfCorruptRecord", XmlOptions.DEFAULT_CORRUPT_RECORD_COL)
+  val columnNameOfCorruptRecord = parameters
+    .getOrElse("columnNameOfCorruptRecord", XmlOptions.DEFAULT_CORRUPT_RECORD_COL)
   val columnNameOfCorruptFields = parameters.get("columnNameOfCorruptFields").orNull
   val columnNameOfExtraFields = parameters.get("columnNameOfExtraFields").orNull
-  val ignoreSurroundingSpaces = parameters.get("ignoreSurroundingSpaces").map(_.toBoolean).getOrElse(false)
+  val ignoreSurroundingSpaces = parameters.get("ignoreSurroundingSpaces")
+    .map(_.toBoolean).getOrElse(false)
   val timestampFormat = parameters.getOrElse("timestampFormat", XmlOptions.DEFAULT_TIMESTAMP_FORMAT)
   val timestampFormatter: SimpleDateFormat = new SimpleDateFormat(timestampFormat)
   val dateFormat = parameters.getOrElse("dateFormat", XmlOptions.DEFAULT_DATE_FORMAT)
@@ -68,7 +71,8 @@ private[xml] class XmlOptions(
   val trackRows = !(columnNameOfCorruptFields == null && columnNameOfExtraFields == null)
   // Verify compatible parser mode
   if (trackRows && !permissive) {
-    throw new IllegalArgumentException("Tracking corrupt/extra fields only works with PERMISSIVE mode.")
+    throw new IllegalArgumentException(
+      "Tracking corrupt/extra fields only works with PERMISSIVE mode.")
   }
 
   require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")

@@ -90,7 +90,8 @@ private[xml] object StaxXmlParser {
               Some(convertObject(parser, schema, options, rowTracker, rootAttributes)())
                 .orElse(failedRecord(xml))
             case inputRow: Row =>
-              Some(convertObject(parser, schema, options, rowTracker, rootAttributes)(Some(inputRow)))
+              Some(convertObject(
+                parser, schema, options, rowTracker, rootAttributes)(Some(inputRow)))
                 .orElse(failedRecord(xml))
           }
         } catch {
@@ -278,7 +279,8 @@ private[xml] object StaxXmlParser {
               rowTracker.pushPath(field)
               schema(index).dataType match {
                 case st: StructType =>
-                  row(index) = convertObjectWithAttributes(parser, st, options, rowTracker, attributes)
+                  row(index) = convertObjectWithAttributes(
+                    parser, st, options, rowTracker, attributes)
 
                 case ArrayType(dt: DataType, _) =>
                   val values = Option(row(index))
@@ -322,7 +324,7 @@ private[xml] object StaxXmlParser {
       row(nameToIndex(options.columnNameOfCorruptFields)) = rowTracker.errorFields
     }
 
-    //additional handling for adding input row's column to output row
+    // additional handling for adding input row's column to output row
     inputRow.map { in =>
       val nameToIndex = schema.map(_.name).zipWithIndex.toMap
       val refSchema = in.schema.fieldNames.toSeq.filterNot(_ == options.contentCol);
