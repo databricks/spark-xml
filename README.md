@@ -56,10 +56,18 @@ When reading files the API accepts several options:
 * `excludeAttribute` : Whether you want to exclude attributes in elements or not. Default is false.
 * `treatEmptyValuesAsNulls` : (DEPRECATED: use `nullValue` set to `""`) Whether you want to treat whitespaces as a null value. Default is false
 * `mode`: The mode for dealing with corrupt records during parsing. Default is `PERMISSIVE`.
-  * `PERMISSIVE` : sets other fields to `null` when it meets a corrupted record, and puts the malformed string into a new field configured by `columnNameOfCorruptRecord`. When a schema is set by user, it sets `null` for extra fields.
+  * `PERMISSIVE` : 
+    * When it encounters a corrupted record, it sets all fields to `null` and puts the malformed string into a new field configured by `columnNameOfCorruptRecord`.
+    * When it encounters a field of the wrong datatype, it sets the offending field to `null` and (if the `columnNameOfCorruptFields` option was specified) adds the xpath of the offending field to the list specified by `columnNameOfCorruptFields`.
+    * When a schema is set by the user and the `columnNameOfExtraFields` option IS NOT set, then all extra fields are dropped.
+    * When a schema is set by the user and the `columnNameOfExtraFields` option IS set, then the xpaths of all extra fields are stored in a list specified by `columnNameOfExtraFields`.
   * `DROPMALFORMED` : ignores the whole corrupted records.
   * `FAILFAST` : throws an exception when it meets corrupted records.
-* `columnNameOfCorruptRecord`: The name of new field where malformed strings are stored. Default is `_corrupt_record`.
+* `columnNameOfCorruptRecord`: The name of new field where malformed records are stored. Default is `_corrupt_record`.
+* `columnNameOfCorruptFields`: The name of new field which contains the xpaths of fields that failed to parse to their correct datatypes. This feature is disabled by default; you must supply a value if you want it enabled. Only works when mode is set to `PERMISSIVE`.
+* `columnNameOfExtraFields`: The name of new field which contains the xpaths of fields present in the data but not in the schema. This feature is disabled by default; you must supply a value if you want it enabled. Only works when mode is set to `PERMISSIVE`. Extra elements are not traversed during parsing, so if your data contains nested extra fields then you'll only get an xpath to the base extra field (not xpaths for all its leaves). 
+* `timestampFormat`: A string representing the timestamp format within your XML, as specified by [SimpleDateFormat](https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html) specs. Default is `yyyy-MM-dd HH:mm:ss.S`.
+* `dateFormat`: A string representing the date format within your XML, as specified by [SimpleDateFormat](https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html) specs. Default is `yyyy-MM-dd`.
 * `attributePrefix`: The prefix for attributes so that we can differentiate attributes and elements. This will be the prefix for field names. Default is `_`.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
 * `charset`: Defaults to 'UTF-8' but can be set to other valid charset names
@@ -120,6 +128,88 @@ Due to the structure differences between `DataFrame` and XML, there are some con
      |    |-- _myTwoAttrib: string (nullable = true)
      |-- three: string (nullable = true)
     ```
+
+- __columNameOfCorruptFields and columnNameOfExtraFields options set to 'error_fields' and 'extra_fields' respectively and user provides schema__: Fields not listed in the schema end up in the `columnNameOfExtraFields` column, and fields that fail to parse end up in the `columnNameOfCorruptFields` column.
+
+    Input XML:
+    ```xml
+    ...
+    <ROW>
+        <cost>15999</cost>
+        <make>Tesla</make>
+        <model>LandRover</model>
+        <owner hair="red" eyeballs="2">
+            <name>Bob</name>
+            <age>36</age>
+        </owner>
+        <city>
+            <name>New York</name>
+        </city>
+        <comments likes="2">
+            <person mood="happy">Sharon</person>
+            <text>Good car</text>
+            <reposts>1</reposts>
+            <anonymous_response>Nope</anonymous_response>
+        </comments>
+        <comments likes="3">
+            <person mood="cool">Broseidon</person>
+            <text>Such good car</text>
+        </comments>
+        <color>blue</color>
+        <color>pink</color>
+        <color>purple</color>
+    </ROW>
+    <ROW>
+        <cost>ThisIsAnInvalidInteger</cost>
+        <make>Ford</make>
+        <owner hair="brown" eyeballs="N/A">
+            <name>Mary</name>
+            <age>24</age>
+        </owner>
+        <city>
+            <name>Portland</name>
+        </city>
+        <comments likes="N/A">
+            <person mood="confused">Mary</person>
+            <text>What is this</text>
+            <reposts>0</reposts>
+        </comments>
+        <color>white</color>
+    </ROW>
+    ...
+    ```
+    User provided schema:
+    ```
+    root
+     |-- cost: integer (nullable = true)
+     |-- make: string (nullable = true)
+     |-- owner: struct (nullable = true)
+     |    |-- name: string (nullable = true)
+     |    |-- _eyeballs: integer (nullable = true)
+     |-- comments: array (nullable = true)
+     |    |-- element: struct (containsNull = true)
+     |    |    |-- person: string (nullable = true)
+     |    |    |-- _likes: integer (nullable = true)
+     |    |    |-- text: struct (nullable = true)
+     |    |    |    |-- _VALUE: string (nullable = true)
+     |    |    |-- anonymous_response: array (nullable = true)
+     |    |    |    |-- element: string (containsNull = true)
+    ```
+    Resulting Dataset:
+    ```
+    +-----+-----+-----------+------------------------------------------------------------------------------+--------------------------------------------------------------+----------------------------------------+
+    |cost |make |owner      |comments                                                                      |extra_fields                                                  |corrupt_fields                          |
+    +-----+-----+-----------+------------------------------------------------------------------------------+--------------------------------------------------------------+----------------------------------------+
+    |15999|Tesla|[Bob,2]    |[[Sharon,2,[Good car],WrappedArray(nope)], [Broseidon,3,[such good car],null]]|[color, comments/reposts, city, owner/age, owner/_hair, model]|[]                                      |
+    |null |Ford |[Mary,null]|[[Mary,null,[what is this],null]]                                             |[color, comments/reposts, city, owner/age, owner/_hair]       |[comments/_likes, owner/_eyeballs, cost]|
+    +-----+-----+-----------+------------------------------------------------------------------------------+--------------------------------------------------------------+----------------------------------------+
+    ```
+    NOTES:
+    * Extra attributes are ignored on fields that are defined in the user-provided schema as non-structs (such as 'person' in this case)
+    * Extra fields are not traversed during parsing, so nested extra fields will not appear in `extra_fields`. In the above example, the extra field 'city' appears in `extra_fields` but its child field 'name' does not.
+    * `extra_fields` does not include duplicate xpaths, and the same is true for `error_fields`. In the above example, 'color' appears only once for each record despite occuring three times in the first raw record.
+    * In addition to containing fields not listed in the user schema, `extra_fields` includes all fields not used in actions; this means that a field specified in the user schema will still appear in `extra_fields` if the field isn't used in an action. This is due to Spark optimizations that truncate unused fields out of the runtime schema. If you want `extra_fields` to contain only those fields not listed in the user schema, run cache() immediately after loading the dataset.
+    * `error_fields` only includes those fields used in Dataset actions; this is due to Spark optimizations that skip parsing unused fields. If you want `error_fields` to contain complete list of all fields that would fail to parse, run cache() immediately after loading the dataset.
 
 ### Conversion from `DataFrame` to XML
 

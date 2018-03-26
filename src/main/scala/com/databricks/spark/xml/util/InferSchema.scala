@@ -48,6 +48,7 @@ private[xml] object InferSchema {
       FloatType,
       DoubleType,
       TimestampType,
+      DateType,
       DecimalType.SYSTEM_DEFAULT)
 
   val findTightestCommonTypeOfTwo: (DataType, DataType) => Option[DataType] = {
@@ -132,10 +133,12 @@ private[xml] object InferSchema {
       case v if isInteger(v) => IntegerType
       case v if isDouble(v) => DoubleType
       case v if isBoolean(v) => BooleanType
-      case v if isTimestamp(v) => TimestampType
+      case v if isTimestamp(v, options.timestampFormatter) => TimestampType
+      case v if isDate(v, options.dateFormatter) => DateType
       case v => StringType
     }
   }
+
 
   private def inferField(parser: XMLEventReader, options: XmlOptions): DataType = {
     parser.peek match {

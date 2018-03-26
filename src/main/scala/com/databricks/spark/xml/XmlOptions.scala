@@ -15,8 +15,9 @@
  */
 package com.databricks.spark.xml
 
-import org.slf4j.LoggerFactory
+import java.text.SimpleDateFormat
 
+import org.slf4j.LoggerFactory
 import com.databricks.spark.xml.util.ParseModes
 
 /**
@@ -33,16 +34,18 @@ private[xml] class XmlOptions(
   val rootTag = parameters.getOrElse("rootTag", XmlOptions.DEFAULT_ROOT_TAG)
   val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
   val excludeAttributeFlag = parameters.get("excludeAttribute").map(_.toBoolean).getOrElse(false)
-  val treatEmptyValuesAsNulls =
-    parameters.get("treatEmptyValuesAsNulls").map(_.toBoolean).getOrElse(false)
-  val attributePrefix =
-    parameters.getOrElse("attributePrefix", XmlOptions.DEFAULT_ATTRIBUTE_PREFIX)
+  val treatEmptyValuesAsNulls = parameters.get("treatEmptyValuesAsNulls").map(_.toBoolean).getOrElse(false)
+  val attributePrefix = parameters.getOrElse("attributePrefix", XmlOptions.DEFAULT_ATTRIBUTE_PREFIX)
   val valueTag = parameters.getOrElse("valueTag", XmlOptions.DEFAULT_VALUE_TAG)
   val nullValue = parameters.getOrElse("nullValue", XmlOptions.DEFAULT_NULL_VALUE)
-  val columnNameOfCorruptRecord =
-    parameters.getOrElse("columnNameOfCorruptRecord", "_corrupt_record")
-  val ignoreSurroundingSpaces =
-    parameters.get("ignoreSurroundingSpaces").map(_.toBoolean).getOrElse(false)
+  val columnNameOfCorruptRecord = parameters.getOrElse("columnNameOfCorruptRecord", XmlOptions.DEFAULT_CORRUPT_RECORD_COL)
+  val columnNameOfCorruptFields = parameters.get("columnNameOfCorruptFields").orNull
+  val columnNameOfExtraFields = parameters.get("columnNameOfExtraFields").orNull
+  val ignoreSurroundingSpaces = parameters.get("ignoreSurroundingSpaces").map(_.toBoolean).getOrElse(false)
+  val timestampFormat = parameters.getOrElse("timestampFormat", XmlOptions.DEFAULT_TIMESTAMP_FORMAT)
+  val timestampFormatter: SimpleDateFormat = new SimpleDateFormat(timestampFormat)
+  val dateFormat = parameters.getOrElse("dateFormat", XmlOptions.DEFAULT_DATE_FORMAT)
+  val dateFormatter: SimpleDateFormat = new SimpleDateFormat(dateFormat)
 
   // Leave this option for backwards compatibility.
   private val failFastFlag = parameters.get("failFast").map(_.toBoolean).getOrElse(false)
@@ -52,6 +55,8 @@ private[xml] class XmlOptions(
     parameters.getOrElse("mode", ParseModes.PERMISSIVE_MODE)
   }
 
+  val contentCol = parameters.getOrElse(XmlOptions.CONTENT_COLUMN_NAME, "value")
+
   // Parse mode flags
   if (!ParseModes.isValidMode(parseMode)) {
     logger.warn(s"$parseMode is not a valid parse mode. Using ${ParseModes.DEFAULT}.")
@@ -60,6 +65,11 @@ private[xml] class XmlOptions(
   val failFast = ParseModes.isFailFastMode(parseMode)
   val dropMalformed = ParseModes.isDropMalformedMode(parseMode)
   val permissive = ParseModes.isPermissiveMode(parseMode)
+  val trackRows = !(columnNameOfCorruptFields == null && columnNameOfExtraFields == null)
+  // Verify compatible parser mode
+  if (trackRows && !permissive) {
+    throw new IllegalArgumentException("Tracking corrupt/extra fields only works with PERMISSIVE mode.")
+  }
 
   require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")
   require(attributePrefix.nonEmpty, "'attributePrefix' option should not be empty string.")
@@ -75,6 +85,11 @@ private[xml] object XmlOptions {
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_CHARSET = "UTF-8"
   val DEFAULT_NULL_VALUE = null
+  val DEFAULT_TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss.S"
+  val DEFAULT_DATE_FORMAT = "yyyy-MM-dd"
+  val DEFAULT_CORRUPT_RECORD_COL = "_corrupt_record"
+  val CONTENT_COLUMN_NAME = "contentColumnName"
+
 
   def apply(parameters: Map[String, String]): XmlOptions = new XmlOptions(parameters)
 }

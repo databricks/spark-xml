@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<ROWSET>
+    <ROW>
+        <time>2017/05/15T14:58:19Z</time>
+        <time2>2017-05-15 14:58:19.000</time2>
+    </ROW>
+    <ROW>
+        <time>2018/12/11T10:50:11Z</time>
+        <time2>2018-12-11 10:50:11.000</time2>
+    </ROW>
+    <ROW>
+        <time>1999/01/11T01:01:01Z</time>
+        <time2>1999-01-11 01:01:01.000</time2>
+    </ROW>
+</ROWSET>

@@ -19,19 +19,19 @@ import java.io.File
 import java.nio.charset.UnsupportedCharsetException
 import java.nio.file.Files
 import java.sql.{Date, Timestamp}
+import java.text.{SimpleDateFormat}
 
 import scala.io.Source
-
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.io.compress.GzipCodec
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
-
 import com.databricks.spark.xml.XmlOptions._
 import com.databricks.spark.xml.util.ParseModes
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.types.{StructField, _}
 import org.apache.spark.sql.{Row, SQLContext, SaveMode}
 import org.apache.spark.{SparkConf, SparkContext, SparkException}
+import org.apache.spark.sql.functions.{col, explode}
 
 class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val tempEmptyDir = "target/test/empty/"
@@ -59,6 +59,11 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val simpleNestedObjects = "src/test/resources/simple-nested-objects.xml"
   val nestedElementWithNameOfParent = "src/test/resources/nested-element-with-name-of-parent.xml"
   val booksMalformedAttributes = "src/test/resources/books-malformed-attributes.xml"
+  val timesFile = "src/test/resources/times.xml"
+  val invalidTimesFile = "src/test/resources/invalid-times.xml"
+  val datesFile = "src/test/resources/dates.xml"
+  val timesAndDatesFile = "src/test/resources/times-and-dates.xml"
+  val carsWithTypeErrorsFile = "src/test/resources/cars-type-errors.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -71,6 +76,67 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val numBooksComplicated = 3
   val numTopics = 1
   val numGPS = 2
+  val numTimestamps = 3
+
+  val d1 = "2017/05/15"
+  val d2 = "2018/12/11"
+  val d3 = "1999/01/11"
+  val ts1 = "2017/05/15T14:58:19Z"
+  val ts2 = "2018/12/11T10:50:11Z"
+  val ts3 = "1999/01/11T01:01:01Z"
+  val dateFormatString = "yyyy/MM/dd"
+  val timestampFormatString = "yyyy/MM/dd'T'HH:mm:ss'Z'"
+  val dateFormat = new SimpleDateFormat(dateFormatString)
+  val timestampFormat = new SimpleDateFormat(timestampFormatString)
+  val defaultDateFormat = new SimpleDateFormat("yyyy-MM-dd")
+  val defaultTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S")
+
+  val dateValues = Array(
+    new Date(dateFormat.parse(d1).getTime),
+    new Date(dateFormat.parse(d2).getTime),
+    new Date(dateFormat.parse(d3).getTime))
+  val timestampValues = Array(
+    new Timestamp(timestampFormat.parse(ts1).getTime),
+    new Timestamp(timestampFormat.parse(ts2).getTime),
+    new Timestamp(timestampFormat.parse(ts3).getTime))
+
+  val corruptFieldCol = "_corrupt_fields"
+  val extraFieldCol = "_extra_fields"
+  val corrupt2 = Array("cost", "date", "owner/_eyeballs", "comments/_likes").sorted
+  val extras12 = Array("model", "owner/age", "owner/_hair", "city", "color", "comments/reposts").sorted
+  // TODO Because "Person" is defined as a non-StructType in the explicit schema, the "person"
+  //    field's attributes are ignored. Add this element back in to extras12 when the parser
+  //    is able to check for stray attributes on non-structs: "comments/person/_mood"
+
+  val carsSchema = StructType(List(
+    StructField("cost", IntegerType, nullable = true),
+    StructField("date", DateType, nullable = true),
+    StructField("make", StringType, nullable = true),
+    StructField("owner", StructType(List(
+      StructField("name", StringType, nullable = true),
+      StructField("_eyeballs", IntegerType, nullable = true)
+    ))),
+    StructField("comments", ArrayType(
+      StructType(List(
+        StructField("person", StringType, nullable = true),
+        StructField("_likes", IntegerType, nullable = true),
+        StructField("text", StructType(List(
+          StructField("_VALUE", StringType, nullable = true)
+        ))),
+        StructField("anonymous_response", ArrayType(StringType, containsNull = true))
+      )), containsNull = true
+    ))
+  ))
+
+
+  def parseDefaultDate(date : String): Date = {
+    new Date(defaultDateFormat.parse(date).getTime)
+  }
+
+  def parseDefaultTime(time : String): Timestamp = {
+    new Timestamp(defaultTimeFormat.parse(time).getTime)
+  }
+
 
   private var sqlContext: SQLContext = _
 
@@ -90,6 +156,224 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       super.afterAll()
     }
   }
+
+  test("DSL test schema inferred correctly with timestampFormat option") {
+    val results = sqlContext.read.format("xml")
+      .option("timestampFormat", timestampFormatString)
+      .load(timesFile)
+    assert(results.schema == StructType(List(
+      StructField("time", TimestampType, nullable = true),
+      StructField("time2", DateType, nullable = true)
+    )))
+    assert(results.select("time").collect().map(_(0)) === timestampValues)
+  }
+
+  test("DSL test schema uses default timestamp parsing when timestampFormat option not specified") {
+    val results = sqlContext.read.format("xml")
+      .load(timesFile)
+    assert(results.schema == StructType(List(
+      StructField("time", StringType, nullable = true),
+      StructField("time2", TimestampType, nullable = true)
+    )))
+    assert(results.select("time2").collect().map(_(0)) === timestampValues)
+  }
+
+  test("DSL test schema inferred correctly with dateFormat option") {
+    val results = sqlContext.read.format("xml")
+        .option("dateFormat", dateFormatString)
+        .load(datesFile)
+      assert(results.schema == StructType(List(
+        StructField("date", StringType, nullable = true),
+        StructField("date2", DateType, nullable = true)
+      )))
+    assert(results.select("date2").collect().map(_(0)) === dateValues)
+  }
+
+  test("DSL test schema uses default date parsing when dateFormat option not specified") {
+    val results = sqlContext.read.format("xml")
+      .load(datesFile)
+    assert(results.schema == StructType(List(
+      StructField("date", DateType, nullable = true),
+      StructField("date2", StringType, nullable = true)
+    )))
+    assert(results.select("date").collect().map(_(0)) === dateValues)
+  }
+
+  test("DSL test schema inferred correctly with dateFormat and timestampFormat options") {
+    val results = sqlContext.read.format("xml")
+      .option("dateFormat", dateFormatString)
+      .option("timestampFormat", timestampFormatString)
+      .load(timesAndDatesFile)
+    assert(results.schema == StructType(List(
+      StructField("date", StringType, nullable = true),
+      StructField("date2", DateType, nullable = true),
+      StructField("time", TimestampType, nullable = true),
+      StructField("time2", StringType, nullable = true)
+    )))
+    assert(results.select("date2").collect().map(_(0)) === dateValues)
+    assert(results.select("time").collect().map(_(0)) === timestampValues)
+  }
+
+  test("DSL test reads timestamps and dates correctly when given explicit schema") {
+    val schema = StructType(List(
+      StructField("date", StringType, nullable = true),
+      StructField("date2", DateType, nullable = true),
+      StructField("time", TimestampType, nullable = true),
+      StructField("time2", StringType, nullable = true)
+    ))
+    val results = sqlContext.read.format("xml")
+      .option("dateFormat", dateFormatString)
+      .option("timestampFormat", timestampFormatString)
+      .schema(schema)
+      .load(timesAndDatesFile)
+    assert(results.schema == schema)
+    assert(results.select("date2").collect().map(_(0)) === dateValues)
+    assert(results.select("time").collect().map(_(0)) === timestampValues)
+  }
+
+  test("DSL test nulls out invalid timestamps when set to permissive and given explicit schema") {
+    val schema = StructType(List(
+      StructField("time", TimestampType, nullable = true),
+      StructField("name", StringType, nullable = true)
+    ))
+    val results = sqlContext.read.format("xml")
+      .option("timestampFormat", timestampFormatString)
+      .option("mode", "PERMISSIVE")
+      .schema(schema)
+      .load(invalidTimesFile)
+    assert(results.schema == schema)
+    val objects = results.take(3)
+    assert(objects.length === numTimestamps)
+    assert(objects.apply(0).apply(0) == new Timestamp(timestampFormat.parse(ts1).getTime))
+    assert(objects.apply(1).apply(0) == null)
+    assert(objects.apply(2).apply(0) == null)
+    assert(objects.apply(0).apply(1) == "a")
+    assert(objects.apply(1).apply(1) == null)
+    assert(objects.apply(2).apply(1) == "c")
+  }
+
+  test("DSL test corrupt fields recorded when given explicit schema") {
+    val makes = Array("Tesla", "Ford", "Chevy")
+    val costs = Array(15999, null, null)
+    val eyeballs = Array(2, null, 2)
+    val likes = Array(2, 3, null, 9001)
+    val dates = Array(new Date(dateFormat.parse(d1).getTime), null, null)
+    val results = sqlContext.read.format("xml")
+      .schema(carsSchema)
+      .option("columnNameOfCorruptFields", corruptFieldCol)
+      .option("mode", "PERMISSIVE")
+      .load(carsWithTypeErrorsFile)
+      .cache()
+    // TODO As with extra fields, if you didn't cache the data before checking for error
+    //    fields then all columns excluded from your selection will not be evaluated for errors.
+    assert(results.schema == carsSchema.add(
+      StructField(corruptFieldCol, ArrayType(StringType), nullable = true)
+    ))
+    assert(results.count() === numCars)
+    assert(results.select("cost").collect().map(_(0)).sameElements(costs))
+    assert(results.select("make").collect().map(_(0)).sameElements(makes))
+    assert(results.select("owner._eyeballs").collect().map(_(0)).sameElements(eyeballs))
+    assert(results.select(explode(col("comments._likes"))).collect().map(_(0)).sameElements(likes))
+    assert(results.select("date").collect().map(_(0)).sameElements(dates))
+    val errors = results.select(corruptFieldCol).take(3)
+    assert(errors.apply(0).getSeq(0).isEmpty)
+    assert(errors.apply(1).getSeq(0).sorted === corrupt2 )
+    assert(errors.apply(2).getSeq(0).isEmpty)
+  }
+
+  test("DSL test fields not listed in explicit schema are captured as extra fields ") {
+    val results = sqlContext.read.format("xml")
+      .schema(carsSchema)
+      .option("columnNameOfExtraFields", extraFieldCol)
+      .option("mode", "PERMISSIVE")
+      .load(carsWithTypeErrorsFile)
+      .cache()
+    // TODO if you don't cache the data before checking for extra fields, all columns that
+    //    you didn't select will be listed as extra (regardless of if they're in your schema)
+    //    We should fix this so that extra fields are deterministic for a payload and schema
+    assert(results.schema == carsSchema.add(
+      StructField(extraFieldCol, ArrayType(StringType), nullable = true)
+    ))
+    val extras = results.select(extraFieldCol).take(3)
+    assert(extras.apply(0).getSeq(0).sorted === extras12)
+    assert(extras.apply(1).getSeq(0).sorted === extras12 )
+    assert(extras.apply(2).getSeq(0).isEmpty)
+  }
+
+
+  test("DSL test extra and corrupt fields recorded when given explicit schema") {
+    val makes = Array("Tesla", "Ford", "Chevy")
+    val costs = Array(15999, null, null)
+    val eyeballs = Array(2, null, 2)
+    val likes = Array(2, 3, null, 9001)
+    val dates = Array(new Date(dateFormat.parse(d1).getTime), null, null)
+    val results = sqlContext.read.format("xml")
+      .option("columnNameOfCorruptFields", corruptFieldCol)
+      .option("columnNameOfExtraFields", extraFieldCol)
+      .option("mode", "PERMISSIVE")
+      .schema(carsSchema)
+      .load(carsWithTypeErrorsFile)
+      .cache()
+    assert(results.schema === carsSchema.add(
+      StructField(extraFieldCol, ArrayType(StringType), nullable = true)).add(
+      StructField(corruptFieldCol, ArrayType(StringType), nullable = true)
+    ))
+    assert(results.count() === numCars)
+    assert(results.select("cost").collect().map(_(0)).sameElements(costs))
+    assert(results.select("make").collect().map(_(0)).sameElements(makes))
+    assert(results.select("owner._eyeballs").collect().map(_(0)).sameElements(eyeballs))
+    assert(results.select(explode(col("comments._likes"))).collect().map(_(0)).sameElements(likes))
+    assert(results.select("date").collect().map(_(0)).sameElements(dates))
+    val errors = results.select(corruptFieldCol).take(3)
+    assert(errors.apply(0).getSeq(0).isEmpty)
+    assert(errors.apply(1).getSeq(0).sorted === corrupt2 )
+    assert(errors.apply(2).getSeq(0).isEmpty)
+    val extras = results.select(extraFieldCol).take(3)
+    assert(extras.apply(0).getSeq(0).sorted === extras12)
+    assert(extras.apply(1).getSeq(0).sorted === extras12 )
+    assert(extras.apply(2).getSeq(0).isEmpty)
+  }
+
+  test("DSL test must use columnNameOfExtraFields with PERMISSIVE") {
+    val message1 = intercept[IllegalArgumentException] {
+      sqlContext.read.format("xml")
+        .option("columnNameOfExtraFields", "a")
+        .option("mode", "DROPMALFORMED")
+        .load(carsFile)
+    }.getMessage
+    assert(message1 ==
+      "Tracking corrupt/extra fields only works with PERMISSIVE mode.")
+    val message2 = intercept[IllegalArgumentException] {
+      sqlContext.read.format("xml")
+        .option("columnNameOfExtraFields", "a")
+        .option("mode", "FAILFAST")
+        .load(carsFile)
+    }.getMessage
+    assert(message2 ==
+      "Tracking corrupt/extra fields only works with PERMISSIVE mode.")
+  }
+
+
+  test("DSL test must use columnNameOfCorruptFields with PERMISSIVE") {
+    val message1 = intercept[IllegalArgumentException] {
+      sqlContext.read.format("xml")
+        .option("columnNameOfCorruptFields", "a")
+        .option("mode", "DROPMALFORMED")
+        .load(carsFile)
+    }.getMessage
+    assert(message1 ==
+      "Tracking corrupt/extra fields only works with PERMISSIVE mode.")
+    val message2 = intercept[IllegalArgumentException] {
+      sqlContext.read.format("xml")
+        .option("columnNameOfCorruptFields", "a")
+        .option("mode", "FAILFAST")
+        .load(carsFile)
+    }.getMessage
+    assert(message2 ==
+      "Tracking corrupt/extra fields only works with PERMISSIVE mode.")
+  }
+
+
 
   test("DSL test") {
     val results = sqlContext.read.format("xml")
@@ -153,8 +437,8 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .collect()
     val attrValOne = results(0).get(0).asInstanceOf[Row](1)
     val attrValTwo = results(1).get(0).asInstanceOf[Row](1)
-    assert(attrValOne == "1990-02-24")
-    assert(attrValTwo == "1985-01-01")
+    assert(attrValOne == parseDefaultDate("1990-02-24"))
+    assert(attrValTwo == parseDefaultDate("1985-01-01"))
     assert(results.size === numAges)
   }
 
@@ -253,15 +537,16 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test for permissive mode for corrupt records") {
+    val corruptRecordCol = "_malformed_records"
     val carsDf = new XmlReader()
       .withParseMode(ParseModes.PERMISSIVE_MODE)
-      .withColumnNameOfCorruptRecord("_malformed_records")
+      .withColumnNameOfCorruptRecord(corruptRecordCol)
       .xmlFile(sqlContext, carsMalformedFile)
     val cars = carsDf.collect()
     assert(cars.length == 3)
 
-    val malformedRowOne = carsDf.select("_malformed_records").first().toSeq.head.toString
-    val malformedRowTwo = carsDf.select("_malformed_records").take(2).last.toSeq.head.toString
+    val malformedRowOne = carsDf.select(corruptRecordCol).first().toSeq.head.toString
+    val malformedRowTwo = carsDf.select(corruptRecordCol).take(2).last.toSeq.head.toString
     val expectedMalformedRowOne = "<ROW><year>2012</year><make>Tesla</make><model>>S" +
       "<comment>No comment</comment></ROW>"
     val expectedMalformedRowTwo = "<ROW></year><make>Ford</make><model>E350</model>model></model>" +
@@ -537,7 +822,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("description", StringType, nullable = true),
       StructField("genre", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
-      StructField("publish_date", StringType, nullable = true),
+      StructField("publish_date", DateType, nullable = true),
       StructField("title", StringType, nullable = true))
     ))
 
@@ -556,7 +841,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("description", StringType, nullable = true),
       StructField("genre", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
-      StructField("publish_date", StringType, nullable = true),
+      StructField("publish_date", DateType, nullable = true),
       StructField("title", StringType, nullable = true))
     ))
 
@@ -575,7 +860,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("genre", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
       StructField("publish_dates", StructType(
-        List(StructField("publish_date", StringType))), nullable = true),
+        List(StructField("publish_date", DateType))), nullable = true),
       StructField("title", StringType, nullable = true))
     ))
 
@@ -593,7 +878,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("description", StringType, nullable = true),
       StructField("genre", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
-      StructField("publish_date", ArrayType(StringType), nullable = true),
+      StructField("publish_date", ArrayType(DateType), nullable = true),
       StructField("title", StringType, nullable = true))
     ))
 
@@ -640,7 +925,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
         List(StructField("_VALUE", StringType, nullable = true),
           StructField(s"_unit", StringType, nullable = true))),
         nullable = true),
-      StructField("publish_date", StringType, nullable = true),
+      StructField("publish_date", DateType, nullable = true),
       StructField("title", StringType, nullable = true))
     )
 
@@ -663,7 +948,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
         List(StructField(valueTag, StringType, nullable = true),
           StructField(s"${attributePrefix}unit", StringType, nullable = true))),
         nullable = true),
-      StructField("publish_date", StringType, nullable = true),
+      StructField("publish_date", DateType, nullable = true),
       StructField("title", StringType, nullable = true))
     )
 
@@ -682,7 +967,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("description", StringType, nullable = true),
       StructField("genre", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
-      StructField("publish_date", StringType, nullable = true),
+      StructField("publish_date", DateType, nullable = true),
       StructField("title", StringType, nullable = true))
     )
 
@@ -887,7 +1172,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .collect()
     val attrValOne = results(0).get(0).asInstanceOf[Row](1)
     val attrValTwo = results(1).get(0).asInstanceOf[Row](0)
-    assert(attrValOne === "1990-02-24")
+    assert(attrValOne === parseDefaultDate("1990-02-24"))
     assert(attrValTwo === 30)
     assert(results.length === numAges)
   }

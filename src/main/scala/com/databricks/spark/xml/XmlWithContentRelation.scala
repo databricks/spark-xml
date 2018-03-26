@@ -1,5 +1,6 @@
 /*
- * Copyright 2014 Databricks
+ * © Copyright 2018 HP Development Company, L.P.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.databricks.spark.xml
 
 import java.io.IOException
 
+import com.databricks.spark.xml.parsers.StaxXmlParser
+import com.databricks.spark.xml.util.{InferSchema, XmlFile}
 import org.apache.hadoop.fs.Path
-import org.slf4j.LoggerFactory
-
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
-import org.apache.spark.sql.sources.{PrunedScan, InsertableRelation, BaseRelation, TableScan}
+import org.apache.spark.sql.sources.{BaseRelation, InsertableRelation, PrunedScan, TableScan}
 import org.apache.spark.sql.types._
-import com.databricks.spark.xml.util.{InferSchema, XmlFile}
-import com.databricks.spark.xml.parsers.StaxXmlParser
+import org.slf4j.LoggerFactory
 
-case class XmlRelation protected[spark] (
-    baseRDD: () => RDD[String],
+case class XmlWithContentRelation protected[spark](
+    baseRDD: () => RDD[Row],
     location: Option[String],
     parameters: Map[String, String],
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
@@ -42,30 +43,28 @@ case class XmlRelation protected[spark] (
   private val options = XmlOptions(parameters)
 
   override val schema: StructType = {
-    var _schema = Option(userSchema).getOrElse {
-      InferSchema.infer(
-        baseRDD(),
-        options)
+    Option(userSchema).getOrElse {
+      val inferSchema = InferSchema.infer(
+        getBaseRDD(baseRDD()),
+        options).fields
+
+      val rowSchema = baseRDD().first().schema.fields.filterNot(_.name == options.contentCol)
+
+      new StructType(inferSchema ++ rowSchema)
     }
-    if (options.columnNameOfExtraFields != null) {
-      _schema = _schema.add(
-        StructField(options.columnNameOfExtraFields, ArrayType(StringType), nullable = true)
-      )
-    }
-    if (options.columnNameOfCorruptFields != null) {
-      _schema = _schema.add(
-        StructField(options.columnNameOfCorruptFields, ArrayType(StringType), nullable = true)
-      )
-    }
-    _schema
   }
+
+  private def getBaseRDD(baseRDD: RDD[Row]): RDD[String] = baseRDD.map( _.getAs(options.contentCol).asInstanceOf[String])
 
   override def buildScan(): RDD[Row] = {
     StaxXmlParser.parse(
       baseRDD(),
       schema,
-      options)
+      options,
+      rowToString)
   }
+
+  private val rowToString: Row => String = _.getAs(options.contentCol).asInstanceOf[String]
 
   override def buildScan(requiredColumns: Array[String]): RDD[Row] = {
     val requiredFields = requiredColumns.map(schema(_))
@@ -77,7 +76,8 @@ case class XmlRelation protected[spark] (
       StaxXmlParser.parse(
         baseRDD(),
         requestedSchema,
-        options)
+        options,
+        rowToString)
     }
   }
 

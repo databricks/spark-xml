@@ -30,7 +30,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.TypeCast._
-import com.databricks.spark.xml.XmlOptions
+import com.databricks.spark.xml.{RowTracker, XmlOptions}
 
 /**
  * Wraps parser to iteration process.
@@ -38,17 +38,18 @@ import com.databricks.spark.xml.XmlOptions
 private[xml] object StaxXmlParser {
   private val logger = LoggerFactory.getLogger(StaxXmlParser.getClass)
 
-  def parse(
-      xml: RDD[String],
-      schema: StructType,
-      options: XmlOptions): RDD[Row] = {
+  def parse[T](
+                xml: RDD[T],
+                schema: StructType,
+                options: XmlOptions, fn: T => String = (t: String) => t): RDD[Row] = {
+
     def failedRecord(record: String): Option[Row] = {
       // create a row even if no corrupt record column is present
       if (options.failFast) {
         throw new RuntimeException(
-          s"Malformed line in FAILFAST mode: ${record.replaceAll("\n", "")}")
+          s"Malformed line in FAILFAST mode: ${record.toString.replaceAll("\n", "")}")
       } else if (options.dropMalformed) {
-        logger.warn(s"Dropping malformed line: ${record.replaceAll("\n", "")}")
+        logger.warn(s"Dropping malformed line: ${record.toString.replaceAll("\n", "")}")
         None
       } else {
         val row = new Array[Any](schema.length)
@@ -67,23 +68,31 @@ private[xml] object StaxXmlParser {
       factory.setProperty(XMLInputFactory.IS_COALESCING, true)
       val filter = new EventFilter {
         override def accept(event: XMLEvent): Boolean =
-          // Ignore comments. This library does not treat comments.
+        // Ignore comments. This library does not treat comments.
           event.getEventType != XMLStreamConstants.COMMENT
       }
 
-      iter.flatMap { xml =>
+      iter.flatMap { xmlItem =>
+        val xml = fn(xmlItem)
         // It does not have to skip for white space, since `XmlInputFormat`
         // always finds the root tag without a heading space.
         val reader = new ByteArrayInputStream(xml.getBytes)
         val eventReader = factory.createXMLEventReader(reader)
         val parser = factory.createFilteredReader(eventReader, filter)
+        val rowTracker: RowTracker = new RowTracker(options)
         try {
           val rootEvent =
             StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
           val rootAttributes =
             rootEvent.asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
-          Some(convertObject(parser, schema, options, rootAttributes))
-            .orElse(failedRecord(xml))
+          xmlItem match {
+            case _: String =>
+              Some(convertObject(parser, schema, options, rowTracker, rootAttributes)())
+                .orElse(failedRecord(xml))
+            case inputRow: Row =>
+              Some(convertObject(parser, schema, options, rowTracker, rootAttributes)(Some(inputRow)))
+                .orElse(failedRecord(xml))
+          }
         } catch {
           case NonFatal(_) =>
             failedRecord(xml)
@@ -98,11 +107,12 @@ private[xml] object StaxXmlParser {
   private[xml] def convertField(
       parser: XMLEventReader,
       dataType: DataType,
-      options: XmlOptions): Any = {
+      options: XmlOptions,
+      rowTracker: RowTracker) : Any = {
     def convertComplicatedType: DataType => Any = {
-      case dt: StructType => convertObject(parser, dt, options)
-      case MapType(StringType, vt, _) => convertMap(parser, vt, options)
-      case ArrayType(st, _) => convertField(parser, st, options)
+      case dt: StructType => convertObject(parser, dt, options, rowTracker)()
+      case MapType(StringType, vt, _) => convertMap(parser, vt, options, rowTracker)
+      case ArrayType(st, _) => convertField(parser, st, options, rowTracker)
       case _: StringType => StaxXmlParserUtils.currentStructureAsString(parser)
     }
 
@@ -119,19 +129,19 @@ private[xml] object StaxXmlParser {
           case _: EndElement if data.isEmpty => null
           case _: EndElement if options.treatEmptyValuesAsNulls => null
           case _: EndElement => data
-          case _ => convertField(parser, dataType, options)
+          case _ => convertField(parser, dataType, options, rowTracker)
         }
 
       case (c: Characters, ArrayType(st, _)) =>
         // For `ArrayType`, it needs to return the type of element. The values are merged later.
-        convertTo(c.getData, st, options)
+        convertTo(c.getData, st, options, rowTracker)
       case (c: Characters, st: StructType) =>
         // This case can be happen when current data type is inferred as `StructType`
         // due to `valueTag` for elements having attributes but no child.
         val dt = st.filter(_.name == options.valueTag).head.dataType
-        convertTo(c.getData, dt, options)
+        convertTo(c.getData, dt, options, rowTracker)
       case (c: Characters, dt: DataType) =>
-        convertTo(c.getData, dt, options)
+        convertTo(c.getData, dt, options, rowTracker)
       case (e: XMLEvent, dt: DataType) =>
         sys.error(s"Failed to parse a value for data type $dt with event ${e.toString}")
     }
@@ -143,7 +153,8 @@ private[xml] object StaxXmlParser {
   private def convertMap(
       parser: XMLEventReader,
       valueType: DataType,
-      options: XmlOptions): Map[String, Any] = {
+      options: XmlOptions,
+      rowTracker: RowTracker): Map[String, Any] = {
     val keys = ArrayBuffer.empty[String]
     val values = ArrayBuffer.empty[Any]
     var shouldStop = false
@@ -151,7 +162,7 @@ private[xml] object StaxXmlParser {
       parser.nextEvent match {
         case e: StartElement =>
           keys += e.getName.getLocalPart
-          values += convertField(parser, valueType, options)
+          values += convertField(parser, valueType, options, rowTracker)
         case _: EndElement =>
           shouldStop = StaxXmlParserUtils.checkEndElement(parser)
         case _ =>
@@ -167,14 +178,21 @@ private[xml] object StaxXmlParser {
   private def convertAttributes(
       attributes: Array[Attribute],
       schema: StructType,
-      options: XmlOptions): Map[String, Any] = {
+      options: XmlOptions,
+      rowTracker: RowTracker): Map[String, Any] = {
     val convertedValuesMap = collection.mutable.Map.empty[String, Any]
     val valuesMap = StaxXmlParserUtils.convertAttributesToValuesMap(attributes, options)
+    val nameToIndex = schema.map(_.name).zipWithIndex.toMap
     valuesMap.foreach { case (f, v) =>
-      val nameToIndex = schema.map(_.name).zipWithIndex.toMap
-      nameToIndex.get(f).foreach { i =>
-        convertedValuesMap(f) = convertTo(v, schema(i).dataType, options)
+      rowTracker.pushPath(f)
+      if (nameToIndex.contains(f)) {
+        nameToIndex.get(f).foreach { i =>
+          convertedValuesMap(f) = convertTo(v, schema(i).dataType, options, rowTracker)
+        }
+      } else {
+        rowTracker.pushExtra()
       }
+        rowTracker.popPath()
     }
     convertedValuesMap.toMap
   }
@@ -188,15 +206,16 @@ private[xml] object StaxXmlParser {
       parser: XMLEventReader,
       schema: StructType,
       options: XmlOptions,
+      rowTracker: RowTracker,
       attributes: Array[Attribute] = Array.empty): Row = {
     // TODO: This method might have to be removed. Some logics duplicate `convertObject()`
     val row = new Array[Any](schema.length)
 
     // Read attributes first.
-    val attributesMap = convertAttributes(attributes, schema, options)
+    val attributesMap = convertAttributes(attributes, schema, options, rowTracker)
 
     // Then, we read elements here.
-    val fieldsMap = convertField(parser, schema, options) match {
+    val fieldsMap = convertField(parser, schema, options, rowTracker) match {
       case row: Row =>
         Map(schema.map(_.name).zip(row.toSeq): _*)
       case v if schema.fieldNames.contains(options.valueTag) =>
@@ -210,8 +229,9 @@ private[xml] object StaxXmlParser {
 
     // Here we merge both to a row.
     val valuesMap = fieldsMap ++ attributesMap
+    val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+
     valuesMap.foreach { case (f, v) =>
-      val nameToIndex = schema.map(_.name).zipWithIndex.toMap
       nameToIndex.get(f).foreach { row(_) = v }
     }
 
@@ -226,22 +246,28 @@ private[xml] object StaxXmlParser {
 
   /**
    * Parse an object from the event stream into a new Row representing the schema.
-   * Fields in the xml that are not defined in the requested schema will be dropped.
+   * Fields in the xml that are not defined in the requested schema will be dropped unless
+    * the columnNameOfExtraFields option is set; then, the xpaths of undefined fields will be
+    * stored as an array within that column.
    */
   private def convertObject(
       parser: XMLEventReader,
       schema: StructType,
       options: XmlOptions,
-      rootAttributes: Array[Attribute] = Array.empty): Row = {
+      rowTracker: RowTracker,
+      rootAttributes: Array[Attribute] = Array.empty)(inputRow: Option[Row] = None ) : Row = {
+
     val row = new Array[Any](schema.length)
     var shouldStop = false
+    val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
-          val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+
           // If there are attributes, then we process them first.
-          convertAttributes(rootAttributes, schema, options).toSeq.foreach { case (f, v) =>
-            nameToIndex.get(f).foreach { row(_) = v }
+          convertAttributes(rootAttributes, schema, options, rowTracker).toSeq.foreach {
+            case (f, v) => nameToIndex.get(f).foreach { row(_) = v }
           }
 
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
@@ -249,9 +275,10 @@ private[xml] object StaxXmlParser {
 
           nameToIndex.get(field) match {
             case Some(index) =>
+              rowTracker.pushPath(field)
               schema(index).dataType match {
                 case st: StructType =>
-                  row(index) = convertObjectWithAttributes(parser, st, options, attributes)
+                  row(index) = convertObjectWithAttributes(parser, st, options, rowTracker, attributes)
 
                 case ArrayType(dt: DataType, _) =>
                   val values = Option(row(index))
@@ -260,18 +287,22 @@ private[xml] object StaxXmlParser {
                   val newValue = {
                     dt match {
                       case st: StructType =>
-                        convertObjectWithAttributes(parser, st, options, attributes)
+                        convertObjectWithAttributes(parser, st, options, rowTracker, attributes)
                       case dt: DataType =>
-                        convertField(parser, dt, options)
+                        // TODO We currently don't track extra attributes if the field they're
+                        //    attached to was previously classified as a non-StructType
+                        convertField(parser, dt, options, rowTracker)
                     }
                   }
                   row(index) = values :+ newValue
 
                 case dt: DataType =>
-                  row(index) = convertField(parser, dt, options)
+                  row(index) = convertField(parser, dt, options, rowTracker)
               }
+              rowTracker.popPath()
 
             case None =>
+              rowTracker.pushExtra(field)
               StaxXmlParserUtils.skipChildren(parser)
           }
 
@@ -282,6 +313,24 @@ private[xml] object StaxXmlParser {
           shouldStop = shouldStop && parser.hasNext
       }
     }
+    if (options.columnNameOfExtraFields != null &&
+      nameToIndex.contains(options.columnNameOfExtraFields)) {
+      row(nameToIndex(options.columnNameOfExtraFields)) = rowTracker.extraFields
+    }
+    if (options.columnNameOfCorruptFields != null &&
+      nameToIndex.contains(options.columnNameOfCorruptFields)) {
+      row(nameToIndex(options.columnNameOfCorruptFields)) = rowTracker.errorFields
+    }
+
+    //additional handling for adding input row's column to output row
+    inputRow.map { in =>
+      val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+      val refSchema = in.schema.fieldNames.toSeq.filterNot(_ == options.contentCol);
+      refSchema.foreach { elem =>
+        nameToIndex.get(elem).foreach { x => row.update(x, in.getAs(elem)) }
+      }
+    }
+
     Row.fromSeq(row)
   }
 }

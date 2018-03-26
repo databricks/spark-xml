@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<ROWSET>
+    <ROW>
+        <date>2017-05-15</date>
+        <date2>2017/05/15</date2>
+    </ROW>
+    <ROW>
+        <date>2018-12-11</date>
+        <date2>2018/12/11</date2>
+    </ROW>
+    <ROW>
+        <date>1999-01-11</date>
+        <date2>1999/01/11</date2>
+    </ROW>
+</ROWSET>
