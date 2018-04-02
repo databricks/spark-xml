@@ -32,7 +32,6 @@ import com.databricks.spark.xml.{XmlOptions, XmlInputFormat}
 
 private[xml] object XmlFile {
   val DEFAULT_INDENT = "    "
-  val DEFAULT_ROW_SEPARATOR = "\n"
 
   def withCharset(
       context: SparkContext,
@@ -80,11 +79,8 @@ private[xml] object XmlFile {
       parameters: Map[String, String] = Map()): Unit = {
     val options = XmlOptions(parameters.toMap)
     val codecClass = CompressionCodecs.getCodecClass(options.codec)
-    val startElement = s"<${options.rootTag}>"
-    val endElement = s"</${options.rootTag}>"
     val rowSchema = dataFrame.schema
     val indent = XmlFile.DEFAULT_INDENT
-    val rowSeparator = XmlFile.DEFAULT_ROW_SEPARATOR
 
     val xmlRDD = dataFrame.rdd.mapPartitions { iter =>
       val factory = XMLOutputFactory.newInstance()
@@ -101,6 +97,10 @@ private[xml] object XmlFile {
 
         override def next: String = {
           if (iter.nonEmpty) {
+            if (firstRow) {
+              indentingXmlWriter.writeStartElement(options.rootTag)
+              firstRow = false
+            }
             val xml = {
               StaxXmlGenerator(
                 rowSchema,
@@ -109,21 +109,13 @@ private[xml] object XmlFile {
               writer.toString
             }
             writer.reset()
-
-            // Here it needs to add indentations for the start of each line,
-            // in order to insert the start element and end element.
-            val indentedXml = indent + xml.replaceAll(rowSeparator, rowSeparator + indent)
-            if (firstRow) {
-              firstRow = false
-              startElement + rowSeparator + indentedXml
-            } else {
-              indentedXml
-            }
+            xml
           } else {
-            indentingXmlWriter.close()
             if (!firstRow) {
               lastRow = false
-              endElement
+              indentingXmlWriter.writeEndElement()
+              indentingXmlWriter.close()
+              writer.toString
             } else {
               // This means the iterator was initially empty.
               firstRow = false
