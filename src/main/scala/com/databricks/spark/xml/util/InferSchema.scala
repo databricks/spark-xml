@@ -101,7 +101,7 @@ private[xml] object InferSchema {
 
           Some(inferObject(parser, options, rootAttributes))
         } catch {
-          case NonFatal(_) if shouldHandleCorruptRecord =>
+          case NonFatal(x) if shouldHandleCorruptRecord =>
             Some(StructType(Seq(StructField(options.columnNameOfCorruptRecord, StringType))))
           case NonFatal(_) =>
             None
