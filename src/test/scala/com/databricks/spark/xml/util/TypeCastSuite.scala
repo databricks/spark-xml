@@ -79,7 +79,7 @@ class TypeCastSuite extends FunSuite {
     assert(TypeCast.castTo("1.00", FloatType, options) == 1.0)
     assert(TypeCast.castTo("1.00", DoubleType, options) == 1.0)
     assert(TypeCast.castTo("true", BooleanType, options) == true)
-    val timestamp = "2015-01-01 00:00:00"
+    val timestamp = "2015-01-01 00:00:00.0"
     assert(
       TypeCast.castTo(timestamp, TimestampType, options) == Timestamp.valueOf(timestamp))
     assert(TypeCast.castTo("2015-01-01", DateType, options) == Date.valueOf("2015-01-01"))

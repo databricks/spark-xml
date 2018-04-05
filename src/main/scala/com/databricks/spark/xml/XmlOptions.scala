@@ -15,8 +15,9 @@
  */
 package com.databricks.spark.xml
 
-import org.slf4j.LoggerFactory
+import java.text.SimpleDateFormat
 
+import org.slf4j.LoggerFactory
 import com.databricks.spark.xml.util.ParseModes
 
 /**
@@ -43,6 +44,10 @@ private[xml] class XmlOptions(
     parameters.getOrElse("columnNameOfCorruptRecord", "_corrupt_record")
   val ignoreSurroundingSpaces =
     parameters.get("ignoreSurroundingSpaces").map(_.toBoolean).getOrElse(false)
+  val timestampFormat = parameters.getOrElse("timestampFormat", XmlOptions.DEFAULT_TIMESTAMP_FORMAT)
+  val timestampFormatter: SimpleDateFormat = new SimpleDateFormat(timestampFormat)
+  val dateFormat = parameters.getOrElse("dateFormat", XmlOptions.DEFAULT_DATE_FORMAT)
+  val dateFormatter: SimpleDateFormat = new SimpleDateFormat(dateFormat)
 
   // Leave this option for backwards compatibility.
   private val failFastFlag = parameters.get("failFast").map(_.toBoolean).getOrElse(false)
@@ -75,6 +80,9 @@ private[xml] object XmlOptions {
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_CHARSET = "UTF-8"
   val DEFAULT_NULL_VALUE = null
+  val DEFAULT_TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss.S"
+  val DEFAULT_DATE_FORMAT = "yyyy-MM-dd"
+
 
   def apply(parameters: Map[String, String]): XmlOptions = new XmlOptions(parameters)
 }

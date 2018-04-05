@@ -60,6 +60,8 @@ When reading files the API accepts several options:
   * `DROPMALFORMED` : ignores the whole corrupted records.
   * `FAILFAST` : throws an exception when it meets corrupted records.
 * `columnNameOfCorruptRecord`: The name of new field where malformed strings are stored. Default is `_corrupt_record`.
+* `timestampFormat`: A string representing the timestamp format within your XML, as specified by [SimpleDateFormat](https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html) specs. Default is `yyyy-MM-dd HH:mm:ss.S`.
+* `dateFormat`: A string representing the date format within your XML, as specified by [SimpleDateFormat](https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html) specs. Default is `yyyy-MM-dd`.
 * `attributePrefix`: The prefix for attributes so that we can differentiate attributes and elements. This will be the prefix for field names. Default is `_`.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
 * `charset`: Defaults to 'UTF-8' but can be set to other valid charset names

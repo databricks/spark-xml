@@ -17,12 +17,11 @@ package com.databricks.spark.xml.util
 
 import java.math.BigDecimal
 import java.sql.{Date, Timestamp}
-import java.text.NumberFormat
+import java.text.{NumberFormat, SimpleDateFormat}
 import java.util.Locale
 
 import scala.util.Try
 import scala.util.control.Exception._
-
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions
 
@@ -62,7 +61,11 @@ object TypeCast {
           .getOrElse(NumberFormat.getInstance(Locale.getDefault).parse(datum).doubleValue())
         case _: BooleanType => datum.toBoolean
         case _: DecimalType => new BigDecimal(datum.replaceAll(",", ""))
+        case _: TimestampType if options.timestampFormatter != null =>
+          new Timestamp(options.timestampFormatter.parse(datum).getTime)
         case _: TimestampType => Timestamp.valueOf(datum)
+        case _: DateType if options.dateFormatter != null =>
+          new Date(options.dateFormatter.parse(datum).getTime)
         case _: DateType => Date.valueOf(datum)
         case _: StringType => datum
         case _ => throw new RuntimeException(s"Unsupported type: ${castType.typeName}")
@@ -87,8 +90,8 @@ object TypeCast {
       case DoubleType => signSafeToDouble(value, options)
       case BooleanType => castTo(value, BooleanType, options)
       case StringType => castTo(value, StringType, options)
-      case DateType => castTo(value, DateType, options)
       case TimestampType => castTo(value, TimestampType, options)
+      case DateType => castTo(value, DateType, options)
       case FloatType => signSafeToFloat(value, options)
       case ByteType => castTo(value, ByteType, options)
       case ShortType => castTo(value, ShortType, options)
@@ -108,6 +111,17 @@ object TypeCast {
       case "true" | "false" => true
       case _ => false
     }
+  }
+
+  private[xml] def isDate(value: String, dateFormatter: SimpleDateFormat = null) = {
+    (allCatch opt(
+      if (dateFormatter == null) {
+        Date.valueOf(value)
+      }
+      else {
+        new Date(dateFormatter.parse(value).getTime)
+      }
+      )).isDefined
   }
 
   private[xml] def isDouble(value: String): Boolean = {
@@ -137,8 +151,15 @@ object TypeCast {
     (allCatch opt signSafeValue.toLong).isDefined
   }
 
-  private[xml] def isTimestamp(value: String): Boolean = {
-    (allCatch opt Timestamp.valueOf(value)).isDefined
+  private[xml] def isTimestamp(value: String, timestampFormatter: SimpleDateFormat = null) = {
+    (allCatch opt(
+      if (timestampFormatter == null) {
+        Timestamp.valueOf(value)
+      }
+      else {
+        new Timestamp(timestampFormatter.parse(value).getTime)
+      }
+      )).isDefined
   }
 
   private[xml] def signSafeToLong(value: String, options: XmlOptions): Long = {
