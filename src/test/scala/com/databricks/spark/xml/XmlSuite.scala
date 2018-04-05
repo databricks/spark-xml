@@ -59,6 +59,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val simpleNestedObjects = "src/test/resources/simple-nested-objects.xml"
   val nestedElementWithNameOfParent = "src/test/resources/nested-element-with-name-of-parent.xml"
   val booksMalformedAttributes = "src/test/resources/books-malformed-attributes.xml"
+  val datatypesValidAndInvalid = "src/test/resources/datatypes-valid-and-invalid.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -89,6 +90,48 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     } finally {
       super.afterAll()
     }
+  }
+
+  test("DSL test nulls out invalid values when set to permissive and given explicit schema") {
+    val schema = StructType(List(
+      StructField("integer_value", StructType(List(
+        StructField("_VALUE", IntegerType, nullable = true),
+        StructField("_int", IntegerType, nullable = true)
+      ))),
+      StructField("long_value", StructType(List(
+        StructField("_VALUE", LongType, nullable = true),
+        StructField("_int", IntegerType, nullable = true)
+      ))),
+      StructField("float_value", FloatType, nullable = true),
+      StructField("double_value", DoubleType, nullable = true),
+      StructField("boolean_value", BooleanType, nullable = true),
+      StructField("string_value", StringType, nullable = true),
+      StructField("integer_array", ArrayType(IntegerType), nullable = true)
+    ))
+    val results = sqlContext.read.format("xml")
+      .option("mode", "PERMISSIVE")
+      .schema(schema)
+      .load(datatypesValidAndInvalid)
+    assert(results.schema == schema)
+    val objects = results.take(2)
+    assert(objects.apply(0).apply(0).asInstanceOf[Row].apply(0) == 10)
+    assert(objects.apply(0).apply(0).asInstanceOf[Row].apply(1) == 10)
+    assert(objects.apply(0).apply(1).asInstanceOf[Row].apply(0) == 10L)
+    assert(objects.apply(0).apply(1).asInstanceOf[Row].apply(1) == null)
+    assert(objects.apply(0).apply(2) == 10.0)
+    assert(objects.apply(0).apply(3) == 10.0D)
+    assert(objects.apply(0).apply(4) == true)
+    assert(objects.apply(0).apply(5) == "Ten")
+    assert(objects.apply(0).apply(6) === Array(1, 2))
+    assert(objects.apply(1).apply(0).asInstanceOf[Row].apply(0) == null)
+    assert(objects.apply(1).apply(0).asInstanceOf[Row].apply(1) == null)
+    assert(objects.apply(1).apply(1).asInstanceOf[Row].apply(0) == null)
+    assert(objects.apply(1).apply(1).asInstanceOf[Row].apply(1) == 10)
+    assert(objects.apply(1).apply(2) == null)
+    assert(objects.apply(1).apply(3) == null)
+    assert(objects.apply(1).apply(4) == null)
+    assert(objects.apply(1).apply(5) == "Ten")
+    assert(objects.apply(1).apply(6) === Array(null, 2))
   }
 
   test("DSL test") {

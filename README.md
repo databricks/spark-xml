@@ -56,7 +56,9 @@ When reading files the API accepts several options:
 * `excludeAttribute` : Whether you want to exclude attributes in elements or not. Default is false.
 * `treatEmptyValuesAsNulls` : (DEPRECATED: use `nullValue` set to `""`) Whether you want to treat whitespaces as a null value. Default is false
 * `mode`: The mode for dealing with corrupt records during parsing. Default is `PERMISSIVE`.
-  * `PERMISSIVE` : sets other fields to `null` when it meets a corrupted record, and puts the malformed string into a new field configured by `columnNameOfCorruptRecord`. When a schema is set by user, it sets `null` for extra fields.
+  * `PERMISSIVE` :
+    * When it encounters a corrupted record, it sets all fields to `null` and puts the malformed string into a new field configured by `columnNameOfCorruptRecord`.
+    * When it encounters a field of the wrong datatype, it sets the offending field to `null`.
   * `DROPMALFORMED` : ignores the whole corrupted records.
   * `FAILFAST` : throws an exception when it meets corrupted records.
 * `columnNameOfCorruptRecord`: The name of new field where malformed strings are stored. Default is `_corrupt_record`.
