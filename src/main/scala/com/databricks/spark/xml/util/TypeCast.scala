@@ -22,9 +22,10 @@ import java.util.Locale
 
 import scala.util.Try
 import scala.util.control.Exception._
-
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions
+
+import scala.util.control.NonFatal
 
 /**
  * Utility functions for type casting
@@ -99,14 +100,7 @@ object TypeCast {
       }
     }
     catch {
-      case e: Exception => {
-        if (options.permissive) {
-          null
-        }
-        else {
-          throw e
-        }
-      }
+      case NonFatal(_) if options.permissive => null
     }
   }
 
