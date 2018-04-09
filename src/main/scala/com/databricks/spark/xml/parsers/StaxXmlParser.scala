@@ -38,10 +38,11 @@ import com.databricks.spark.xml.XmlOptions
 private[xml] object StaxXmlParser {
   private val logger = LoggerFactory.getLogger(StaxXmlParser.getClass)
 
-  def parse(
-      xml: RDD[String],
+  def parse[T](
+      xml: RDD[T],
       schema: StructType,
       options: XmlOptions): RDD[Row] = {
+
     def failedRecord(record: String): Option[Row] = {
       // create a row even if no corrupt record column is present
       if (options.failFast) {
@@ -71,22 +72,28 @@ private[xml] object StaxXmlParser {
           event.getEventType != XMLStreamConstants.COMMENT
       }
 
-      iter.flatMap { xml =>
+      iter.flatMap { xmlItem =>
+        xmlItem match {
+          case _: String =>
+        _.getAs(options.contentCol).asInstanceOf[String]
+
+        val xmlString = xmlItem.asInstanceOf[String]
         // It does not have to skip for white space, since `XmlInputFormat`
         // always finds the root tag without a heading space.
-        val reader = new ByteArrayInputStream(xml.getBytes)
+        val reader = new ByteArrayInputStream(xmlString.getBytes)
         val eventReader = factory.createXMLEventReader(reader)
         val parser = factory.createFilteredReader(eventReader, filter)
+
         try {
           val rootEvent =
             StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
           val rootAttributes =
             rootEvent.asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           Some(convertObject(parser, schema, options, rootAttributes))
-            .orElse(failedRecord(xml))
+            .orElse(failedRecord(xmlString))
         } catch {
           case NonFatal(_) =>
-            failedRecord(xml)
+            failedRecord(xmlString)
         }
       }
     }

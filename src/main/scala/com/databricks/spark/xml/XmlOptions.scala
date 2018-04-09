@@ -43,6 +43,7 @@ private[xml] class XmlOptions(
     parameters.getOrElse("columnNameOfCorruptRecord", "_corrupt_record")
   val ignoreSurroundingSpaces =
     parameters.get("ignoreSurroundingSpaces").map(_.toBoolean).getOrElse(false)
+  val contentCol = parameters.getOrElse(XmlOptions.CONTENT_COLUMN_NAME, "value")
 
   // Leave this option for backwards compatibility.
   private val failFastFlag = parameters.get("failFast").map(_.toBoolean).getOrElse(false)
@@ -75,6 +76,7 @@ private[xml] object XmlOptions {
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_CHARSET = "UTF-8"
   val DEFAULT_NULL_VALUE = null
+  val CONTENT_COLUMN_NAME = "contentColumnName"
 
   def apply(parameters: Map[String, String]): XmlOptions = new XmlOptions(parameters)
 }
