@@ -72,12 +72,12 @@ private[xml] object StaxXmlParser {
           event.getEventType != XMLStreamConstants.COMMENT
       }
 
-      iter.flatMap { xmlItem =>
-        xmlItem match {
-          case _: String =>
-        _.getAs(options.contentCol).asInstanceOf[String]
-
-        val xmlString = xmlItem.asInstanceOf[String]
+      iter.flatMap { xmlItem : T =>
+        val xmlString: String = xmlItem match {
+          case s: String => s
+          case r: Row => r.getAs(options.contentCol).asInstanceOf[String]
+        }
+        //   val xmlString = xmlItem.asInstanceOf[String]
         // It does not have to skip for white space, since `XmlInputFormat`
         // always finds the root tag without a heading space.
         val reader = new ByteArrayInputStream(xmlString.getBytes)

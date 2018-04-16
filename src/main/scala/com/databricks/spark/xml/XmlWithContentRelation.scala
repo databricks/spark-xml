@@ -34,9 +34,9 @@ case class XmlWithContentRelation protected[spark](
     parameters: Map[String, String],
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
   extends BaseRelation
-  with InsertableRelation
-  with TableScan
-  with PrunedScan {
+    with InsertableRelation
+    with TableScan
+    with PrunedScan {
 
   private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
@@ -61,8 +61,7 @@ case class XmlWithContentRelation protected[spark](
     StaxXmlParser.parse(
       baseRDD(),
       schema,
-      options,
-      rowToString)
+      options)
   }
 
   private val rowToString: Row => String = _.getAs(options.contentCol).asInstanceOf[String]
@@ -77,8 +76,7 @@ case class XmlWithContentRelation protected[spark](
       StaxXmlParser.parse(
         baseRDD(),
         requestedSchema,
-        options,
-        rowToString)
+        options)
     }
   }
 

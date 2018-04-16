@@ -59,6 +59,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val simpleNestedObjects = "src/test/resources/simple-nested-objects.xml"
   val nestedElementWithNameOfParent = "src/test/resources/nested-element-with-name-of-parent.xml"
   val booksMalformedAttributes = "src/test/resources/books-malformed-attributes.xml"
+  val datasetWithXmlFile = "src/test/resources/dataset-with-xml.csv"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -71,6 +72,37 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val numBooksComplicated = 3
   val numTopics = 1
   val numGPS = 2
+
+  val csvSchema = StructType(List(
+    StructField("name", StringType, nullable = true),
+    StructField("number", IntegerType, nullable = true),
+    StructField("content", StringType, nullable = true)
+  ))
+
+  val csvXmlSchema = StructType(List(
+    StructField("book", StructType(List(
+      StructField("_id", StringType, nullable = true),
+      StructField("author", StringType, nullable = true),
+      StructField("title", StringType, nullable = true),
+      StructField("genre", StructType(List(
+        StructField("genreid", IntegerType, nullable = true),
+        StructField("name", StringType, nullable = true)
+      ))),
+      StructField("price", DoubleType, nullable = true),
+      StructField("publish_dates", ArrayType(
+        StructType(List(
+          StructField("publish_date", StructType(List(
+            StructField("_tag", StringType, nullable = true),
+            StructField("year", IntegerType, nullable = true),
+            StructField("month", IntegerType, nullable = true),
+            StructField("day", IntegerType, nullable = true)
+          )))
+        )), containsNull = true
+      ))
+    )))
+  ))
+
+
 
   private var sqlContext: SQLContext = _
 
@@ -90,6 +122,27 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       super.afterAll()
     }
   }
+
+  test("DSL can parse XML from a dataset when provided a schema for the xml") {
+    val datasetWithRawXml = sqlContext.read.schema(csvSchema).csv(datasetWithXmlFile)
+    datasetWithRawXml.show()
+    val datasetWithParsedXml = new XmlReader()
+      .withSchema(csvXmlSchema)
+      .withContentColName("content")
+      .xmlRddWithContent(sqlContext, datasetWithRawXml.rdd)
+    datasetWithParsedXml.show(false)
+  }
+
+  test("DSL can parse XML from a dataset without being provided a schema for the xml") {
+    val datasetWithRawXml = sqlContext.read.schema(csvSchema).csv(datasetWithXmlFile)
+    datasetWithRawXml.show()
+    val datasetWithParsedXml = new XmlReader()
+      .withContentColName("content")
+      .xmlRddWithContent(sqlContext, datasetWithRawXml.rdd)
+    datasetWithParsedXml.show(false)
+  }
+
+
 
   test("DSL test") {
     val results = sqlContext.read.format("xml")

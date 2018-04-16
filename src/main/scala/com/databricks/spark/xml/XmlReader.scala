@@ -19,10 +19,11 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.sql.types.StructType
 import com.databricks.spark.xml.util.XmlFile
+import org.apache.spark.sql.Row;
 
 /**
- * A collection of static functions for working with XML files in Spark SQL
- */
+  * A collection of static functions for working with XML files in Spark SQL
+  */
 class XmlReader extends Serializable {
   private var parameters = collection.mutable.Map.empty[String, String]
   private var schema: StructType = null
@@ -87,6 +88,16 @@ class XmlReader extends Serializable {
     this
   }
 
+  def withOption(key: String, value: String): XmlReader = {
+    parameters += (key -> value)
+    this
+  }
+
+  def withContentColName(value: String): XmlReader = {
+    parameters += ("contentColumnName" -> value)
+    this
+  }
+
   def withSchema(schema: StructType): XmlReader = {
     this.schema = schema
     this
@@ -110,6 +121,15 @@ class XmlReader extends Serializable {
 
   def xmlRdd(sqlContext: SQLContext, xmlRDD: RDD[String]): DataFrame = {
     val relation: XmlRelation = XmlRelation(
+      () => xmlRDD,
+      None,
+      parameters.toMap,
+      schema)(sqlContext)
+    sqlContext.baseRelationToDataFrame(relation)
+  }
+
+  def xmlRddWithContent(sqlContext: SQLContext, xmlRDD: RDD[Row]): DataFrame = {
+    val relation: XmlWithContentRelation = XmlWithContentRelation(
       () => xmlRDD,
       None,
       parameters.toMap,
