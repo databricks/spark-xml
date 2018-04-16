@@ -125,21 +125,19 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL can parse XML from a dataset when provided a schema for the xml") {
     val datasetWithRawXml = sqlContext.read.schema(csvSchema).csv(datasetWithXmlFile)
-    datasetWithRawXml.show()
     val datasetWithParsedXml = new XmlReader()
       .withSchema(csvXmlSchema)
       .withContentColName("content")
       .xmlRddWithContent(sqlContext, datasetWithRawXml.rdd)
-    datasetWithParsedXml.show(false)
+    assert(datasetWithParsedXml.count() == 2)
   }
 
   test("DSL can parse XML from a dataset without being provided a schema for the xml") {
     val datasetWithRawXml = sqlContext.read.schema(csvSchema).csv(datasetWithXmlFile)
-    datasetWithRawXml.show()
     val datasetWithParsedXml = new XmlReader()
       .withContentColName("content")
       .xmlRddWithContent(sqlContext, datasetWithRawXml.rdd)
-    datasetWithParsedXml.show(false)
+    assert(datasetWithParsedXml.count() == 2)
   }
 
 
