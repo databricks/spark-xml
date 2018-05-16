@@ -23,6 +23,7 @@ private[xml] object StaxXmlParserUtils {
   def checkEndElement(parser: XMLEventReader): Boolean = {
     parser.peek match {
       case _: EndElement => true
+      case _: EndDocument => true
       case _: StartElement => false
       case _ =>
         // When other events are found here rather than `EndElement` or `StartElement`
