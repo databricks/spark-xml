@@ -18,6 +18,7 @@ package com.databricks.spark.xml
 import java.text.SimpleDateFormat
 
 import org.slf4j.LoggerFactory
+
 import com.databricks.spark.xml.util.ParseModes
 
 /**

@@ -20,6 +20,7 @@ import java.sql.{Date, Timestamp}
 import java.util.Locale
 
 import org.scalatest.FunSuite
+
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions
 

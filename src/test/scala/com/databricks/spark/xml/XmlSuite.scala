@@ -60,6 +60,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val simpleNestedObjects = "src/test/resources/simple-nested-objects.xml"
   val nestedElementWithNameOfParent = "src/test/resources/nested-element-with-name-of-parent.xml"
   val booksMalformedAttributes = "src/test/resources/books-malformed-attributes.xml"
+  val fiasHouse = "src/test/resources/fias_house.xml"
   val timesFile = "src/test/resources/times.xml"
   val invalidTimesFile = "src/test/resources/invalid-times.xml"
   val datesFile = "src/test/resources/dates.xml"
@@ -69,6 +70,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val booksRootTag = "books"
   val topicsTag = "Topic"
   val agesTag = "person"
+  val fiasRowTag = "House"
 
   val numAges = 3
   val numCars = 3
@@ -76,6 +78,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val numBooksComplicated = 3
   val numTopics = 1
   val numGPS = 2
+  val numFiasHouses = 37
   val numTimestamps = 3
 
   val d1 = "2017/05/15"
@@ -1014,5 +1017,15 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.length === 2)
     assert(results(0)(0) === "bk111")
     assert(results(1)(0) === "bk112")
+  }
+
+  test("read utf-8 encoded file with empty tag") {
+    val df = sqlContext.read.format("xml")
+      .option("excludeAttribute", "false")
+      .option("rowTag", fiasRowTag)
+      .xml(fiasHouse)
+
+    assert(df.collect().length == numFiasHouses)
+    assert(df.select().where("_HOUSEID is null").count() == 0)
   }
 }
