@@ -77,6 +77,7 @@ private[xml] object StaxXmlGenerator {
       case (_, null) | (NullType, _) => writer.writeCharacters(options.nullValue)
       case (StringType, v: String) => writer.writeCharacters(v.toString)
       case (TimestampType, v: java.sql.Timestamp) => writer.writeCharacters(v.toString)
+      case (DateType, v: java.sql.Date) => writer.writeCharacters(v.toString)
       case (IntegerType, v: Int) => writer.writeCharacters(v.toString)
       case (ShortType, v: Short) => writer.writeCharacters(v.toString)
       case (FloatType, v: Float) => writer.writeCharacters(v.toString)
@@ -85,7 +86,6 @@ private[xml] object StaxXmlGenerator {
       case (DecimalType(), v: java.math.BigDecimal) => writer.writeCharacters(v.toString)
       case (ByteType, v: Byte) => writer.writeCharacters(v.toString)
       case (BooleanType, v: Boolean) => writer.writeCharacters(v.toString)
-      case (DateType, v) => writer.writeCharacters(v.toString)
 
       // For the case roundtrip in reading and writing XML files, [[ArrayType]] cannot have
       // [[ArrayType]] as element type. It always wraps the element with [[StructType]]. So,

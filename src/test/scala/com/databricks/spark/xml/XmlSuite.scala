@@ -19,6 +19,7 @@ import java.io.File
 import java.nio.charset.UnsupportedCharsetException
 import java.nio.file.Files
 import java.sql.{Date, Timestamp}
+import java.text.SimpleDateFormat
 
 import scala.io.Source
 
@@ -28,8 +29,7 @@ import org.apache.hadoop.io.compress.GzipCodec
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 import com.databricks.spark.xml.XmlOptions._
-import com.databricks.spark.xml.util.{ParseModes, XmlFile}
-
+import com.databricks.spark.xml.util.ParseModes
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Row, SQLContext, SaveMode}
 import org.apache.spark.{SparkConf, SparkContext, SparkException}
@@ -60,13 +60,15 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val simpleNestedObjects = "src/test/resources/simple-nested-objects.xml"
   val nestedElementWithNameOfParent = "src/test/resources/nested-element-with-name-of-parent.xml"
   val booksMalformedAttributes = "src/test/resources/books-malformed-attributes.xml"
-  val fiasHouse = "src/test/resources/fias_house.xml"
+  val timesFile = "src/test/resources/times.xml"
+  val invalidTimesFile = "src/test/resources/invalid-times.xml"
+  val datesFile = "src/test/resources/dates.xml"
+  val timesAndDatesFile = "src/test/resources/times-and-dates.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
   val topicsTag = "Topic"
   val agesTag = "person"
-  val fiasRowTag = "House"
 
   val numAges = 3
   val numCars = 3
@@ -74,7 +76,39 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val numBooksComplicated = 3
   val numTopics = 1
   val numGPS = 2
-  val numFiasHouses = 37
+  val numTimestamps = 3
+
+  val d1 = "2017/05/15"
+  val d2 = "2018/12/11"
+  val d3 = "1999/01/11"
+  val ts1 = "2017/05/15T14:58:19Z"
+  val ts2 = "2018/12/11T10:50:11Z"
+  val ts3 = "1999/01/11T01:01:01Z"
+  val dateFormatString = "yyyy/MM/dd"
+  val timestampFormatString = "yyyy/MM/dd'T'HH:mm:ss'Z'"
+  val dateFormat = new SimpleDateFormat(dateFormatString)
+  val timestampFormat = new SimpleDateFormat(timestampFormatString)
+  val defaultDateFormat = new SimpleDateFormat(DEFAULT_DATE_FORMAT)
+  val defaultTimeFormat = new SimpleDateFormat(DEFAULT_TIMESTAMP_FORMAT)
+
+  val dateValues = Array(
+    new Date(dateFormat.parse(d1).getTime),
+    new Date(dateFormat.parse(d2).getTime),
+    new Date(dateFormat.parse(d3).getTime))
+  val timestampValues = Array(
+    new Timestamp(timestampFormat.parse(ts1).getTime),
+    new Timestamp(timestampFormat.parse(ts2).getTime),
+    new Timestamp(timestampFormat.parse(ts3).getTime))
+
+
+  def parseDefaultDate(date : String): Date = {
+    new Date(defaultDateFormat.parse(date).getTime)
+  }
+
+  def parseDefaultTime(time : String): Timestamp = {
+    new Timestamp(defaultTimeFormat.parse(time).getTime)
+  }
+
 
   private var sqlContext: SQLContext = _
 
@@ -93,6 +127,80 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     } finally {
       super.afterAll()
     }
+  }
+
+  test("DSL test schema inferred correctly with timestampFormat option") {
+    val results = sqlContext.read.format("xml")
+      .option("timestampFormat", timestampFormatString)
+      .load(timesFile)
+    assert(results.schema == StructType(List(
+      StructField("time", TimestampType, nullable = true),
+      StructField("time2", DateType, nullable = true)
+    )))
+    assert(results.select("time").collect().map(_(0)) === timestampValues)
+  }
+
+  test("DSL test schema uses default timestamp parsing when timestampFormat option not specified") {
+    val results = sqlContext.read.format("xml")
+      .load(timesFile)
+    assert(results.schema == StructType(List(
+      StructField("time", StringType, nullable = true),
+      StructField("time2", TimestampType, nullable = true)
+    )))
+    assert(results.select("time2").collect().map(_(0)) === timestampValues)
+  }
+
+  test("DSL test schema inferred correctly with dateFormat option") {
+    val results = sqlContext.read.format("xml")
+      .option("dateFormat", dateFormatString)
+      .load(datesFile)
+    assert(results.schema == StructType(List(
+      StructField("date", StringType, nullable = true),
+      StructField("date2", DateType, nullable = true)
+    )))
+    assert(results.select("date2").collect().map(_(0)) === dateValues)
+  }
+
+  test("DSL test schema uses default date parsing when dateFormat option not specified") {
+    val results = sqlContext.read.format("xml")
+      .load(datesFile)
+    assert(results.schema == StructType(List(
+      StructField("date", DateType, nullable = true),
+      StructField("date2", StringType, nullable = true)
+    )))
+    assert(results.select("date").collect().map(_(0)) === dateValues)
+  }
+
+  test("DSL test schema inferred correctly with dateFormat and timestampFormat options") {
+    val results = sqlContext.read.format("xml")
+      .option("dateFormat", dateFormatString)
+      .option("timestampFormat", timestampFormatString)
+      .load(timesAndDatesFile)
+    assert(results.schema == StructType(List(
+      StructField("date", StringType, nullable = true),
+      StructField("date2", DateType, nullable = true),
+      StructField("time", TimestampType, nullable = true),
+      StructField("time2", StringType, nullable = true)
+    )))
+    assert(results.select("date2").collect().map(_(0)) === dateValues)
+    assert(results.select("time").collect().map(_(0)) === timestampValues)
+  }
+
+  test("DSL test reads timestamps and dates correctly when given explicit schema") {
+    val schema = StructType(List(
+      StructField("date", StringType, nullable = true),
+      StructField("date2", DateType, nullable = true),
+      StructField("time", TimestampType, nullable = true),
+      StructField("time2", StringType, nullable = true)
+    ))
+    val results = sqlContext.read.format("xml")
+      .option("dateFormat", dateFormatString)
+      .option("timestampFormat", timestampFormatString)
+      .schema(schema)
+      .load(timesAndDatesFile)
+    assert(results.schema == schema)
+    assert(results.select("date2").collect().map(_(0)) === dateValues)
+    assert(results.select("time").collect().map(_(0)) === timestampValues)
   }
 
   test("DSL test") {
@@ -157,8 +265,8 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .collect()
     val attrValOne = results(0).get(0).asInstanceOf[Row](1)
     val attrValTwo = results(1).get(0).asInstanceOf[Row](1)
-    assert(attrValOne == "1990-02-24")
-    assert(attrValTwo == "1985-01-01")
+    assert(attrValOne == parseDefaultDate("1990-02-24"))
+    assert(attrValTwo == parseDefaultDate("1985-01-01"))
     assert(results.size === numAges)
   }
 
@@ -541,7 +649,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("description", StringType, nullable = true),
       StructField("genre", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
-      StructField("publish_date", StringType, nullable = true),
+      StructField("publish_date", DateType, nullable = true),
       StructField("title", StringType, nullable = true))
     ))
 
@@ -560,7 +668,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("description", StringType, nullable = true),
       StructField("genre", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
-      StructField("publish_date", StringType, nullable = true),
+      StructField("publish_date", DateType, nullable = true),
       StructField("title", StringType, nullable = true))
     ))
 
@@ -579,7 +687,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("genre", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
       StructField("publish_dates", StructType(
-        List(StructField("publish_date", StringType))), nullable = true),
+        List(StructField("publish_date", DateType))), nullable = true),
       StructField("title", StringType, nullable = true))
     ))
 
@@ -597,7 +705,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("description", StringType, nullable = true),
       StructField("genre", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
-      StructField("publish_date", ArrayType(StringType), nullable = true),
+      StructField("publish_date", ArrayType(DateType), nullable = true),
       StructField("title", StringType, nullable = true))
     ))
 
@@ -644,7 +752,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
         List(StructField("_VALUE", StringType, nullable = true),
           StructField(s"_unit", StringType, nullable = true))),
         nullable = true),
-      StructField("publish_date", StringType, nullable = true),
+      StructField("publish_date", DateType, nullable = true),
       StructField("title", StringType, nullable = true))
     )
 
@@ -667,7 +775,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
         List(StructField(valueTag, StringType, nullable = true),
           StructField(s"${attributePrefix}unit", StringType, nullable = true))),
         nullable = true),
-      StructField("publish_date", StringType, nullable = true),
+      StructField("publish_date", DateType, nullable = true),
       StructField("title", StringType, nullable = true))
     )
 
@@ -686,7 +794,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("description", StringType, nullable = true),
       StructField("genre", StringType, nullable = true),
       StructField("price", DoubleType, nullable = true),
-      StructField("publish_date", StringType, nullable = true),
+      StructField("publish_date", DateType, nullable = true),
       StructField("title", StringType, nullable = true))
     )
 
@@ -891,7 +999,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .collect()
     val attrValOne = results(0).get(0).asInstanceOf[Row](1)
     val attrValTwo = results(1).get(0).asInstanceOf[Row](0)
-    assert(attrValOne === "1990-02-24")
+    assert(attrValOne === parseDefaultDate("1990-02-24"))
     assert(attrValTwo === 30)
     assert(results.length === numAges)
   }
@@ -906,15 +1014,5 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.length === 2)
     assert(results(0)(0) === "bk111")
     assert(results(1)(0) === "bk112")
-  }
-
-  test("read utf-8 encoded file with empty tag") {
-    val df = sqlContext.read.format("xml")
-      .option("excludeAttribute", "false")
-      .option("rowTag", fiasRowTag)
-      .xml(fiasHouse)
-
-    assert(df.collect().length == numFiasHouses)
-    assert(df.select().where("_HOUSEID is null").count() == 0)
   }
 }

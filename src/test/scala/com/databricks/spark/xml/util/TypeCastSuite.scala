@@ -20,7 +20,6 @@ import java.sql.{Date, Timestamp}
 import java.util.Locale
 
 import org.scalatest.FunSuite
-
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions
 
@@ -79,9 +78,8 @@ class TypeCastSuite extends FunSuite {
     assert(TypeCast.castTo("1.00", FloatType, options) == 1.0)
     assert(TypeCast.castTo("1.00", DoubleType, options) == 1.0)
     assert(TypeCast.castTo("true", BooleanType, options) == true)
-    val timestamp = "2015-01-01 00:00:00"
-    assert(
-      TypeCast.castTo(timestamp, TimestampType, options) == Timestamp.valueOf(timestamp))
+    val timestamp = "2015-01-01 00:00:00.000"
+    assert(TypeCast.castTo(timestamp, TimestampType, options) == Timestamp.valueOf(timestamp))
     assert(TypeCast.castTo("2015-01-01", DateType, options) == Date.valueOf("2015-01-01"))
   }
 

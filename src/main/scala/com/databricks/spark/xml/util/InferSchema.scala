@@ -48,6 +48,7 @@ private[xml] object InferSchema {
       FloatType,
       DoubleType,
       TimestampType,
+      DateType,
       DecimalType.SYSTEM_DEFAULT)
 
   val findTightestCommonTypeOfTwo: (DataType, DataType) => Option[DataType] = {
@@ -132,7 +133,8 @@ private[xml] object InferSchema {
       case v if isInteger(v) => IntegerType
       case v if isDouble(v) => DoubleType
       case v if isBoolean(v) => BooleanType
-      case v if isTimestamp(v) => TimestampType
+      case v if isTimestamp(v, options.timestampFormatter) => TimestampType
+      case v if isDate(v, options.dateFormatter) => DateType
       case v => StringType
     }
   }
@@ -170,17 +172,18 @@ private[xml] object InferSchema {
       rootAttributes: Array[Attribute] = Array.empty): DataType = {
     val builder = Seq.newBuilder[StructField]
     val nameToDataType = collection.mutable.Map.empty[String, ArrayBuffer[DataType]]
-    // If there are attributes, then we should process them first.
-    val rootValuesMap =
-      StaxXmlParserUtils.convertAttributesToValuesMap(rootAttributes, options)
-    rootValuesMap.foreach {
-      case (f, v) =>
-        nameToDataType += (f -> ArrayBuffer(inferFrom(v, options)))
-    }
     var shouldStop = false
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
+          // If there are attributes, then we should process them first.
+          val rootValuesMap =
+            StaxXmlParserUtils.convertAttributesToValuesMap(rootAttributes, options)
+          rootValuesMap.foreach {
+            case (f, v) =>
+              nameToDataType += (f -> ArrayBuffer(inferFrom(v, options)))
+          }
+
           val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
           val valuesMap = StaxXmlParserUtils.convertAttributesToValuesMap(attributes, options)
           val inferredType = inferField(parser, options) match {
@@ -221,7 +224,7 @@ private[xml] object InferSchema {
     }
     // We need to manually merges the fields having the sames so that
     // This can be inferred as ArrayType.
-    nameToDataType.foreach {
+    nameToDataType.foreach{
       case (field, dataTypes) if dataTypes.length > 1 =>
         val elementType = dataTypes.reduceLeft(InferSchema.compatibleType(options))
         builder += StructField(field, ArrayType(elementType), nullable = true)
