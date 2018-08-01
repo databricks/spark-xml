@@ -222,7 +222,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
             si += 1
             ei = 0
           }
-        } else if (b == endTag(ei) || checkEmptyTag(b, ei)) {
+        } else if (b == endTag(ei) || (depth > 0 && checkEmptyTag(b, ei))) {
           if ((b == endTag(ei) && ei >= endTag.length - 1) ||
             (checkEmptyTag(b, ei) && ei >= endEmptyTag.length - 1)) {
             if (depth == 0) {
