@@ -61,6 +61,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val nestedElementWithNameOfParent = "src/test/resources/nested-element-with-name-of-parent.xml"
   val booksMalformedAttributes = "src/test/resources/books-malformed-attributes.xml"
   val fiasHouse = "src/test/resources/fias_house.xml"
+  val selfClosingTag = "src/test/resources/self-closing-tag.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -916,5 +917,19 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     assert(df.collect().length == numFiasHouses)
     assert(df.select().where("_HOUSEID is null").count() == 0)
+  }
+
+  test("Produces correct result for a row with a self closing tag inside") {
+    val schema = StructType(Seq(
+      StructField("non-empty-tag", IntegerType, nullable = true),
+      StructField("self-closing-tag", IntegerType, nullable = true)
+    ))
+
+    val result = new XmlReader()
+      .withSchema(schema)
+      .xmlFile(sqlContext, selfClosingTag)
+      .collect()
+
+    assert(result(0).toSeq === Seq(1, null))
   }
 }
