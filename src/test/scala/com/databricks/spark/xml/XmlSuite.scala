@@ -723,7 +723,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .select("b.es")
       .collect()
 
-    assert(result(1).toSeq === Seq(null))
+    assert(result(1) === Row(Row(null)))
   }
 
   test("Produces correct order of columns for nested rows when user specifies a schema") {
