@@ -28,11 +28,22 @@
 	<item>
 		<b>
 			<es>
-				<!-- Issue 314 - We expect [[E,null]]
-					The <es> node exists and can have two nested elements, E and F
+				<!-- Issue 314 - We expect [[E, ]]
+					The <es> node exists and can have two nested elements, E and " "
 				-->
 				<e>E</e>
 				<f> </f>
+			</es>
+		</b>
+	</item>
+	<item>
+		<b>
+			<es>
+				<!-- Issue 314 - We expect [[E,]]
+					The <es> node exists and can have two nested elements, E and ""
+				-->
+				<e>E</e>
+				<f></f>
 			</es>
 		</b>
 	</item>
