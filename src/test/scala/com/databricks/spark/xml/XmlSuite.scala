@@ -756,24 +756,30 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.size === numTopics)
   }
 
-  test("Missing nested struct represented as null instead of empty Row") {
-    val customSchema = new StructType()
-      .add("b",
-        new StructType()
-          .add("es", new StructType()
-            .add("e", StringType)
-            .add("f", StringType)
-          )
-        )
+  test("Missing nested struct represented as empty Row") {
+    val leavesSchema = StructType(
+      Seq(
+        StructField("e", StringType, nullable = true),
+        StructField("f", StringType, nullable = true)))
 
-    val result = sqlContext.read.format("xml")
-      .option("rowTag", "item")
-      .schema(customSchema)
-      .load(nullNestedStructFile)
-      .select("b.es")
+    val nestedSchema = StructType(
+      Seq(
+        StructField("es", leavesSchema, nullable = true)))
+
+    val schema = StructType(
+      Seq(
+        StructField("b", nestedSchema, nullable = true)))
+
+    val result = new XmlReader()
+      .withSchema(schema)
+      .withRowTag("item")
+      .xmlFile(sqlContext, nullNestedStructFile)
       .collect()
 
-    assert(result(1) === Row(Row(null,null)))
+    assert(result(0) === Row(Row(null)))
+    assert(result(1) === Row(Row(Row(null,null))))
+    assert(result(2) === Row(Row(Row("E",null))))
+    assert(result(3) === Row(Row(Row("E"," "))))
   }
 
   test("Produces correct order of columns for nested rows when user specifies a schema") {
@@ -883,7 +889,8 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val resultsOne = sqlContext.read.format("xml")
       .option("treatEmptyValuesAsNulls", "true")
       .load(gpsEmptyField)
-    assert(resultsOne.selectExpr("extensions.TrackPointExtension").head().isNullAt(0))
+    assert(resultsOne.selectExpr("extensions.TrackPointExtension").head() === Row(Row(null)))
+    assert(resultsOne.selectExpr("extensions.TrackPointExtension.hr").head().isNullAt(0))
     assert(resultsOne.collect().size === numGPS)
 
     val resultsTwo = sqlContext.read.format("xml")

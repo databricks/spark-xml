@@ -1,20 +1,39 @@
 <?xml version="1.0" ?>
 <root>
 	<item>
+		<!-- Issue 314 - We expect [null]
+			The node exists but is empty
+		-->
 		<b>
-			<!-- nested comments -->
+		</b>
+	</item>
+	<item>
+		<b>
+			<!-- Issue 314 - We expect [[null,null]]
+				The <es> node exists and can have two nested elements, both null
+			-->
+			<es></es>
+		</b>
+	</item>
+	<item>
+		<b>
 			<es>
-				<e>1</e>
+				<!-- Issue 314 - We expect [[E,null]]
+					The <es> node exists and can have two nested elements, E and null
+				-->
+				<e>E</e>
 			</es>
 		</b>
 	</item>
 	<item>
-        <!-- Issue 117 - This is where an empty Row would be produced instead of null -->
 		<b>
-
-			<!-- nested comments -->
-
-			<es></es>
+			<es>
+				<!-- Issue 314 - We expect [[E,null]]
+					The <es> node exists and can have two nested elements, E and F
+				-->
+				<e>E</e>
+				<f> </f>
+			</es>
 		</b>
 	</item>
 </root>

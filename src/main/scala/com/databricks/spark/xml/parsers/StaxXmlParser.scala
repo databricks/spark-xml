@@ -215,14 +215,9 @@ private[xml] object StaxXmlParser {
       nameToIndex.get(f).foreach { row(_) = v }
     }
 
-    // Return null rather than empty row. For nested structs empty row causes
-    // ArrayOutOfBounds exceptions when executing an action.
     if (valuesMap.isEmpty) {
-      if (options.treatEmptyValuesAsNulls) {
-        null
-      } else {
-        Row.fromSeq(Seq.fill(schema.fieldNames.length)(null))
-      }
+      // Return an empty row with all nested elements by the schema set to null.
+      Row.fromSeq(Seq.fill(schema.fieldNames.length)(null))
     } else {
       Row.fromSeq(row)
     }
