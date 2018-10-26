@@ -16,13 +16,45 @@
 package com.databricks.spark
 
 import scala.collection.Map
-
 import org.apache.hadoop.io.compress.CompressionCodec
-
 import org.apache.spark.sql._
 import com.databricks.spark.xml.util.XmlFile
+import org.apache.spark.annotation.Experimental
+import org.apache.spark.sql.catalyst.expressions.Expression
+import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
+import org.apache.spark.sql.types.{DataType, StructType}
+import org.apache.spark.sql.functions._
+
+import scala.collection.JavaConverters._
 
 package object xml {
+
+
+  private def withExpr(expr: Expression): Column = new Column(expr)
+
+  /**
+    * Parses a column containing a XML string into a `StructType` with the specified schema.
+    * Returns `null` in the case of an non-parseable string.
+    *
+    * @param e a string column containing XML data
+    * @param schema the schema to use when parsing the XML strin
+
+    */
+  @Experimental
+  implicit def from_xml(e: Column, schema: StructType): Column = {
+    val parameters = Map("isFunction" -> "true")
+    from_xml(e, schema, parameters)
+  }
+
+
+  @Experimental
+  implicit def from_xml(e: Column, schema: StructType,
+                        options: Map[String, String]): Column = withExpr {
+    val map: Map[String, String] = options + ("isFunction" -> "true")
+    val expr: Expression = CatalystSqlParser.parseExpression(e.toString())
+    XmlDataToCatalyst(expr, schema, XmlOptions(map.toMap))
+  }
+
   /**
    * Adds a method, `xmlFile`, to [[SQLContext]] that allows reading XML data.
    */

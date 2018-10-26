@@ -16,7 +16,6 @@
 package com.databricks.spark.xml.parsers
 
 import java.io.StringReader
-
 import javax.xml.stream.events.{Attribute, XMLEvent}
 import javax.xml.stream.events._
 import javax.xml.stream._
@@ -34,6 +33,8 @@ import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.TypeCast._
 import com.databricks.spark.xml.XmlOptions
 import com.databricks.spark.xml.util._
+import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
+import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, GenericRowWithSchema}
 
 /**
  * Wraps parser to iteration process.
@@ -110,6 +111,31 @@ private[xml] object StaxXmlParser extends Serializable {
       }
     }
   }
+
+  def parseColumn(xml: String,
+                  schema: StructType,
+                  options: XmlOptions): InternalRow = {
+    val factory: XMLInputFactory = XMLInputFactory.newInstance()
+    factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
+    factory.setProperty(XMLInputFactory.IS_COALESCING, true)
+
+    val filter = new EventFilter {
+      override def accept(event: XMLEvent): Boolean =
+      // Ignore comments. This library does not treat comments.
+        event.getEventType != XMLStreamConstants.COMMENT
+    }
+
+    val reader = new ByteArrayInputStream(xml.getBytes)
+    val eventReader = factory.createXMLEventReader(reader)
+    val parser = factory.createFilteredReader(eventReader, filter)
+
+    val rootEvent =
+      StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
+    val rootAttributes =
+      rootEvent.asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
+    convertObject(parser, schema, options, rootAttributes)
+  }
+
 
   /**
    * Parse the current token (and related children) according to a desired schema
