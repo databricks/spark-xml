@@ -4,20 +4,19 @@ import com.databricks.spark.xml.parsers.{StaxXmlGenerator, StaxXmlParser}
 import javax.xml.stream.events.XMLEvent
 import javax.xml.stream.{EventFilter, XMLInputFactory, XMLStreamConstants}
 import org.apache.spark.sql.Column
-import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenerator, CodegenContext, CodegenFallback, ExprCode}
 import org.apache.spark.sql.catalyst.expressions.{ExpectsInputTypes, Expression, ImplicitCastInputTypes, SpecializedGetters, UnaryExpression}
 import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
+import org.apache.spark.unsafe.types.UTF8String
 
 case class XmlDataToCatalyst(child: Expression,
                              schema: DataType,
                              options: XmlOptions)
   extends UnaryExpression with CodegenFallback with ExpectsInputTypes {
-
-  override def nullable: Boolean = true
 
   override lazy val dataType: DataType = schema
 
@@ -34,15 +33,25 @@ case class XmlDataToCatalyst(child: Expression,
     case ArrayType(st: StructType, _) => st
   }
 
-  override def nullSafeEval(xml: Any): Any = {
-    if (xml.toString.trim.isEmpty) return null
-
-    try {
-      val xmlString: String = xml.asInstanceOf[String]
-      StaxXmlParser.parseColumn(xmlString, rowSchema, options)
-    } catch {
-      case _: Exception => null
+  override def eval(input: InternalRow): Any = {
+    val value = child.eval(input)
+    if (value == null) {
+      null
+    } else {
+      nullSafeEval(value)
     }
+  }
+
+  override def nullSafeEval(xml: Any): Any = {
+    xml match {
+      case string: UTF8String =>
+        CatalystTypeConverters.convertToCatalyst(
+          StaxXmlParser.parseColumn(string.getBytes, rowSchema, options))
+      case string: String =>
+        StaxXmlParser.parseColumn(string.getBytes, rowSchema, options)
+      case _ => null
+    }
+
   }
 
   override def inputTypes: Seq[DataType] = StringType :: Nil

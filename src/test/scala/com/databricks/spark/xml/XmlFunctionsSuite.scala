@@ -47,7 +47,7 @@ class XmlFunctionsSuite extends FunSuite with BeforeAndAfterAll {
     df.withColumn("decoded",
       from_xml(df.col("payload"),
         schema, Map("rootTag" -> "parent")))
-      .show(false)
+      .show()
   }
 
 }

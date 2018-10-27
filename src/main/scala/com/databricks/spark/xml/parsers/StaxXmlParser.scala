@@ -35,6 +35,7 @@ import com.databricks.spark.xml.XmlOptions
 import com.databricks.spark.xml.util._
 import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
 import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, GenericRowWithSchema}
+import org.apache.spark.unsafe.types.UTF8String
 
 /**
  * Wraps parser to iteration process.
