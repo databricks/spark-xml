@@ -33,14 +33,6 @@ case class XmlDataToCatalyst(child: Expression,
     case ArrayType(st: StructType, _) => st
   }
 
-  override def eval(input: InternalRow): Any = {
-    val value = child.eval(input)
-    if (value == null) {
-      null
-    } else {
-      nullSafeEval(value)
-    }
-  }
 
   override def nullSafeEval(xml: Any): Any = {
     xml match {
