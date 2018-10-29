@@ -33,7 +33,6 @@ case class XmlDataToCatalyst(child: Expression,
     case ArrayType(st: StructType, _) => st
   }
 
-
   override def nullSafeEval(xml: Any): Any = {
     xml match {
       case string: UTF8String =>

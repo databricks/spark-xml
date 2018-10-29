@@ -1,6 +1,8 @@
 package com.databricks.spark.xml.parsers
 
-import javax.xml.stream.XMLEventReader
+import java.io.ByteArrayInputStream
+
+import javax.xml.stream.{EventFilter, XMLEventReader, XMLInputFactory, XMLStreamConstants}
 import javax.xml.stream.events._
 
 import scala.annotation.tailrec
@@ -130,5 +132,21 @@ private[xml] object StaxXmlParserUtils {
         case _: XMLEvent => // do nothing
       }
     }
+  }
+
+  def createXmlEventReader(xml: Array[Byte]): XMLEventReader = {
+    val factory: XMLInputFactory = XMLInputFactory.newInstance()
+    factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
+    factory.setProperty(XMLInputFactory.IS_COALESCING, true)
+
+    val filter = new EventFilter {
+      override def accept(event: XMLEvent): Boolean =
+      // Ignore comments. This library does not treat comments.
+        event.getEventType != XMLStreamConstants.COMMENT
+    }
+
+    val reader = new ByteArrayInputStream(xml)
+    val eventReader = factory.createXMLEventReader(reader)
+    factory.createFilteredReader(eventReader, filter)
   }
 }

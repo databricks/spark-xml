@@ -32,6 +32,9 @@ import com.databricks.spark.xml.util._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Row, SaveMode, SparkSession}
 import org.apache.spark.SparkException
+import org.apache.spark.sql.{DataFrame, Row, SQLContext, SaveMode}
+import org.apache.spark.{SparkConf, SparkContext, SparkException}
+import org.apache.spark.sql.functions._
 
 final class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
@@ -1009,4 +1012,94 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       <integer_value int="Ten">Ten</integer_value>.toString))
   }
 
+
+  test("roundtrip happy path") {
+
+    val xmlData =
+      s"""
+         |   <parent><pid>14ft3</pid>
+         |      <name>dave guy</name>
+         |   </parent>
+       """.stripMargin
+
+    val xmlSchema: StructType = new StructType().add("pid", StringType).add("name", StringType)
+    val rowSchema: StructType = StructType(
+      Seq(StructField("number", IntegerType, true), StructField("payload", StringType, true)))
+    val expectedSchema: StructType = rowSchema.add("decoded", xmlSchema)
+
+    val df: DataFrame = sqlContext
+      .createDataFrame(sqlContext.sparkContext.parallelize(List(Row(8, xmlData))), rowSchema)
+
+    val result: DataFrame = df.withColumn("decoded",
+      from_xml(df.col("payload"), xmlSchema))
+
+    assert(expectedSchema == result.schema)
+    assert(result.where(col("decoded").isNotNull).count() > 0)
+  }
+
+  /*  this unit test shows that there is no current support for changing the root tag
+     when using this function. Support may be added later. In which case, this test should pass */
+  test("roundtrip with rowTag or rootTag fails") {
+
+    val xmlData =
+      s"""
+         |<grandparent>
+         |   <parent><pid>14ft3</pid>
+         |      <name>dave guy</name>
+         |   </parent>
+         |</grandparent>
+       """.stripMargin
+
+    val xmlSchema: StructType = new StructType().add("pid", StringType).add("name", StringType)
+    val rowSchema: StructType = StructType(
+      Seq(StructField("number", IntegerType, true), StructField("payload", StringType, true)))
+    val expectedSchema: StructType = rowSchema.add("decoded", xmlSchema)
+
+    val df: DataFrame = sqlContext
+      .createDataFrame(sqlContext.sparkContext.parallelize(List(Row(8, xmlData))), rowSchema)
+
+    val result: DataFrame = df.withColumn("decoded",
+      from_xml(df.col("payload"), xmlSchema, Map("rowTag" -> "parent", "rootTag" -> "parent")))
+
+    assert(expectedSchema == result.schema)
+    assert(result.where(col("decoded").isNotNull).count() > 0)
+    result.show(false)
+
+    assert(0 == result
+      .where(col("decoded.pid").isNotNull or col("decoded.name").isNotNull).count())
+  }
+
+
+  test("from_xml array support") {
+
+    val xmlData =
+      s"""
+         |   <parent><pid>14ft3</pid>
+         |      <names>
+         |        <name>dave guy</name>
+         |        <name>tom guy</name>
+         |        <name>sally gal</name>
+         |      </names>
+         |   </parent>
+       """.stripMargin
+
+    val schema: StructType = StructType
+      .apply(Seq(StructField("pid", StringType),
+        StructField("names", StructType
+          .apply(Seq(StructField("name", ArrayType(StringType)))))))
+
+    val df: DataFrame = sqlContext.createDataFrame(
+      sqlContext.sparkContext.parallelize(List(Row(8, xmlData))),
+      StructType(Seq(StructField("number", IntegerType, true),
+        StructField("payload", StringType, true))))
+
+
+    val expectedRowSeq: Seq[Row] = Seq(Row("dave guy"), Row("tom guy"), Row("sally gal"))
+    val result: Seq[Row] = df.withColumn("decoded",
+      from_xml(df.col("payload"),
+        schema, Map("rootTag" -> "parent")))
+      .select(explode(col("decoded.names.name"))).collect()
+
+    assertResult(expectedRowSeq)(result)
+  }
 }
