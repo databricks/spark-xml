@@ -1,15 +1,10 @@
 package com.databricks.spark.xml
 
-import com.databricks.spark.xml.parsers.{StaxXmlGenerator, StaxXmlParser}
-import javax.xml.stream.events.XMLEvent
-import javax.xml.stream.{EventFilter, XMLInputFactory, XMLStreamConstants}
-import org.apache.spark.sql.Column
-import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
+import com.databricks.spark.xml.parsers.StaxXmlParser
+import org.apache.spark.sql.catalyst.CatalystTypeConverters
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenerator, CodegenContext, CodegenFallback, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{ExpectsInputTypes, Expression, ImplicitCastInputTypes, SpecializedGetters, UnaryExpression}
-import org.apache.spark.sql.catalyst.util.GenericArrayData
-import org.apache.spark.sql.functions._
+import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
+import org.apache.spark.sql.catalyst.expressions.{ExpectsInputTypes, Expression, UnaryExpression}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 

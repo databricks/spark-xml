@@ -22,10 +22,8 @@ import com.databricks.spark.xml.util.XmlFile
 import org.apache.spark.annotation.Experimental
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
-import org.apache.spark.sql.types.{DataType, StructType}
-import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.StructType
 
-import scala.collection.JavaConverters._
 
 package object xml {
 
