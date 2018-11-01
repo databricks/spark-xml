@@ -16,12 +16,11 @@
 package com.databricks.spark.xml.parsers
 
 import scala.collection.Map
-
 import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter
-
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions
+import javassist.bytecode.stackmap.TypeData
 
 // This class is borrowed from Spark json datasource.
 private[xml] object StaxXmlGenerator {
@@ -127,7 +126,9 @@ private[xml] object StaxXmlGenerator {
     }
     // Writing attributes
     writer.writeStartElement(options.rowTag)
-    attributes.foreach { case (f, v) =>
+    attributes.foreach {
+      case (_, null) => ()
+      case (f, v) =>
         writer.writeAttribute(f.name.substring(options.attributePrefix.length), v.toString)
     }
     // Writing elements
