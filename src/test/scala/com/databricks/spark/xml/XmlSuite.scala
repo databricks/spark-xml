@@ -61,6 +61,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val nestedElementWithNameOfParent = "src/test/resources/nested-element-with-name-of-parent.xml"
   val booksMalformedAttributes = "src/test/resources/books-malformed-attributes.xml"
   val fiasHouse = "src/test/resources/fias_house.xml"
+  val fiasHouseSimple = "src/test/resources/fias_house_simple.xml"
   val selfClosingTag = "src/test/resources/self-closing-tag.xml"
 
   val booksTag = "book"
@@ -909,7 +910,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results(1)(0) === "bk112")
   }
 
-  test("read utf-8 encoded file with empty tag") {
+  test("empty tag data only in attributes") {
     val df = sqlContext.read.format("xml")
       .option("excludeAttribute", "false")
       .option("rowTag", fiasRowTag)

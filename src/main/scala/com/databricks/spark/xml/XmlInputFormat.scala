@@ -15,7 +15,7 @@
  */
 package com.databricks.spark.xml
 
-import java.io.{InputStream, IOException}
+import java.io.{IOException, InputStream}
 import java.nio.charset.Charset
 
 import org.apache.hadoop.conf.Configuration
@@ -25,14 +25,16 @@ import org.apache.hadoop.io.{DataOutputBuffer, LongWritable, Text}
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
 import org.apache.hadoop.mapreduce.lib.input.{FileSplit, TextInputFormat}
 
+import scala.collection.mutable.ArrayBuffer
+
 /**
- * Reads records that are delimited by a specific start/end tag.
- */
+  * Reads records that are delimited by a specific start/end tag.
+  */
 class XmlInputFormat extends TextInputFormat {
 
   override def createRecordReader(
-      split: InputSplit,
-      context: TaskAttemptContext): RecordReader[LongWritable, Text] = {
+                                   split: InputSplit,
+                                   context: TaskAttemptContext): RecordReader[LongWritable, Text] = {
     new XmlRecordReader
   }
 }
@@ -47,9 +49,9 @@ object XmlInputFormat {
 }
 
 /**
- * XMLRecordReader class to read through a given xml document to output xml blocks as records
- * as specified by the start tag and end tag
- */
+  * XMLRecordReader class to read through a given xml document to output xml blocks as records
+  * as specified by the start tag and end tag
+  */
 private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private var startTag: Array[Byte] = _
   private var currentStartTag: Array[Byte] = _
@@ -111,7 +113,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
             // So we have a split that is only part of a file stored using
             // a Compression codec that cannot be split.
             throw new IOException("Cannot seek in " +
-              codec.getClass.getSimpleName + " compressed stream")
+                                    codec.getClass.getSimpleName + " compressed stream")
           }
           val cIn = c.createInputStream(fsin, decompressor)
           in = cIn
@@ -131,13 +133,13 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   }
 
   /**
-   * Finds the start of the next record.
-   * It treats data from `startTag` and `endTag` as a record.
-   *
-   * @param key the current key that will be written
-   * @param value  the object that will be written
-   * @return whether it reads successfully
-   */
+    * Finds the start of the next record.
+    * It treats data from `startTag` and `endTag` as a record.
+    *
+    * @param key   the current key that will be written
+    * @param value the object that will be written
+    * @return whether it reads successfully
+    */
   private def next(key: LongWritable, value: Text): Boolean = {
     if (readUntilStartElement()) {
       try {
@@ -189,9 +191,18 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     false
   }
 
-  private def checkEmptyTag(currentLetter: Int, position: Int): Boolean = {
+  private def checkEmptyTag(currentLetter: Int, position: Int, buffer: DataOutputBuffer): Boolean = {
+    def checkStartTagBefore = {
+      val buf = new ArrayBuffer[Byte]
+      buf += '<'.toByte
+      val result = buf ++ buffer.getData.reverse.takeWhile(_ != '<'.toByte).reverse.takeWhile(_ != ' '.toByte)
+
+      result.toArray.sameElements(startTag.dropRight(1))
+    }
+
     if (position >= endEmptyTag.length) false
-    else currentLetter == endEmptyTag(position)
+    else currentLetter == endEmptyTag(position) &&
+      checkStartTagBefore
   }
 
   private def readUntilEndElement(): Boolean = {
@@ -207,7 +218,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       } else {
         buffer.write(rb)
         val b = rb.toByte
-        if (b == startTag(si) && (b == endTag(ei) || checkEmptyTag(b, ei))) {
+        if (b == startTag(si) && (b == endTag(ei) || checkEmptyTag(b, ei, buffer))) {
           // In start tag or end tag.
           si += 1
           ei += 1
@@ -222,9 +233,9 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
             si += 1
             ei = 0
           }
-        } else if (b == endTag(ei) || (depth > 0 && checkEmptyTag(b, ei))) {
+        } else if ((b == endTag(ei)) || checkEmptyTag(b, ei, buffer)) {
           if ((b == endTag(ei) && ei >= endTag.length - 1) ||
-            (checkEmptyTag(b, ei) && ei >= endEmptyTag.length - 1)) {
+            (checkEmptyTag(b, ei, buffer) && ei >= endEmptyTag.length - 1)) {
             if (depth == 0) {
               // Found closing end tag.
               return true
@@ -253,7 +264,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private def checkAttributes(current: Int): Boolean = {
     var len = 0
     var b = current
-    while(len < space.length && b == space(len)) {
+    while (len < space.length && b == space(len)) {
       len += 1
       if (len >= space.length) {
         currentStartTag = startTag.take(startTag.length - angleBracket.length) ++ space
