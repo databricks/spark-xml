@@ -34,7 +34,8 @@ class XmlInputFormat extends TextInputFormat {
 
   override def createRecordReader(
                                    split: InputSplit,
-                                   context: TaskAttemptContext): RecordReader[LongWritable, Text] = {
+                                   context: TaskAttemptContext):
+  RecordReader[LongWritable, Text] = {
     new XmlRecordReader
   }
 }
@@ -191,11 +192,16 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     false
   }
 
-  private def checkEmptyTag(currentLetter: Int, position: Int, buffer: DataOutputBuffer): Boolean = {
+  private def checkEmptyTag(currentLetter: Int, position: Int,
+                            buffer: DataOutputBuffer): Boolean = {
     def checkStartTagBefore = {
-      val buf = new ArrayBuffer[Byte]
-      buf += '<'.toByte
-      val result = buf ++ buffer.getData.reverse.takeWhile(_ != '<'.toByte).reverse.takeWhile(_ != ' '.toByte)
+      val buf = Seq('<'.toByte)
+      val rootTagName = buffer.getData
+        .reverse
+        .takeWhile(_ != '<'.toByte)
+        .reverse
+        .takeWhile(_ != ' '.toByte)
+      val result = buf ++ rootTagName
 
       result.toArray.sameElements(startTag.dropRight(1))
     }
