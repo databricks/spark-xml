@@ -61,6 +61,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val nestedElementWithNameOfParent = "src/test/resources/nested-element-with-name-of-parent.xml"
   val booksMalformedAttributes = "src/test/resources/books-malformed-attributes.xml"
   val fiasHouse = "src/test/resources/fias_house.xml"
+  val attributesStartWithNewLine = "src/test/resources/attributesStartWithNewLine.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -916,5 +917,15 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     assert(df.collect().length == numFiasHouses)
     assert(df.select().where("_HOUSEID is null").count() == 0)
+  }
+
+  test("attributes start with new line") {
+    val df = sqlContext.read.format("xml")
+      .option("excludeAttribute", "false")
+      .option("rowTag", "note")
+      .xml(attributesStartWithNewLine)
+
+    df.printSchema()
+    df.show()
   }
 }

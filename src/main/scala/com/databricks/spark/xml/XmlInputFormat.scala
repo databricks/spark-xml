@@ -56,6 +56,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private var endTag: Array[Byte] = _
   private var endEmptyTag: Array[Byte] = _
   private var space: Array[Byte] = _
+  private var newLineSpace: Seq[Array[Byte]] = _
   private var angleBracket: Array[Byte] = _
 
   private var currentKey: LongWritable = _
@@ -78,6 +79,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     endTag = conf.get(XmlInputFormat.END_TAG_KEY).getBytes(charset)
     endEmptyTag = "/>".getBytes(charset)
     space = " ".getBytes(charset)
+    newLineSpace = Seq("\r\n".getBytes,"\n".getBytes,"\r".getBytes)
     angleBracket = ">".getBytes(charset)
     require(startTag != null, "Start tag cannot be null.")
     require(endTag != null, "End tag cannot be null.")
@@ -253,7 +255,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private def checkAttributes(current: Int): Boolean = {
     var len = 0
     var b = current
-    while(len < space.length && b == space(len)) {
+    while (len < space.length && b == space(len) || newLineSpace.exists(_.apply(len) == b)) {
       len += 1
       if (len >= space.length) {
         currentStartTag = startTag.take(startTag.length - angleBracket.length) ++ space
