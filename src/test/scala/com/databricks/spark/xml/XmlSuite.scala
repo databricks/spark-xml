@@ -61,7 +61,9 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val nestedElementWithNameOfParent = "src/test/resources/nested-element-with-name-of-parent.xml"
   val booksMalformedAttributes = "src/test/resources/books-malformed-attributes.xml"
   val fiasHouse = "src/test/resources/fias_house.xml"
-  val attributesStartWithNewLine = "src/test/resources/attributesStartWithNewLine.xml"
+  val attributesStartWithNewLineCRLF = "src/test/resources/attributesStartWithNewLineCRLF.xml"
+  val attributesStartWithNewLineLF = "src/test/resources/attributesStartWithNewLineLF.xml"
+  val attributesStartWithNewLineCR = "src/test/resources/attributesStartWithNewLineCR.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -920,12 +922,38 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("attributes start with new line") {
-    val df = sqlContext.read.format("xml")
+    val schema = StructType(
+      Seq(
+        StructField("_schemaLocation", StringType, nullable = true),
+        StructField("_xmlns", StringType, nullable = true),
+        StructField("_xsi", StringType, nullable = true),
+        StructField("body", StringType, nullable = true),
+        StructField("from", StringType, nullable = true),
+        StructField("heading", StringType, nullable = true),
+        StructField("to", StringType, nullable = true)
+      ))
+
+    val rowsCount = 1
+
+    val dfCLRF = sqlContext.read.format("xml")
       .option("excludeAttribute", "false")
       .option("rowTag", "note")
-      .xml(attributesStartWithNewLine)
+      .xml(attributesStartWithNewLineCRLF)
+    assert(dfCLRF.schema == schema)
+    assert(dfCLRF.count() == rowsCount)
 
-    df.printSchema()
-    df.show()
+    val dfCR = sqlContext.read.format("xml")
+      .option("excludeAttribute", "false")
+      .option("rowTag", "note")
+      .xml(attributesStartWithNewLineCR)
+    assert(dfCR.schema == schema)
+    assert(dfCR.count() == rowsCount)
+
+    val dfLF = sqlContext.read.format("xml")
+      .option("excludeAttribute", "false")
+      .option("rowTag", "note")
+      .xml(attributesStartWithNewLineLF)
+    assert(dfLF.schema == schema)
+    assert(dfLF.count() == rowsCount)
   }
 }
