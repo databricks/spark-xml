@@ -10,41 +10,42 @@ The structure and test tools are mostly copied from [CSV Data Source for Spark](
 
 ## Requirements
 
-This library requires Spark 2.0+ for 0.4.x.
+This library requires Spark 2.2+ for 0.5.x.
 
-For version that works with Spark 1.x, please check for [branch-0.3](https://github.com/databricks/spark-xml/tree/branch-0.3).
-
+For Spark 2.0.x 2.1.x, use version 0.4.x.
+For a version that works with Spark 1.x, please check for [branch-0.3](https://github.com/databricks/spark-xml/tree/branch-0.3).
 
 ## Linking
 You can link against this library in your program at the following coordinates:
-
-### Scala 2.10
-
-```
-groupId: com.databricks
-artifactId: spark-xml_2.10
-version: 0.4.1
-```
 
 ### Scala 2.11
 
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.11
-version: 0.4.1
+version: 0.5.0
+```
+
+### Scala 2.12
+
+```
+groupId: com.databricks
+artifactId: spark-xml_2.12
+version: 0.5.0
 ```
 
 ## Using with Spark shell
 This package can be added to  Spark using the `--packages` command line option.  For example, to include it when starting the spark shell:
 
-### Spark compiled with Scala 2.10
-```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.10:0.4.1
-```
 
 ### Spark compiled with Scala 2.11
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.4.1
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.5.0
+```
+
+### Spark compiled with Scala 2.12
+```
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.12:0.5.0
 ```
 
 ## Features
@@ -74,7 +75,7 @@ When writing files the API accepts several options:
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
 * `compression`: compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec` or one of case-insensitive shorten names (`bzip2`, `gzip`, `lz4`, and `snappy`). Defaults to no compression when a codec is not specified.
 
-Currently it supports the shortened name usage. You can use just `xml` instead of `com.databricks.spark.xml` from Spark 1.5.0+
+Currently it supports the shortened name usage. You can use just `xml` instead of `com.databricks.spark.xml`.
 
 ## Structure Conversion
 
@@ -389,7 +390,7 @@ val records = sc.newAPIHadoopFile(
 ```
 
 ## Building From Source
-This library is built with [SBT](http://www.scala-sbt.org/0.13/docs/Command-Line-Reference.html), which is automatically downloaded by the included shell script. To build a JAR file simply run `sbt/sbt package` from the project root. The build configuration includes support for both Scala 2.10 and 2.11.
+This library is built with [SBT](http://www.scala-sbt.org/0.13/docs/Command-Line-Reference.html), which is automatically downloaded by the included shell script. To build a JAR file simply run `sbt/sbt package` from the project root. The build configuration includes support for both Scala 2.11 and 2.12.
 
 ## Acknowledgements
 

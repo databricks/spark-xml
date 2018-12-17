@@ -207,26 +207,23 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DDL test") {
     sqlContext.sql(
       s"""
-         |CREATE TEMPORARY TABLE carsTable
+         |CREATE TEMPORARY TABLE carsTable1
          |USING com.databricks.spark.xml
          |OPTIONS (path "$carsFile")
       """.stripMargin.replaceAll("\n", " "))
 
-    assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
+    assert(sqlContext.sql("SELECT year FROM carsTable1").collect().size === numCars)
   }
 
   test("DDL test with alias name") {
-    assume(org.apache.spark.SPARK_VERSION.take(3) >= "1.5",
-      "Datasource alias feature was added in Spark 1.5")
-
     sqlContext.sql(
       s"""
-         |CREATE TEMPORARY TABLE carsTable
+         |CREATE TEMPORARY TABLE carsTable2
          |USING xml
          |OPTIONS (path "$carsFile")
       """.stripMargin.replaceAll("\n", " "))
 
-    assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
+    assert(sqlContext.sql("SELECT year FROM carsTable2").collect().size === numCars)
   }
 
   test("DSL test for parsing a malformed XML file") {
@@ -308,13 +305,13 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DDL test with empty file") {
     sqlContext.sql(s"""
-           |CREATE TEMPORARY TABLE carsTable
+           |CREATE TEMPORARY TABLE carsTable3
            |(year double, make string, model string, comments string, grp string)
            |USING com.databricks.spark.xml
            |OPTIONS (path "$emptyFile")
       """.stripMargin.replaceAll("\n", " "))
 
-    assert(sqlContext.sql("SELECT count(*) FROM carsTable").collect().head(0) === 0)
+    assert(sqlContext.sql("SELECT count(*) FROM carsTable3").collect().head(0) === 0)
   }
 
   test("SQL test insert overwrite") {
