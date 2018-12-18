@@ -79,7 +79,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     endTag = conf.get(XmlInputFormat.END_TAG_KEY).getBytes(charset)
     endEmptyTag = "/>".getBytes(charset)
     space = " ".getBytes(charset)
-    newLineSpace = Seq("\r\n".getBytes, "\n".getBytes, "\r".getBytes)
+    newLineSpace = Seq("\r\n", "\n", "\r").map(_.getBytes(charset))
     angleBracket = ">".getBytes(charset)
     require(startTag != null, "Start tag cannot be null.")
     require(endTag != null, "End tag cannot be null.")

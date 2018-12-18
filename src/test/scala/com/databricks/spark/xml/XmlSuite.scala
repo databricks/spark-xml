@@ -912,7 +912,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("read utf-8 encoded file with empty tag") {
-    val df = sqlContext.read.format("xml")
+    val df = sqlContext.read
       .option("excludeAttribute", "false")
       .option("rowTag", fiasRowTag)
       .xml(fiasHouse)
@@ -935,25 +935,15 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     val rowsCount = 1
 
-    val dfCLRF = sqlContext.read.format("xml")
-      .option("excludeAttribute", "false")
-      .option("rowTag", "note")
-      .xml(attributesStartWithNewLineCRLF)
-    assert(dfCLRF.schema == schema)
-    assert(dfCLRF.count() == rowsCount)
-
-    val dfCR = sqlContext.read.format("xml")
-      .option("excludeAttribute", "false")
-      .option("rowTag", "note")
-      .xml(attributesStartWithNewLineCR)
-    assert(dfCR.schema == schema)
-    assert(dfCR.count() == rowsCount)
-
-    val dfLF = sqlContext.read.format("xml")
-      .option("excludeAttribute", "false")
-      .option("rowTag", "note")
-      .xml(attributesStartWithNewLineLF)
-    assert(dfLF.schema == schema)
-    assert(dfLF.count() == rowsCount)
+    Seq(attributesStartWithNewLineCRLF,
+        attributesStartWithNewLineCR,
+        attributesStartWithNewLineLF).foreach { file =>
+      val df = sqlContext.read
+        .option("excludeAttribute", "false")
+        .option("rowTag", "note")
+        .xml(file)
+      assert(df.schema == schema)
+      assert(df.count() == rowsCount)
+    }
   }
 }
