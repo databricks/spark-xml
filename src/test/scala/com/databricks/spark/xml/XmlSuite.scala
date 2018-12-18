@@ -17,7 +17,6 @@ package com.databricks.spark.xml
 
 import java.io.File
 import java.nio.charset.UnsupportedCharsetException
-import java.nio.file.Files
 import java.sql.{Date, Timestamp}
 
 import scala.io.Source
@@ -28,11 +27,11 @@ import org.apache.hadoop.io.compress.GzipCodec
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 import com.databricks.spark.xml.XmlOptions._
-import com.databricks.spark.xml.util.{ParseModes, XmlFile}
+import com.databricks.spark.xml.util.ParseModes
 
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{Row, SQLContext, SaveMode}
-import org.apache.spark.{SparkConf, SparkContext, SparkException}
+import org.apache.spark.sql.{Row, SaveMode, SparkSession}
+import org.apache.spark.SparkException
 
 class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val tempEmptyDir = "target/test/empty/"
@@ -79,27 +78,27 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val numGPS = 2
   val numFiasHouses = 37
 
-  private var sqlContext: SQLContext = _
+  private var spark: SparkSession = _
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    // Fix Spark 2.0.0 on windows, see https://issues.apache.org/jira/browse/SPARK-15893
-    val conf = new SparkConf().set(
-      "spark.sql.warehouse.dir",
-      Files.createTempDirectory("spark-warehouse").toString)
-    sqlContext = new SQLContext(new SparkContext("local[2]", "XmlSuite", conf))
+    spark = SparkSession.builder().
+      master("local[2]").
+      appName("XmlSuite").
+      getOrCreate()
   }
 
   override protected def afterAll(): Unit = {
     try {
-      sqlContext.sparkContext.stop()
+      spark.stop()
+      spark = null
     } finally {
       super.afterAll()
     }
   }
 
   test("DSL test") {
-    val results = sqlContext.read.format("xml")
+    val results = spark.read.format("xml")
       .load(carsFile)
       .select("year")
       .collect()
@@ -108,7 +107,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test with xml having unbalanced datatypes") {
-    val results = sqlContext.read
+    val results = spark.read
       .option("treatEmptyValuesAsNulls", "true")
       .xml(gpsEmptyField)
 
@@ -116,7 +115,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test with mixed elements (attributes, no child)") {
-    val results = sqlContext.read.format("xml")
+    val results = spark.read.format("xml")
       .load(carsMixedAttrNoChildFile)
       .select("date")
       .collect()
@@ -129,7 +128,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test for inconsistent element attributes as fields") {
-    val results = sqlContext.read.format("xml")
+    val results = spark.read.format("xml")
       .option("rowTag", booksTag)
       .load(booksAttributesInNoChild)
       .select("price")
@@ -146,7 +145,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test with mixed elements (struct, string)") {
-    val results = sqlContext.read.format("xml")
+    val results = spark.read.format("xml")
       .option("rowTag", agesTag)
       .load(agesMixedTypes)
       .collect()
@@ -154,7 +153,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test with elements in array having attributes") {
-    val results = sqlContext.read.format("xml")
+    val results = spark.read.format("xml")
       .option("rowTag", agesTag)
       .load(agesFile)
       .collect()
@@ -168,7 +167,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DSL test for iso-8859-1 encoded file") {
     val dataFrame = new XmlReader()
       .withCharset("iso-8859-1")
-      .xmlFile(sqlContext, carsFile8859)
+      .xmlFile(spark, carsFile8859)
     assert(dataFrame.select("year").collect().size === numCars)
 
     val results = dataFrame
@@ -179,7 +178,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test compressed file") {
-    val results = sqlContext.read.format("xml")
+    val results = spark.read.format("xml")
       .load(carsFileGzip)
       .select("year")
       .collect()
@@ -188,7 +187,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test splittable compressed file") {
-    val results = sqlContext.read.format("xml")
+    val results = spark.read.format("xml")
       .load(carsFileBzip2)
       .select("year")
       .collect()
@@ -198,7 +197,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test bad charset name") {
     val exception = intercept[UnsupportedCharsetException] {
-      val results = sqlContext.read.format("xml")
+      spark.read.format("xml")
         .option("charset", "1-9588-osi")
         .load(carsFile)
         .select("year")
@@ -208,34 +207,31 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DDL test") {
-    sqlContext.sql(
+    spark.sql(
       s"""
-         |CREATE TEMPORARY TABLE carsTable
+         |CREATE TEMPORARY TABLE carsTable1
          |USING com.databricks.spark.xml
          |OPTIONS (path "$carsFile")
       """.stripMargin.replaceAll("\n", " "))
 
-    assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
+    assert(spark.sql("SELECT year FROM carsTable1").collect().size === numCars)
   }
 
   test("DDL test with alias name") {
-    assume(org.apache.spark.SPARK_VERSION.take(3) >= "1.5",
-      "Datasource alias feature was added in Spark 1.5")
-
-    sqlContext.sql(
+    spark.sql(
       s"""
-         |CREATE TEMPORARY TABLE carsTable
+         |CREATE TEMPORARY TABLE carsTable2
          |USING xml
          |OPTIONS (path "$carsFile")
       """.stripMargin.replaceAll("\n", " "))
 
-    assert(sqlContext.sql("SELECT year FROM carsTable").collect().size === numCars)
+    assert(spark.sql("SELECT year FROM carsTable2").collect().size === numCars)
   }
 
   test("DSL test for parsing a malformed XML file") {
     val results = new XmlReader()
       .withParseMode(ParseModes.DROP_MALFORMED_MODE)
-      .xmlFile(sqlContext, carsMalformedFile)
+      .xmlFile(spark, carsMalformedFile)
 
     assert(results.count() === 1)
   }
@@ -243,7 +239,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DSL test for dropping malformed rows") {
     val cars = new XmlReader()
       .withParseMode(ParseModes.DROP_MALFORMED_MODE)
-      .xmlFile(sqlContext, carsMalformedFile)
+      .xmlFile(spark, carsMalformedFile)
 
     assert(cars.count() == 1)
     assert(cars.head().toSeq === Seq("Chevy", "Volt", 2015))
@@ -253,7 +249,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val exceptionInParse = intercept[SparkException] {
       new XmlReader()
         .withFailFast(true)
-        .xmlFile(sqlContext, carsMalformedFile)
+        .xmlFile(spark, carsMalformedFile)
         .collect()
     }
     assert(exceptionInParse.getMessage.contains("Malformed line in FAILFAST mode"))
@@ -263,7 +259,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val carsDf = new XmlReader()
       .withParseMode(ParseModes.PERMISSIVE_MODE)
       .withColumnNameOfCorruptRecord("_malformed_records")
-      .xmlFile(sqlContext, carsMalformedFile)
+      .xmlFile(spark, carsMalformedFile)
     val cars = carsDf.collect()
     assert(cars.length == 3)
 
@@ -285,7 +281,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DSL test with empty file and known schema") {
     val results = new XmlReader()
       .withSchema(StructType(List(StructField("column", StringType, false))))
-      .xmlFile(sqlContext, emptyFile)
+      .xmlFile(spark, emptyFile)
       .count()
 
     assert(results === 0)
@@ -303,33 +299,33 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     )
     val results = new XmlReader()
       .withSchema(schema)
-      .xmlFile(sqlContext, carsUnbalancedFile)
+      .xmlFile(spark, carsUnbalancedFile)
       .count()
 
     assert(results === numCars)
   }
 
   test("DDL test with empty file") {
-    sqlContext.sql(s"""
-           |CREATE TEMPORARY TABLE carsTable
+    spark.sql(s"""
+           |CREATE TEMPORARY TABLE carsTable3
            |(year double, make string, model string, comments string, grp string)
            |USING com.databricks.spark.xml
            |OPTIONS (path "$emptyFile")
       """.stripMargin.replaceAll("\n", " "))
 
-    assert(sqlContext.sql("SELECT count(*) FROM carsTable").collect().head(0) === 0)
+    assert(spark.sql("SELECT count(*) FROM carsTable3").collect().head(0) === 0)
   }
 
   test("SQL test insert overwrite") {
     TestUtils.deleteRecursively(new File(tempEmptyDir))
     new File(tempEmptyDir).mkdirs()
-    sqlContext.sql(
+    spark.sql(
       s"""
          |CREATE TEMPORARY TABLE booksTableIO
          |USING com.databricks.spark.xml
          |OPTIONS (path "$booksFile", rowTag "$booksTag")
       """.stripMargin.replaceAll("\n", " "))
-    sqlContext.sql(
+    spark.sql(
       s"""
          |CREATE TEMPORARY TABLE booksTableEmpty
          |(author string, description string, genre string,
@@ -338,15 +334,15 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
          |OPTIONS (path "$tempEmptyDir")
       """.stripMargin.replaceAll("\n", " "))
 
-    assert(sqlContext.sql("SELECT * FROM booksTableIO").collect().size === numBooks)
-    assert(sqlContext.sql("SELECT * FROM booksTableEmpty").collect().isEmpty)
+    assert(spark.sql("SELECT * FROM booksTableIO").collect().size === numBooks)
+    assert(spark.sql("SELECT * FROM booksTableEmpty").collect().isEmpty)
 
-    sqlContext.sql(
+    spark.sql(
       s"""
          |INSERT OVERWRITE TABLE booksTableEmpty
          |SELECT * FROM booksTableIO
       """.stripMargin.replaceAll("\n", " "))
-    assert(sqlContext.sql("SELECT * FROM booksTableEmpty").collect().size == numBooks)
+    assert(spark.sql("SELECT * FROM booksTableEmpty").collect().size == numBooks)
   }
 
   test("DSL save with gzip compression codec") {
@@ -355,7 +351,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     new File(tempEmptyDir).mkdirs()
     val copyFilePath = tempEmptyDir + "cars-copy.xml"
 
-    val cars = sqlContext.read.format("xml").load(carsFile)
+    val cars = spark.read.format("xml").load(carsFile)
     cars.write
       .format("xml")
       .mode(SaveMode.Overwrite)
@@ -365,7 +361,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     // Check that the part file has a .gz extension
     assert(carsCopyPartFile.exists())
 
-    val carsCopy = sqlContext.read.format("xml").load(copyFilePath)
+    val carsCopy = spark.read.format("xml").load(copyFilePath)
 
     assert(carsCopy.count == cars.count)
     assert(carsCopy.collect.map(_.toString).toSet == cars.collect.map(_.toString).toSet)
@@ -377,7 +373,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     new File(tempEmptyDir).mkdirs()
     val copyFilePath = tempEmptyDir + "cars-copy.xml"
 
-    val cars = sqlContext.read.format("xml").load(carsFile)
+    val cars = spark.read.format("xml").load(carsFile)
     cars.write
       .format("xml")
       .mode(SaveMode.Overwrite)
@@ -388,7 +384,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     // Check that the part file has a .gz extension
     assert(carsCopyPartFile.exists())
 
-    val carsCopy = sqlContext.read.format("xml").load(copyFilePath)
+    val carsCopy = spark.read.format("xml").load(copyFilePath)
 
     assert(carsCopy.count == cars.count)
     assert(carsCopy.collect.map(_.toString).toSet == cars.collect.map(_.toString).toSet)
@@ -400,7 +396,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     new File(tempEmptyDir).mkdirs()
     val copyFilePath = tempEmptyDir + "books-copy.xml"
 
-    val books = sqlContext.read.format("xml")
+    val books = spark.read.format("xml")
       .option("rowTag", booksTag)
       .load(booksComplicatedFile)
     books.write
@@ -408,7 +404,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .format("xml")
       .save(copyFilePath)
 
-    val booksCopy = sqlContext.read.format("xml")
+    val booksCopy = spark.read.format("xml")
       .option("rowTag", booksTag)
       .load(copyFilePath)
     assert(booksCopy.count == books.count)
@@ -421,7 +417,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     new File(tempEmptyDir).mkdirs()
     val copyFilePath = tempEmptyDir + "books-copy.xml"
 
-    val books = sqlContext.read.format("xml")
+    val books = spark.read.format("xml")
       .option("rowTag", booksTag)
       .load(booksComplicatedFile)
     books.write
@@ -429,7 +425,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .format("xml")
       .save(copyFilePath)
 
-    val booksCopy = sqlContext.read.format("xml")
+    val booksCopy = spark.read.format("xml")
       .option("rowTag", booksTag)
       .option("treatEmptyValuesAsNulls", "true")
       .load(copyFilePath)
@@ -445,7 +441,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val copyFilePath = tempEmptyDir + "books-copy.xml"
 
     val rootTag = "catalog"
-    val books = sqlContext.read.format("xml")
+    val books = spark.read.format("xml")
       .option("valueTag", "#VALUE")
       .option("attributePrefix", "#")
       .option("rowTag", booksTag)
@@ -459,7 +455,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .option("rowTag", booksTag)
       .save(copyFilePath)
 
-    val booksCopy = sqlContext.read.format("xml")
+    val booksCopy = spark.read.format("xml")
       .option("valueTag", "#VALUE")
       .option("attributePrefix", "_")
       .option("rowTag", booksTag)
@@ -477,9 +473,9 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     val schema = StructType(
       List(StructField("a", ArrayType(ArrayType(StringType)), nullable = true)))
-    val data = sqlContext.sparkContext.parallelize(
+    val data = spark.sparkContext.parallelize(
       List(List(List("aa", "bb"), List("aa", "bb")))).map(Row(_))
-    val df = sqlContext.createDataFrame(data, schema)
+    val df = spark.createDataFrame(data, schema)
     df.write.xml(copyFilePath)
 
     // When [[ArrayType]] has [[ArrayType]] as elements, it is confusing what is the element
@@ -489,7 +485,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       List(StructField("a", ArrayType(
         StructType(List(StructField("item", ArrayType(StringType), nullable = true)))),
           nullable = true)))
-    val dfCopy = sqlContext.read.format("xml").load(copyFilePath)
+    val dfCopy = spark.read.format("xml").load(copyFilePath)
 
     assert(dfCopy.count == df.count)
     assert(dfCopy.schema === schemaCopy)
@@ -522,21 +518,21 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
         1.toByte, 1.toShort, 1, 1.toLong,
         1.toFloat, 1.toDouble, Decimal(1, 25, 3), Decimal(1, 6, 5),
         Date.valueOf(date), Timestamp.valueOf(timestamp), Map("a" -> "b"))
-    val data = sqlContext.sparkContext.parallelize(Seq(row))
+    val data = spark.sparkContext.parallelize(Seq(row))
 
-    val df = sqlContext.createDataFrame(data, schema)
+    val df = spark.createDataFrame(data, schema)
     df.write.format("xml").save(copyFilePath)
 
     val dfCopy = new XmlReader()
       .withSchema(schema)
-      .xmlFile(sqlContext, copyFilePath)
+      .xmlFile(spark, copyFilePath)
 
     assert(dfCopy.collect() === df.collect())
     assert(dfCopy.schema === df.schema)
   }
 
   test("DSL test schema inferred correctly") {
-    val results = sqlContext.read.format("xml").option("rowTag", booksTag).load(booksFile)
+    val results = spark.read.format("xml").option("rowTag", booksTag).load(booksFile)
 
     assert(results.schema == StructType(List(
       StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}id", StringType, nullable = true),
@@ -552,7 +548,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test schema inferred correctly with sampling ratio") {
-    val results = sqlContext.read.format("xml")
+    val results = spark.read.format("xml")
       .option("rowTag", booksTag)
       .option("samplingRatio", 0.5)
       .load(booksFile)
@@ -571,7 +567,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test schema (object) inferred correctly") {
-    val results = sqlContext.read.format("xml")
+    val results = spark.read.format("xml")
       .option("rowTag", booksTag)
       .load(booksNestedObjectFile)
 
@@ -590,7 +586,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test schema (array) inferred correctly") {
-    val results = sqlContext.read.format("xml")
+    val results = spark.read.format("xml")
       .option("rowTag", booksTag)
       .load(booksNestedArrayFile)
 
@@ -608,7 +604,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test schema (complicated) inferred correctly") {
-    val results = sqlContext.read.format("xml")
+    val results = spark.read.format("xml")
       .option("rowTag", booksTag)
       .load(booksComplicatedFile)
 
@@ -638,7 +634,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     // Default value.
     val resultsOne = new XmlReader()
       .withRowTag(booksTag)
-      .xmlFile(sqlContext, booksAttributesInNoChild)
+      .xmlFile(spark, booksAttributesInNoChild)
 
     val schemaOne = StructType(List(
       StructField("_id", StringType, nullable = true),
@@ -661,7 +657,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .withRowTag(booksTag)
       .withAttributePrefix(attributePrefix)
       .withValueTag(valueTag)
-      .xmlFile(sqlContext, booksAttributesInNoChild)
+      .xmlFile(spark, booksAttributesInNoChild)
 
     val schemaTwo = StructType(List(
       StructField(s"${attributePrefix}id", StringType, nullable = true),
@@ -682,7 +678,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val results = new XmlReader()
       .withExcludeAttribute(true)
       .withRowTag(booksTag)
-      .xmlFile(sqlContext, booksFile)
+      .xmlFile(spark, booksFile)
 
     val schema = StructType(List(
       StructField("author", StringType, nullable = true),
@@ -708,14 +704,14 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     )
     val results = new XmlReader()
       .withSchema(schema)
-      .xmlFile(sqlContext, carsUnbalancedFile)
+      .xmlFile(spark, carsUnbalancedFile)
       .count()
 
     assert(results === numCars)
   }
 
   test("DSL test inferred schema passed through") {
-    val dataFrame = sqlContext.read.format("xml").load(carsFile)
+    val dataFrame = spark.read.format("xml").load(carsFile)
 
     val results = dataFrame
       .select("comment", "year")
@@ -731,7 +727,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       StructField("age", StringType, true) :: Nil)
     val results = new XmlReader()
       .withSchema(schema)
-      .xmlFile(sqlContext, nullNumbersFile)
+      .xmlFile(spark, nullNumbersFile)
       .collect()
 
     assert(results.head.toSeq === Seq("alice", "35"))
@@ -744,14 +740,14 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .withSchema(StructType(List(StructField("name", StringType, false),
       StructField("age", IntegerType, true))))
       .withTreatEmptyValuesAsNulls(true)
-      .xmlFile(sqlContext, nullNumbersFile)
+      .xmlFile(spark, nullNumbersFile)
       .collect()
 
     assert(results(1).toSeq === Seq("bob", null))
   }
 
   test("DSL test with namespaces ignored") {
-    val results = sqlContext.read.format("xml")
+    val results = spark.read.format("xml")
       .option("rowTag", topicsTag)
       .load(topicsFile)
       .collect()
@@ -760,7 +756,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("Missing nested struct represented as null instead of empty Row") {
-    val result = sqlContext.read.format("xml")
+    val result = spark.read.format("xml")
       .option("rowTag", "item")
       .load(nullNestedStructFile)
       .select("b.es")
@@ -780,22 +776,22 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     val result = new XmlReader()
       .withSchema(schema)
-      .xmlFile(sqlContext, simpleNestedObjects)
+      .xmlFile(spark, simpleNestedObjects)
       .select("c.a", "c.b")
       .collect()
 
     assert(result(0).toSeq === Seq(111, 222))
   }
 
-  test("Nested element with same name as parent delinination") {
+  test("Nested element with same name as parent delineation") {
     val lines = Source.fromFile(nestedElementWithNameOfParent).getLines.toList
     val firstExpected = lines(2).trim
     val lastExpected = lines(3).trim
-    val config = new Configuration(sqlContext.sparkContext.hadoopConfiguration)
+    val config = new Configuration(spark.sparkContext.hadoopConfiguration)
     config.set(XmlInputFormat.START_TAG_KEY, "<parent>")
     config.set(XmlInputFormat.END_TAG_KEY, "</parent>")
     config.set(XmlInputFormat.ENCODING_KEY, "utf-8")
-    val records = sqlContext.sparkContext.newAPIHadoopFile(
+    val records = spark.sparkContext.newAPIHadoopFile(
       nestedElementWithNameOfParent,
       classOf[XmlInputFormat],
       classOf[LongWritable],
@@ -812,7 +808,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   test("Nested element with same name as parent schema inference") {
     val df = new XmlReader()
       .withRowTag("parent")
-      .xmlFile(sqlContext, nestedElementWithNameOfParent)
+      .xmlFile(spark, nestedElementWithNameOfParent)
 
     val nestedSchema = StructType(
       Seq(
@@ -824,15 +820,15 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(df.schema == schema)
   }
 
-  test("Skip and project currecntly XML files without indentation") {
-    val df = sqlContext.read.format("xml").load(carsNoIndentationFile)
+  test("Skip and project currently XML files without indentation") {
+    val df = spark.read.format("xml").load(carsNoIndentationFile)
     val results = df.select("model").collect()
     val years = results.map(_.toSeq.head).toSet
     assert(years == Set("S", "E350", "Volt"))
   }
 
   test("Select correctly all child fields regardless of pushed down projection") {
-    val results = sqlContext.read.format("xml")
+    val results = spark.read.format("xml")
       .option("rowTag", "book")
       .load(booksComplicatedFile)
       .selectExpr("publish_dates")
@@ -845,25 +841,25 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("Empty string not allowed for rowTag, attributePrefix and valueTag.") {
     val messageOne = intercept[IllegalArgumentException] {
-      sqlContext.read.format("xml").option("rowTag", "").load(carsFile)
+      spark.read.format("xml").option("rowTag", "").load(carsFile)
     }.getMessage
     assert(messageOne == "requirement failed: 'rowTag' option should not be empty string.")
 
     val messageTwo = intercept[IllegalArgumentException] {
-      sqlContext.read.format("xml").option("attributePrefix", "").load(carsFile)
+      spark.read.format("xml").option("attributePrefix", "").load(carsFile)
     }.getMessage
     assert(
       messageTwo == "requirement failed: 'attributePrefix' option should not be empty string.")
 
     val messageThree = intercept[IllegalArgumentException] {
-      sqlContext.read.format("xml").option("valueTag", "").load(carsFile)
+      spark.read.format("xml").option("valueTag", "").load(carsFile)
     }.getMessage
     assert(messageThree == "requirement failed: 'valueTag' option should not be empty string.")
   }
 
   test("valueTag and attributePrefix should not be the same.") {
     val messageOne = intercept[IllegalArgumentException] {
-      sqlContext.read.format("xml")
+      spark.read.format("xml")
         .option("valueTag", "#abc")
         .option("attributePrefix", "#abc")
         .load(carsFile)
@@ -873,13 +869,13 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("nullValue and treatEmptyValuesAsNulls test") {
-    val resultsOne = sqlContext.read.format("xml")
+    val resultsOne = spark.read.format("xml")
       .option("treatEmptyValuesAsNulls", "true")
       .load(gpsEmptyField)
     assert(resultsOne.selectExpr("extensions.TrackPointExtension").head().isNullAt(0))
     assert(resultsOne.collect().size === numGPS)
 
-    val resultsTwo = sqlContext.read.format("xml")
+    val resultsTwo = spark.read.format("xml")
       .option("nullValue", "2013-01-24T06:18:43Z")
       .load(gpsEmptyField)
     assert(resultsTwo.selectExpr("time").head().isNullAt(0))
@@ -890,7 +886,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val results = new XmlReader()
       .withIgnoreSurroundingSpaces(true)
       .withRowTag(agesTag)
-      .xmlFile(sqlContext, agesWithSpacesFile)
+      .xmlFile(spark, agesWithSpacesFile)
       .collect()
     val attrValOne = results(0).get(0).asInstanceOf[Row](1)
     val attrValTwo = results(1).get(0).asInstanceOf[Row](0)
@@ -903,7 +899,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val results = new XmlReader()
       .withParseMode(ParseModes.DROP_MALFORMED_MODE)
         .withRowTag(booksTag)
-        .xmlFile(sqlContext, booksMalformedAttributes)
+        .xmlFile(spark, booksMalformedAttributes)
         .collect()
 
     assert(results.length === 2)
@@ -912,7 +908,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("read utf-8 encoded file with empty tag") {
-    val df = sqlContext.read
+    val df = spark.read.format("xml")
       .option("excludeAttribute", "false")
       .option("rowTag", fiasRowTag)
       .xml(fiasHouse)
@@ -938,7 +934,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     Seq(attributesStartWithNewLineCRLF,
         attributesStartWithNewLineCR,
         attributesStartWithNewLineLF).foreach { file =>
-      val df = sqlContext.read
+      val df = spark.read
         .option("excludeAttribute", "false")
         .option("rowTag", "note")
         .xml(file)

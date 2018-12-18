@@ -35,7 +35,7 @@ import com.databricks.spark.xml.XmlOptions
 /**
  * Wraps parser to iteration process.
  */
-private[xml] object StaxXmlParser {
+private[xml] object StaxXmlParser extends Serializable {
   private val logger = LoggerFactory.getLogger(StaxXmlParser.getClass)
 
   def parse(
