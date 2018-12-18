@@ -92,14 +92,38 @@ class XmlReader extends Serializable {
     this
   }
 
+  def xmlFile(spark: SparkSession, path: String): DataFrame = {
+    // We need the `charset` and `rowTag` before creating the relation.
+    val (charset, rowTag) = {
+      val options = XmlOptions(parameters.toMap)
+      (options.charset, options.rowTag)
+    }
+    val relation = XmlRelation(
+      () => XmlFile.withCharset(spark.sparkContext, path, charset, rowTag),
+      Some(path),
+      parameters.toMap,
+      schema)(spark.sqlContext)
+    spark.baseRelationToDataFrame(relation)
+  }
+
+  def xmlRdd(spark: SparkSession, xmlRDD: RDD[String]): DataFrame = {
+    val relation = XmlRelation(
+      () => xmlRDD,
+      None,
+      parameters.toMap,
+      schema)(spark.sqlContext)
+    spark.baseRelationToDataFrame(relation)
+  }
+
   /** Returns a Schema RDD for the given XML path. */
+  @deprecated("Use xmlFile(SparkSession, ...)", "0.5.0")
   def xmlFile(sqlContext: SQLContext, path: String): DataFrame = {
     // We need the `charset` and `rowTag` before creating the relation.
     val (charset, rowTag) = {
       val options = XmlOptions(parameters.toMap)
       (options.charset, options.rowTag)
     }
-    val relation: XmlRelation = XmlRelation(
+    val relation = XmlRelation(
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
       Some(path),
       parameters.toMap,
@@ -107,19 +131,14 @@ class XmlReader extends Serializable {
     sqlContext.baseRelationToDataFrame(relation)
   }
 
+  @deprecated("Use xmlRdd(SparkSession, ...)", "0.5.0")
   def xmlRdd(sqlContext: SQLContext, xmlRDD: RDD[String]): DataFrame = {
-    val relation: XmlRelation = XmlRelation(
+    val relation = XmlRelation(
       () => xmlRDD,
       None,
       parameters.toMap,
       schema)(sqlContext)
     sqlContext.baseRelationToDataFrame(relation)
   }
-
-  def xmlFile(spark: SparkSession, path: String): DataFrame =
-    xmlFile(spark.sqlContext, path)
-
-  def xmlRdd(spark: SparkSession, xmlRDD: RDD[String]): DataFrame =
-    xmlRdd(spark.sqlContext, xmlRDD)
 
 }

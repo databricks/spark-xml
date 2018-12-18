@@ -182,11 +182,11 @@ OPTIONS (path "books.xml", rowTag "book")
 ### Scala API
 
 ```scala
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.SparkSession
 import com.databricks.spark.xml._
 
-val sqlContext = new SQLContext(sc)
-val df = sqlContext.read
+val spark = SparkSession.builder.getOrCreate()
+val df = spark.read
   .option("rowTag", "book")
   .xml("books.xml")
 
@@ -200,10 +200,10 @@ selectedData.write
 Alternatively you can specify the format to use instead:
 
 ```scala
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.SparkSession
 
-val sqlContext = new SQLContext(sc)
-val df = sqlContext.read
+val spark = SparkSession.builder.getOrCreate()
+val df = spark.read
   .format("com.databricks.spark.xml")
   .option("rowTag", "book")
   .load("books.xml")
@@ -219,10 +219,10 @@ selectedData.write
 You can manually specify the schema when reading data:
 
 ```scala
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.{StructType, StructField, StringType, DoubleType}
 
-val sqlContext = new SQLContext(sc)
+val spark = SparkSession.builder.getOrCreate()
 val customSchema = StructType(Array(
   StructField("_id", StringType, nullable = true),
   StructField("author", StringType, nullable = true),
@@ -233,7 +233,7 @@ val customSchema = StructType(Array(
   StructField("title", StringType, nullable = true)))
 
 
-val df = sqlContext.read
+val df = spark.read
   .format("com.databricks.spark.xml")
   .option("rowTag", "book")
   .schema(customSchema)
@@ -250,10 +250,10 @@ selectedData.write
 ### Java API
 
 ```java
-import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.SparkSession;
 
-SQLContext sqlContext = new SQLContext(sc);
-DataFrame df = sqlContext.read()
+SparkSession spark = SparkSession.builder().getOrCreate();
+DataFrame df = spark.read()
   .format("com.databricks.spark.xml")
   .option("rowTag", "book")
   .load("books.xml");
@@ -267,10 +267,10 @@ df.select("author", "_id").write()
 
 You can manually specify schema:
 ```java
-import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.*;
 
-SQLContext sqlContext = new SQLContext(sc);
+SparkSession spark = SparkSession.builder().getOrCreate();
 StructType customSchema = new StructType(new StructField[] {
   new StructField("_id", DataTypes.StringType, true, Metadata.empty()),
   new StructField("author", DataTypes.StringType, true, Metadata.empty()),
@@ -281,7 +281,7 @@ StructType customSchema = new StructType(new StructField[] {
   new StructField("title", DataTypes.StringType, true, Metadata.empty())
 });
 
-DataFrame df = sqlContext.read()
+DataFrame df = spark.read()
   .format("com.databricks.spark.xml")
   .option("rowTag", "book")
   .schema(customSchema)
@@ -297,10 +297,10 @@ df.select("author", "_id").write()
 ### Python API
 
 ```python
-from pyspark.sql import SQLContext
-sqlContext = SQLContext(sc)
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.getOrCreate()
 
-df = sqlContext.read.format('com.databricks.spark.xml').options(rowTag='book').load('books.xml')
+df = spark.read.format('com.databricks.spark.xml').options(rowTag='book').load('books.xml')
 df.select("author", "_id").write \
     .format('com.databricks.spark.xml') \
     .options(rowTag='book', rootTag='books') \
@@ -309,10 +309,10 @@ df.select("author", "_id").write \
 
 You can manually specify schema:
 ```python
-from pyspark.sql import SQLContext
+from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
-sqlContext = SQLContext(sc)
+spark = SparkSession.builder.getOrCreate()
 customSchema = StructType([ \
     StructField("_id", StringType(), True), \
     StructField("author", StringType(), True), \
@@ -322,7 +322,7 @@ customSchema = StructType([ \
     StructField("publish_date", StringType(), True), \
     StructField("title", StringType(), True)])
 
-df = sqlContext.read \
+df = spark.read \
     .format('com.databricks.spark.xml') \
     .options(rowTag='book') \
     .load('books.xml', schema = customSchema)

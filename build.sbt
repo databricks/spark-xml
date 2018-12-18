@@ -10,6 +10,8 @@ spName := "databricks/spark-xml"
 
 crossScalaVersions := Seq("2.11.12", "2.12.8")
 
+scalacOptions := Seq("-unchecked", "-deprecation")
+
 sparkVersion := sys.props.get("spark.testVersion").getOrElse("2.4.0")
 
 sparkComponents := Seq("core", "sql")

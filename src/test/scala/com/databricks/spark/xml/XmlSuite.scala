@@ -88,6 +88,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   override protected def afterAll(): Unit = {
     try {
       spark.stop()
+      spark = null
     } finally {
       super.afterAll()
     }
