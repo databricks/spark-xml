@@ -16,7 +16,7 @@
 package com.databricks.spark.xml
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, SQLContext}
+import org.apache.spark.sql.{DataFrame, SparkSession, SQLContext}
 import org.apache.spark.sql.types.StructType
 import com.databricks.spark.xml.util.XmlFile
 
@@ -93,7 +93,6 @@ class XmlReader extends Serializable {
   }
 
   /** Returns a Schema RDD for the given XML path. */
-  @throws[RuntimeException]
   def xmlFile(sqlContext: SQLContext, path: String): DataFrame = {
     // We need the `charset` and `rowTag` before creating the relation.
     val (charset, rowTag) = {
@@ -116,4 +115,11 @@ class XmlReader extends Serializable {
       schema)(sqlContext)
     sqlContext.baseRelationToDataFrame(relation)
   }
+
+  def xmlFile(spark: SparkSession, path: String): DataFrame =
+    xmlFile(spark.sqlContext, path)
+
+  def xmlRdd(spark: SparkSession, xmlRDD: RDD[String]): DataFrame =
+    xmlRdd(spark.sqlContext, xmlRDD)
+
 }

@@ -220,14 +220,14 @@ You can manually specify the schema when reading data:
 
 ```scala
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.types.{StructType, StructField, StringType, DoubleType};
+import org.apache.spark.sql.types.{StructType, StructField, StringType, DoubleType}
 
 val sqlContext = new SQLContext(sc)
 val customSchema = StructType(Array(
   StructField("_id", StringType, nullable = true),
   StructField("author", StringType, nullable = true),
   StructField("description", StringType, nullable = true),
-  StructField("genre", StringType ,nullable = true),
+  StructField("genre", StringType, nullable = true),
   StructField("price", DoubleType, nullable = true),
   StructField("publish_date", StringType, nullable = true),
   StructField("title", StringType, nullable = true)))
@@ -250,7 +250,7 @@ selectedData.write
 ### Java API
 
 ```java
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.SQLContext;
 
 SQLContext sqlContext = new SQLContext(sc);
 DataFrame df = sqlContext.read()

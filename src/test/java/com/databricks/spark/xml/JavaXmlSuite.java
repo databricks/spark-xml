@@ -30,13 +30,12 @@ import org.apache.spark.SparkContext;
 import org.apache.spark.sql.*;
 
 public class JavaXmlSuite {
+    private static final int numBooks = 12;
+    private static final String booksFile = "src/test/resources/books.xml";
+    private static final String booksFileTag = "book";
+    private static final String tempDir = "target/test/xmlData/";
+
     private transient SQLContext sqlContext;
-    private int numBooks = 12;
-
-    String booksFile = "src/test/resources/books.xml";
-    String booksFileTag = "book";
-
-    private String tempDir = "target/test/xmlData/";
 
     @Before
     public void setUp() throws IOException {
@@ -63,7 +62,7 @@ public class JavaXmlSuite {
 
     @Test
     public void testLoad() {
-        HashMap<String, String> options = new HashMap<String, String>();
+        HashMap<String, String> options = new HashMap<>();
         options.put("rowTag", booksFileTag);
         options.put("path", booksFile);
 
