@@ -206,7 +206,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DDL test") {
     spark.sql(
       s"""
-         |CREATE TEMPORARY TABLE carsTable1
+         |CREATE TEMPORARY VIEW carsTable1
          |USING com.databricks.spark.xml
          |OPTIONS (path "$carsFile")
       """.stripMargin.replaceAll("\n", " "))
@@ -217,7 +217,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DDL test with alias name") {
     spark.sql(
       s"""
-         |CREATE TEMPORARY TABLE carsTable2
+         |CREATE TEMPORARY VIEW carsTable2
          |USING xml
          |OPTIONS (path "$carsFile")
       """.stripMargin.replaceAll("\n", " "))
@@ -304,7 +304,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DDL test with empty file") {
     spark.sql(s"""
-           |CREATE TEMPORARY TABLE carsTable3
+           |CREATE TEMPORARY VIEW carsTable3
            |(year double, make string, model string, comments string, grp string)
            |USING com.databricks.spark.xml
            |OPTIONS (path "$emptyFile")
@@ -318,13 +318,13 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     new File(tempEmptyDir).mkdirs()
     spark.sql(
       s"""
-         |CREATE TEMPORARY TABLE booksTableIO
+         |CREATE TEMPORARY VIEW booksTableIO
          |USING com.databricks.spark.xml
          |OPTIONS (path "$booksFile", rowTag "$booksTag")
       """.stripMargin.replaceAll("\n", " "))
     spark.sql(
       s"""
-         |CREATE TEMPORARY TABLE booksTableEmpty
+         |CREATE TEMPORARY VIEW booksTableEmpty
          |(author string, description string, genre string,
          |id string, price double, publish_date string, title string)
          |USING com.databricks.spark.xml
