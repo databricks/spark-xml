@@ -18,7 +18,6 @@ package com.databricks.spark.xml
 import java.io.IOException
 
 import org.apache.hadoop.fs.Path
-import org.slf4j.LoggerFactory
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
@@ -36,8 +35,6 @@ case class XmlRelation protected[spark] (
   with InsertableRelation
   with TableScan
   with PrunedScan {
-
-  private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
   private val options = XmlOptions(parameters)
 

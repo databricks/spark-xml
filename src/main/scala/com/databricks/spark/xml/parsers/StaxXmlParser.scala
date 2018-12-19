@@ -15,7 +15,8 @@
  */
 package com.databricks.spark.xml.parsers
 
-import java.io.ByteArrayInputStream
+import java.io.StringReader
+
 import javax.xml.stream.events.{Attribute, XMLEvent}
 import javax.xml.stream.events._
 import javax.xml.stream._
@@ -74,8 +75,7 @@ private[xml] object StaxXmlParser extends Serializable {
       iter.flatMap { xml =>
         // It does not have to skip for white space, since `XmlInputFormat`
         // always finds the root tag without a heading space.
-        val reader = new ByteArrayInputStream(xml.getBytes)
-        val eventReader = factory.createXMLEventReader(reader)
+        val eventReader = factory.createXMLEventReader(new StringReader(xml))
         val parser = factory.createFilteredReader(eventReader, filter)
         try {
           val rootEvent =

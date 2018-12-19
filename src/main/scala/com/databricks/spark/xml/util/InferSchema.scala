@@ -15,7 +15,7 @@
  */
 package com.databricks.spark.xml.util
 
-import java.io.ByteArrayInputStream
+import java.io.StringReader
 import javax.xml.stream._
 import javax.xml.stream.events._
 
@@ -24,8 +24,6 @@ import scala.collection.Seq
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.NonFatal
 
-import org.slf4j.LoggerFactory
-
 import com.databricks.spark.xml.XmlOptions
 import com.databricks.spark.xml.parsers.StaxXmlParserUtils
 import com.databricks.spark.xml.util.TypeCast._
@@ -33,7 +31,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 
 private[xml] object InferSchema {
-  private val logger = LoggerFactory.getLogger(InferSchema.getClass)
 
   /**
    * Copied from internal Spark api
@@ -90,8 +87,7 @@ private[xml] object InferSchema {
       iter.flatMap { xml =>
         // It does not have to skip for white space, since [[XmlInputFormat]]
         // always finds the root tag without a heading space.
-        val reader = new ByteArrayInputStream(xml.getBytes)
-        val eventReader = factory.createXMLEventReader(reader)
+        val eventReader = factory.createXMLEventReader(new StringReader(xml))
         val parser = factory.createFilteredReader(eventReader, filter)
         try {
           val rootEvent =

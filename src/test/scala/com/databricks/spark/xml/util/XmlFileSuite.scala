@@ -15,7 +15,7 @@
  */
 package com.databricks.spark.xml.util
 
-import java.nio.charset.UnsupportedCharsetException
+import java.nio.charset.{StandardCharsets, UnsupportedCharsetException}
 
 import org.apache.spark.SparkContext
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
@@ -34,7 +34,7 @@ class XmlFileSuite extends FunSuite with BeforeAndAfterAll {
   val fiasRowTag = "House"
   val numHouses = 37
 
-  val utf8 = "utf-8"
+  val utf8 = StandardCharsets.UTF_8.name
 
   private var sparkContext: SparkContext = _
 
