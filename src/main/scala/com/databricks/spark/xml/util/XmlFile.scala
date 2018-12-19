@@ -38,20 +38,15 @@ private[xml] object XmlFile {
       location: String,
       charset: String,
       rowTag: String): RDD[String] = {
+    // This just checks the charset's validity early, to keep behavior
+    Charset.forName(charset)
     context.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, s"<$rowTag>")
     context.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, s"</$rowTag>")
     context.hadoopConfiguration.set(XmlInputFormat.ENCODING_KEY, charset)
-    if (Charset.forName(charset) == Charset.forName(XmlOptions.DEFAULT_CHARSET)) {
-      context.newAPIHadoopFile(location,
-        classOf[XmlInputFormat],
-        classOf[LongWritable],
-        classOf[Text]).map(pair => new String(pair._2.getBytes, 0, pair._2.getLength))
-    } else {
-      context.newAPIHadoopFile(location,
-        classOf[XmlInputFormat],
-        classOf[LongWritable],
-        classOf[Text]).map(pair => new String(pair._2.getBytes, 0, pair._2.getLength, charset))
-    }
+    context.newAPIHadoopFile(location,
+      classOf[XmlInputFormat],
+      classOf[LongWritable],
+      classOf[Text]).map { case (_, text) => new String(text.getBytes, 0, text.getLength, charset) }
   }
 
   /**

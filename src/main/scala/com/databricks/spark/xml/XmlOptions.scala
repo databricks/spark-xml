@@ -15,6 +15,8 @@
  */
 package com.databricks.spark.xml
 
+import java.nio.charset.StandardCharsets
+
 import org.slf4j.LoggerFactory
 
 import com.databricks.spark.xml.util.ParseModes
@@ -24,7 +26,8 @@ import com.databricks.spark.xml.util.ParseModes
  */
 private[xml] class XmlOptions(
     @transient private val parameters: Map[String, String])
-  extends Serializable{
+  extends Serializable {
+
   private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
 
   val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
@@ -74,8 +77,8 @@ private[xml] object XmlOptions {
   val DEFAULT_VALUE_TAG = "_VALUE"
   val DEFAULT_ROW_TAG = "ROW"
   val DEFAULT_ROOT_TAG = "ROWS"
-  val DEFAULT_CHARSET = "UTF-8"
-  val DEFAULT_NULL_VALUE = null
+  val DEFAULT_CHARSET: String = StandardCharsets.UTF_8.name
+  val DEFAULT_NULL_VALUE: String = null
 
   def apply(parameters: Map[String, String]): XmlOptions = new XmlOptions(parameters)
 }

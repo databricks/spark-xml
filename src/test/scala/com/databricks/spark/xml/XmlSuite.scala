@@ -787,7 +787,6 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val config = new Configuration(spark.sparkContext.hadoopConfiguration)
     config.set(XmlInputFormat.START_TAG_KEY, "<parent>")
     config.set(XmlInputFormat.END_TAG_KEY, "</parent>")
-    config.set(XmlInputFormat.ENCODING_KEY, "utf-8")
     val records = spark.sparkContext.newAPIHadoopFile(
       nestedElementWithNameOfParent,
       classOf[XmlInputFormat],
