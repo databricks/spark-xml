@@ -28,8 +28,8 @@ import org.apache.hadoop.mapreduce.lib.input.{FileSplit, TextInputFormat}
 import scala.collection.mutable.ArrayBuffer
 
 /**
-  * Reads records that are delimited by a specific start/end tag.
-  */
+ * Reads records that are delimited by a specific start/end tag.
+ */
 class XmlInputFormat extends TextInputFormat {
 
   override def createRecordReader(
@@ -195,15 +195,16 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private def checkEmptyTag(currentLetter: Int, position: Int,
                             buffer: DataOutputBuffer): Boolean = {
     def checkStartTagBefore = {
-      val buf = Seq('<'.toByte)
+      val startAngleInByte = '<'.toByte
+      val spaceInByte = ' '.toByte
       val rootTagName = buffer.getData
         .reverse
-        .takeWhile(_ != '<'.toByte)
+        .takeWhile(_ != startAngleInByte)
         .reverse
-        .takeWhile(_ != ' '.toByte)
-      val result = buf ++ rootTagName
+        .takeWhile(_ != spaceInByte)
+      val result = startAngleInByte +: rootTagName
 
-      result.toArray.sameElements(startTag.dropRight(1))
+      result.sameElements(startTag.dropRight(1))
     }
 
     if (position >= endEmptyTag.length) false
