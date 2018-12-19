@@ -18,7 +18,6 @@ package com.databricks.spark.xml
 import java.io.{InputStream, IOException}
 import java.nio.charset.Charset
 
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Seekable
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.io.{DataOutputBuffer, LongWritable, Text}
@@ -55,7 +54,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private var currentStartTag: Array[Byte] = _
   private var endTag: Array[Byte] = _
   private var endEmptyTag: Array[Byte] = _
-  private var space: Array[Byte] = _
+  private var whiteSpaces: Seq[Array[Byte]] = _
   private var angleBracket: Array[Byte] = _
 
   private var currentKey: LongWritable = _
@@ -70,19 +69,15 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private val buffer: DataOutputBuffer = new DataOutputBuffer
 
   override def initialize(split: InputSplit, context: TaskAttemptContext): Unit = {
-    val fileSplit: FileSplit = split.asInstanceOf[FileSplit]
-    val conf: Configuration = context.getConfiguration
+    val fileSplit = split.asInstanceOf[FileSplit]
+    val conf = context.getConfiguration
     val charset =
       Charset.forName(conf.get(XmlInputFormat.ENCODING_KEY, XmlOptions.DEFAULT_CHARSET))
     startTag = conf.get(XmlInputFormat.START_TAG_KEY).getBytes(charset)
     endTag = conf.get(XmlInputFormat.END_TAG_KEY).getBytes(charset)
     endEmptyTag = "/>".getBytes(charset)
-    space = " ".getBytes(charset)
+    whiteSpaces = Seq(" ", "\r", "\n").map(_.getBytes(charset))
     angleBracket = ">".getBytes(charset)
-    require(startTag != null, "Start tag cannot be null.")
-    require(endTag != null, "End tag cannot be null.")
-    require(space != null, "White space cannot be null.")
-    require(angleBracket != null, "Angle bracket cannot be null.")
     start = fileSplit.getStart
     end = start + fileSplit.getLength
 
@@ -251,13 +246,25 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   }
 
   private def checkAttributes(current: Int): Boolean = {
-    var len = 0
+    val matchedSpace = Array.fill(whiteSpaces.length)(true)
+    val maxLen = whiteSpaces.map(_.length).max
     var b = current
-    while(len < space.length && b == space(len)) {
-      len += 1
-      if (len >= space.length) {
-        currentStartTag = startTag.take(startTag.length - angleBracket.length) ++ space
-        return true
+    // Loop over input until looking for whitespace until max length of space is reached
+    for (i <- 0 until maxLen) {
+      // Loop over all whitespace bytes
+      for (j <- whiteSpaces.indices) {
+        val len = whiteSpaces(j).length
+        // If match so far but current byte doesn't match, rule out char
+        if (matchedSpace(j) && i < len && (b != whiteSpaces(j)(i))) {
+          matchedSpace(j) = false
+        }
+        // If checked last char and still matches, this is whitespace
+        if (i == len - 1 && matchedSpace(j)) {
+          // take tag plus the whitespace bytes
+          currentStartTag =
+            startTag.take(startTag.length - angleBracket.length) ++ whiteSpaces(j)
+          return true
+        }
       }
       b = in.read
     }
