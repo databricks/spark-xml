@@ -19,7 +19,7 @@ import java.io.ByteArrayInputStream
 import javax.xml.stream.events.Attribute
 import javax.xml.stream.{XMLStreamConstants, XMLInputFactory}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
@@ -56,7 +56,7 @@ class StaxXmlParserUtilsSuite extends FunSuite with BeforeAndAfterAll {
     val event =
       StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
     val attributes =
-      event.asStartElement().getAttributes.map(_.asInstanceOf[Attribute]).toArray
+      event.asStartElement().getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
     val valuesMap =
       StaxXmlParserUtils.convertAttributesToValuesMap(attributes, new XmlOptions(Map()))
 

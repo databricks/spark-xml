@@ -19,7 +19,7 @@ import java.io.ByteArrayInputStream
 import javax.xml.stream._
 import javax.xml.stream.events._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.Seq
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.NonFatal
@@ -97,7 +97,7 @@ private[xml] object InferSchema {
           val rootEvent =
             StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
           val rootAttributes =
-            rootEvent.asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
+            rootEvent.asStartElement.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
 
           Some(inferObject(parser, options, rootAttributes))
         } catch {
@@ -133,7 +133,7 @@ private[xml] object InferSchema {
       case v if isDouble(v) => DoubleType
       case v if isBoolean(v) => BooleanType
       case v if isTimestamp(v) => TimestampType
-      case v => StringType
+      case _ => StringType
     }
   }
 
@@ -181,7 +181,7 @@ private[xml] object InferSchema {
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
-          val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
+          val attributes = e.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
           val valuesMap = StaxXmlParserUtils.convertAttributesToValuesMap(attributes, options)
           val inferredType = inferField(parser, options) match {
             case st: StructType if valuesMap.nonEmpty =>
@@ -272,9 +272,9 @@ private[xml] object InferSchema {
       (t1, t2) match {
         // Double support larger range than fixed decimal, DecimalType.Maximum should be enough
         // in most case, also have better precision.
-        case (DoubleType, t: DecimalType) =>
+        case (DoubleType, _: DecimalType) =>
           DoubleType
-        case (t: DecimalType, DoubleType) =>
+        case (_: DecimalType, DoubleType) =>
           DoubleType
         case (t1: DecimalType, t2: DecimalType) =>
           val scale = math.max(t1.scale, t2.scale)
