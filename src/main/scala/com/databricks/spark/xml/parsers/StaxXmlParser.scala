@@ -21,7 +21,7 @@ import javax.xml.stream.events._
 import javax.xml.stream._
 
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
 import org.slf4j.LoggerFactory
@@ -81,7 +81,7 @@ private[xml] object StaxXmlParser extends Serializable {
           val rootEvent =
             StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
           val rootAttributes =
-            rootEvent.asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
+            rootEvent.asStartElement.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
           Some(convertObject(parser, schema, options, rootAttributes))
             .orElse(failedRecord(xml))
         } catch {
@@ -109,7 +109,7 @@ private[xml] object StaxXmlParser extends Serializable {
     (parser.peek, dataType) match {
       case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
       case (_: EndElement, _: DataType) => null
-      case (c: Characters, dt: DataType) if c.isWhiteSpace =>
+      case (c: Characters, _: DataType) if c.isWhiteSpace =>
         // When `Characters` is found, we need to look further to decide
         // if this is really data or space between other elements.
         val data = c.getData
@@ -243,7 +243,7 @@ private[xml] object StaxXmlParser extends Serializable {
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
-          val attributes = e.getAttributes.map(_.asInstanceOf[Attribute]).toArray
+          val attributes = e.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
           val field = e.asStartElement.getName.getLocalPart
 
           nameToIndex.get(field) match {
