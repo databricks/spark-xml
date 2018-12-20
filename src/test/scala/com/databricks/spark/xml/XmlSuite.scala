@@ -63,6 +63,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val attributesStartWithNewLine = "src/test/resources/attributesStartWithNewLine.xml"
   val attributesStartWithNewLineLF = "src/test/resources/attributesStartWithNewLineLF.xml"
   val attributesStartWithNewLineCR = "src/test/resources/attributesStartWithNewLineCR.xml"
+  val selfClosingTag = "src/test/resources/self-closing-tag.xml"
 
   val booksTag = "book"
   val booksRootTag = "books"
@@ -941,4 +942,19 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       assert(df.count() == rowsCount)
     }
   }
+
+  test("Produces correct result for a row with a self closing tag inside") {
+    val schema = StructType(Seq(
+      StructField("non-empty-tag", IntegerType, nullable = true),
+      StructField("self-closing-tag", IntegerType, nullable = true)
+    ))
+
+    val result = new XmlReader()
+      .withSchema(schema)
+      .xmlFile(spark, selfClosingTag)
+      .collect()
+
+    assert(result(0).toSeq === Seq(1, null))
+  }
+
 }
