@@ -41,6 +41,7 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
   val booksNestedObjectFile = "src/test/resources/books-nested-object.xml"
   val booksNestedArrayFile = "src/test/resources/books-nested-array.xml"
   val booksComplicatedFile = "src/test/resources/books-complicated.xml"
+  val booksComplicatedFileNullAttribute = "src/test/resources/books-complicated-null-attribute.xml"
   val carsFile = "src/test/resources/cars.xml"
   val carsFile8859 = "src/test/resources/cars-iso-8859-1.xml"
   val carsFileGzip = "src/test/resources/cars.xml.gz"
@@ -955,6 +956,27 @@ class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .collect()
 
     assert(result(0).toSeq === Seq(1, null))
+  }
+
+  test("DSL save with null attributes") {
+    // Create temp directory
+    TestUtils.deleteRecursively(new File(tempEmptyDir))
+    new File(tempEmptyDir).mkdirs()
+    val copyFilePath = tempEmptyDir + "books-copy.xml"
+
+    val books = spark.read.format("xml")
+      .option("rowTag", booksTag)
+      .load(booksComplicatedFileNullAttribute)
+    books.write
+      .options(Map("rootTag" -> booksRootTag, "rowTag" -> booksTag))
+      .format("xml")
+      .save(copyFilePath)
+
+    val booksCopy = spark.read
+      .option("rowTag", booksTag)
+      .xml(copyFilePath)
+    assert(booksCopy.count == books.count)
+    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
   }
 
 }

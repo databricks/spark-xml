@@ -122,12 +122,17 @@ private[xml] object StaxXmlGenerator {
           s"Failed to convert value $v (class of ${v.getClass}) in type $dt to XML.")
     }
 
-    val (attributes, elements) = schema.zip(row.toSeq).partition { case (f, v) =>
+    val (attributes, elements) = schema.zip(row.toSeq).partition { case (f, _) =>
       f.name.startsWith(options.attributePrefix) && f.name != options.valueTag
     }
     // Writing attributes
     writer.writeStartElement(options.rowTag)
-    attributes.foreach { case (f, v) =>
+    attributes.foreach {
+      case (f, v) if v == null || f.dataType == NullType =>
+        Option(options.nullValue).foreach {
+          writer.writeAttribute(f.name.substring(options.attributePrefix.length), _)
+        }
+      case (f, v) =>
         writer.writeAttribute(f.name.substring(options.attributePrefix.length), v.toString)
     }
     // Writing elements
