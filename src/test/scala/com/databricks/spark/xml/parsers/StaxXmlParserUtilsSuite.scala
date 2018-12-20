@@ -25,8 +25,9 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 import com.databricks.spark.xml.XmlOptions
 
-class StaxXmlParserUtilsSuite extends FunSuite with BeforeAndAfterAll {
-  val factory = XMLInputFactory.newInstance()
+final class StaxXmlParserUtilsSuite extends FunSuite with BeforeAndAfterAll {
+
+  private val factory = XMLInputFactory.newInstance()
   factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
   factory.setProperty(XMLInputFactory.IS_COALESCING, true)
 
@@ -34,7 +35,6 @@ class StaxXmlParserUtilsSuite extends FunSuite with BeforeAndAfterAll {
     val input = <ROW><id>2</id><name>Sam Mad Dog Smith</name><amount>93</amount></ROW>
     val parser = factory.createXMLEventReader(new StringReader(input.toString))
     val event = StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.END_DOCUMENT)
-
     assert(event.isEndDocument)
   }
 
@@ -43,7 +43,6 @@ class StaxXmlParserUtilsSuite extends FunSuite with BeforeAndAfterAll {
     val parser = factory.createXMLEventReader(new StringReader(input.toString))
     // Skip until </id>
     StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.END_ELEMENT)
-
     assert(StaxXmlParserUtils.checkEndElement(parser))
   }
 
@@ -55,8 +54,7 @@ class StaxXmlParserUtilsSuite extends FunSuite with BeforeAndAfterAll {
     val attributes =
       event.asStartElement().getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
     val valuesMap =
-      StaxXmlParserUtils.convertAttributesToValuesMap(attributes, new XmlOptions(Map()))
-
+      StaxXmlParserUtils.convertAttributesToValuesMap(attributes, new XmlOptions())
     assert(valuesMap === Map(s"${XmlOptions.DEFAULT_ATTRIBUTE_PREFIX}id" -> "2"))
   }
 
@@ -67,7 +65,6 @@ class StaxXmlParserUtilsSuite extends FunSuite with BeforeAndAfterAll {
     // Skip until </id>
     StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.END_ELEMENT)
     val xmlString = StaxXmlParserUtils.currentStructureAsString(parser)
-
     val expected = <info>
       <name>Sam Mad Dog Smith</name><amount><small>1</small><large>9</large></amount></info>
     assert(xmlString === expected.toString())
@@ -81,12 +78,12 @@ class StaxXmlParserUtilsSuite extends FunSuite with BeforeAndAfterAll {
     // We assume here it's reading the value within `id` field.
     StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.CHARACTERS)
     StaxXmlParserUtils.skipChildren(parser)
-    assert(parser.nextEvent().asEndElement().getName.getLocalPart == "info")
+    assert(parser.nextEvent().asEndElement().getName.getLocalPart === "info")
     parser.next()
     StaxXmlParserUtils.skipChildren(parser)
-    assert(parser.nextEvent().asEndElement().getName.getLocalPart == "abc")
+    assert(parser.nextEvent().asEndElement().getName.getLocalPart === "abc")
     parser.next()
     StaxXmlParserUtils.skipChildren(parser)
-    assert(parser.nextEvent().asEndElement().getName.getLocalPart == "test")
+    assert(parser.nextEvent().asEndElement().getName.getLocalPart === "test")
   }
 }

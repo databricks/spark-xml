@@ -24,11 +24,10 @@ import org.scalatest.FunSuite
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions
 
-class TypeCastSuite extends FunSuite {
+final class TypeCastSuite extends FunSuite {
 
   test("Can parse decimal type values") {
-    val options = new XmlOptions(Map.empty[String, String])
-
+    val options = new XmlOptions()
     val stringValues = Seq("10.05", "1,000.01", "158,058,049.001")
     val decimalValues = Seq(10.05, 1000.01, 158058049.001)
     val decimalType = DecimalType.SYSTEM_DEFAULT
@@ -41,28 +40,25 @@ class TypeCastSuite extends FunSuite {
 
   test("Nullable types are handled") {
     val options = new XmlOptions(Map("nullValue" -> "-"))
-
-    assert(TypeCast.castTo("-", ByteType, options) == null)
-    assert(TypeCast.castTo("-", ShortType, options) == null)
-    assert(TypeCast.castTo("-", IntegerType, options) == null)
-    assert(TypeCast.castTo("-", LongType, options) == null)
-    assert(TypeCast.castTo("-", FloatType, options) == null)
-    assert(TypeCast.castTo("-", DoubleType, options) == null)
-    assert(TypeCast.castTo("-", BooleanType, options) == null)
-    assert(TypeCast.castTo("-", TimestampType, options) == null)
-    assert(TypeCast.castTo("-", DateType, options) == null)
-    assert(TypeCast.castTo("-", StringType, options) == null)
+    assert(TypeCast.castTo("-", ByteType, options) === null)
+    assert(TypeCast.castTo("-", ShortType, options) === null)
+    assert(TypeCast.castTo("-", IntegerType, options) === null)
+    assert(TypeCast.castTo("-", LongType, options) === null)
+    assert(TypeCast.castTo("-", FloatType, options) === null)
+    assert(TypeCast.castTo("-", DoubleType, options) === null)
+    assert(TypeCast.castTo("-", BooleanType, options) === null)
+    assert(TypeCast.castTo("-", TimestampType, options) === null)
+    assert(TypeCast.castTo("-", DateType, options) === null)
+    assert(TypeCast.castTo("-", StringType, options) === null)
   }
 
   test("String type should always return the same as the input") {
-    val options = new XmlOptions(Map.empty[String, String])
-
-    assert(TypeCast.castTo("", StringType, options) == "")
+    val options = new XmlOptions()
+    assert(TypeCast.castTo("", StringType, options) === "")
   }
 
   test("Throws exception for empty string with non null type") {
-    val options = new XmlOptions(Map.empty[String, String])
-
+    val options = new XmlOptions()
     val exception = intercept[NumberFormatException]{
       TypeCast.castTo("", IntegerType, options, nullable = false)
     }
@@ -70,27 +66,26 @@ class TypeCastSuite extends FunSuite {
   }
 
   test("Types are cast correctly") {
-    val options = new XmlOptions(Map.empty[String, String])
-
-    assert(TypeCast.castTo("10", ByteType, options) == 10)
-    assert(TypeCast.castTo("10", ShortType, options) == 10)
-    assert(TypeCast.castTo("10", IntegerType, options) == 10)
-    assert(TypeCast.castTo("10", LongType, options) == 10)
-    assert(TypeCast.castTo("1.00", FloatType, options) == 1.0)
-    assert(TypeCast.castTo("1.00", DoubleType, options) == 1.0)
-    assert(TypeCast.castTo("true", BooleanType, options) == true)
+    val options = new XmlOptions()
+    assert(TypeCast.castTo("10", ByteType, options) === 10)
+    assert(TypeCast.castTo("10", ShortType, options) === 10)
+    assert(TypeCast.castTo("10", IntegerType, options) === 10)
+    assert(TypeCast.castTo("10", LongType, options) === 10)
+    assert(TypeCast.castTo("1.00", FloatType, options) === 1.0)
+    assert(TypeCast.castTo("1.00", DoubleType, options) === 1.0)
+    assert(TypeCast.castTo("true", BooleanType, options) === true)
     val timestamp = "2015-01-01 00:00:00"
     assert(
-      TypeCast.castTo(timestamp, TimestampType, options) == Timestamp.valueOf(timestamp))
-    assert(TypeCast.castTo("2015-01-01", DateType, options) == Date.valueOf("2015-01-01"))
+      TypeCast.castTo(timestamp, TimestampType, options) === Timestamp.valueOf(timestamp))
+    assert(TypeCast.castTo("2015-01-01", DateType, options) === Date.valueOf("2015-01-01"))
   }
 
   test("Types with sign are cast correctly") {
-    val options = new XmlOptions(Map.empty[String, String])
-    assert(TypeCast.signSafeToInt("+10", options) == 10)
-    assert(TypeCast.signSafeToLong("-10", options) == -10)
-    assert(TypeCast.signSafeToFloat("1.00", options) == 1.0)
-    assert(TypeCast.signSafeToDouble("-1.00", options) == -1.0)
+    val options = new XmlOptions()
+    assert(TypeCast.signSafeToInt("+10", options) === 10)
+    assert(TypeCast.signSafeToLong("-10", options) === -10)
+    assert(TypeCast.signSafeToFloat("1.00", options) === 1.0)
+    assert(TypeCast.signSafeToDouble("-1.00", options) === -1.0)
   }
 
   test("Types with sign are checked correctly") {
@@ -103,10 +98,14 @@ class TypeCastSuite extends FunSuite {
   }
 
   test("Float and Double Types are cast correctly with Locale") {
-    val options = new XmlOptions(Map.empty[String, String])
-    val locale : Locale = new Locale("fr", "FR")
-    Locale.setDefault(locale)
-    assert(TypeCast.castTo("1,00", FloatType, options) == 1.0)
-    assert(TypeCast.castTo("1,00", DoubleType, options) == 1.0)
+    val options = new XmlOptions()
+    val defaultLocale = Locale.getDefault
+    try {
+      Locale.setDefault(Locale.FRANCE)
+      assert(TypeCast.castTo("1,00", FloatType, options) === 1.0)
+      assert(TypeCast.castTo("1,00", DoubleType, options) === 1.0)
+    } finally {
+      Locale.setDefault(defaultLocale)
+    }
   }
 }

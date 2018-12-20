@@ -20,21 +20,18 @@ import java.nio.charset.{StandardCharsets, UnsupportedCharsetException}
 import org.apache.spark.SparkContext
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
-class XmlFileSuite extends FunSuite with BeforeAndAfterAll {
-  val booksFile = "src/test/resources/books.xml"
-  val booksUnicodeInTagNameFile = "src/test/resources/books-unicode-in-tag-name.xml"
+final class XmlFileSuite extends FunSuite with BeforeAndAfterAll {
 
-  val booksFileTag = "book"
-  val booksUnicodeFileTag = "\u66F8" // scalastyle:ignore
-
-  val numBooks = 12
-  val numBooksUnicodeInTagName = 3
-
-  val fiasHouse = "src/test/resources/fias_house.xml"
-  val fiasRowTag = "House"
-  val numHouses = 37
-
-  val utf8 = StandardCharsets.UTF_8.name
+  private val booksFile = "src/test/resources/books.xml"
+  private val booksUnicodeInTagNameFile = "src/test/resources/books-unicode-in-tag-name.xml"
+  private val booksFileTag = "book"
+  private val booksUnicodeFileTag = "\u66F8" // scalastyle:ignore
+  private val numBooks = 12
+  private val numBooksUnicodeInTagName = 3
+  private val fiasHouse = "src/test/resources/fias_house.xml"
+  private val fiasRowTag = "House"
+  private val numHouses = 37
+  private val utf8 = StandardCharsets.UTF_8.name
 
   private var sparkContext: SparkContext = _
 
@@ -46,6 +43,7 @@ class XmlFileSuite extends FunSuite with BeforeAndAfterAll {
   override def afterAll(): Unit = {
     try {
       sparkContext.stop()
+      sparkContext = null
     } finally {
       super.afterAll()
     }
@@ -74,4 +72,5 @@ class XmlFileSuite extends FunSuite with BeforeAndAfterAll {
     }
     assert(exception.getMessage.contains("frylock"))
   }
+
 }
