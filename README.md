@@ -87,12 +87,10 @@ Due to the structure differences between `DataFrame` and XML, there are some con
 - __Attributes__: Attributes are converted as fields with the heading prefix, `attributePrefix`.
 
     ```xml
-    ...
     <one myOneAttrib="AAAA">
         <two>two</two>
         <three>three</three>
     </one>
-    ...
     ```
     produces a schema below:
 
@@ -106,12 +104,10 @@ Due to the structure differences between `DataFrame` and XML, there are some con
 - __Value in an element that has no child elements but attributes__: The value is put in a separate field, `valueTag`.
 
     ```xml
-    ...
     <one>
         <two myTwoAttrib="BBBBB">two</two>
         <three>three</three>
     </one>
-    ...
     ```
     produces a schema below:
     ```
@@ -144,14 +140,12 @@ Due to the structure differences between `DataFrame` and XML, there are some con
 
     produces a XML file below:
     ```xml
-    ...
     <a>
         <item>aa</item>
     </a>
     <a>
         <item>bb</item>
     </a>
-    ...
     ```
 
 
@@ -181,6 +175,9 @@ OPTIONS (path "books.xml", rowTag "book")
 
 ### Scala API
 
+Import `com.databricks.spark.xml._` to get implicits that add the `.xml(...)` method to `DataFrame`.
+You can also use `.format("xml")` and `.load(...)`.
+
 ```scala
 import org.apache.spark.sql.SparkSession
 import com.databricks.spark.xml._
@@ -197,30 +194,12 @@ selectedData.write
   .xml("newbooks.xml")
 ```
 
-Alternatively you can specify the format to use instead:
-
-```scala
-import org.apache.spark.sql.SparkSession
-
-val spark = SparkSession.builder.getOrCreate()
-val df = spark.read
-  .format("com.databricks.spark.xml")
-  .option("rowTag", "book")
-  .load("books.xml")
-
-val selectedData = df.select("author", "_id")
-selectedData.write
-  .format("com.databricks.spark.xml")
-  .option("rootTag", "books")
-  .option("rowTag", "book")
-  .save("newbooks.xml")
-```
-
 You can manually specify the schema when reading data:
 
 ```scala
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.{StructType, StructField, StringType, DoubleType}
+import com.databricks.spark.xml._
 
 val spark = SparkSession.builder.getOrCreate()
 val customSchema = StructType(Array(
@@ -234,17 +213,15 @@ val customSchema = StructType(Array(
 
 
 val df = spark.read
-  .format("com.databricks.spark.xml")
   .option("rowTag", "book")
   .schema(customSchema)
-  .load("books.xml")
+  .xml("books.xml")
 
 val selectedData = df.select("author", "_id")
 selectedData.write
-  .format("com.databricks.spark.xml")
   .option("rootTag", "books")
   .option("rowTag", "book")
-  .save("newbooks.xml")
+  .xml("newbooks.xml")
 ```
 
 ### Java API
@@ -254,12 +231,12 @@ import org.apache.spark.sql.SparkSession;
 
 SparkSession spark = SparkSession.builder().getOrCreate();
 DataFrame df = spark.read()
-  .format("com.databricks.spark.xml")
+  .format("xml")
   .option("rowTag", "book")
   .load("books.xml");
 
 df.select("author", "_id").write()
-  .format("com.databricks.spark.xml")
+  .format("xml")
   .option("rootTag", "books")
   .option("rowTag", "book")
   .save("newbooks.xml");
@@ -282,13 +259,13 @@ StructType customSchema = new StructType(new StructField[] {
 });
 
 DataFrame df = spark.read()
-  .format("com.databricks.spark.xml")
+  .format("xml")
   .option("rowTag", "book")
   .schema(customSchema)
   .load("books.xml");
 
 df.select("author", "_id").write()
-  .format("com.databricks.spark.xml")
+  .format("xml")
   .option("rootTag", "books")
   .option("rowTag", "book")
   .save("newbooks.xml");
@@ -300,9 +277,9 @@ df.select("author", "_id").write()
 from pyspark.sql import SparkSession
 spark = SparkSession.builder.getOrCreate()
 
-df = spark.read.format('com.databricks.spark.xml').options(rowTag='book').load('books.xml')
+df = spark.read.format('xml').options(rowTag='book').load('books.xml')
 df.select("author", "_id").write \
-    .format('com.databricks.spark.xml') \
+    .format('xml') \
     .options(rowTag='book', rootTag='books') \
     .save('newbooks.xml')
 ```
@@ -323,12 +300,12 @@ customSchema = StructType([ \
     StructField("title", StringType(), True)])
 
 df = spark.read \
-    .format('com.databricks.spark.xml') \
+    .format('xml') \
     .options(rowTag='book') \
     .load('books.xml', schema = customSchema)
 
 df.select("author", "_id").write \
-    .format('com.databricks.spark.xml') \
+    .format('xml') \
     .options(rowTag='book', rootTag='books') \
     .save('newbooks.xml')
 ```
@@ -339,20 +316,20 @@ Automatically infer schema (data types)
 ```R
 library(SparkR)
 
-Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-xml_2.10:0.4.1" "sparkr-shell"')
+Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-xml_2.10:0.5.0" "sparkr-shell"')
 sqlContext <- sparkRSQL.init(sc)
 
-df <- read.df(sqlContext, "books.xml", source = "com.databricks.spark.xml", rowTag = "book")
+df <- read.df(sqlContext, "books.xml", source = "xml", rowTag = "book")
 
 # In this case, `rootTag` is set to "ROWS" and `rowTag` is set to "ROW".
-write.df(df, "newbooks.csv", "com.databricks.spark.xml", "overwrite")
+write.df(df, "newbooks.csv", "xml", "overwrite")
 ```
 
 You can manually specify schema:
 ```R
 library(SparkR)
 
-Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:0.4.1" "sparkr-shell"')
+Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:0.5.0" "sparkr-shell"')
 sqlContext <- sparkRSQL.init(sc)
 customSchema <- structType(
     structField("_id", "string"),
@@ -363,10 +340,10 @@ customSchema <- structType(
     structField("publish_date", "string"),
     structField("title", "string"))
 
-df <- read.df(sqlContext, "books.xml", source = "com.databricks.spark.xml", rowTag = "book")
+df <- read.df(sqlContext, "books.xml", source = "xml", schema = customSchema, rowTag = "book")
 
 # In this case, `rootTag` is set to "ROWS" and `rowTag` is set to "ROW".
-write.df(df, "newbooks.csv", "com.databricks.spark.xml", "overwrite")
+write.df(df, "newbooks.csv", "xml", "overwrite")
 ```
 
 ## Hadoop InputFormat
@@ -376,13 +353,17 @@ which you may make direct use of as follows:
 
 ```scala
 import com.databricks.spark.xml.XmlInputFormat
+import org.apache.spark.SparkContext;
+import org.apache.hadoop.io.{LongWritable, Text}
+
+val sc: SparkContext = _
 
 // This will detect the tags including attributes
 sc.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, "<book>")
 sc.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, "</book>")
 
 val records = sc.newAPIHadoopFile(
-  path,
+  "path",
   classOf[XmlInputFormat],
   classOf[LongWritable],
   classOf[Text])
