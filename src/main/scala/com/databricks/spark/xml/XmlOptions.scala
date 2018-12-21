@@ -33,14 +33,20 @@ private[xml] class XmlOptions(
   val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
   val codec = parameters.get("compression").orElse(parameters.get("codec")).orNull
   val rowTag = parameters.getOrElse("rowTag", XmlOptions.DEFAULT_ROW_TAG)
+  require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")
   val rootTag = parameters.getOrElse("rootTag", XmlOptions.DEFAULT_ROOT_TAG)
   val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
+  require(samplingRatio > 0, s"samplingRatio ($samplingRatio) should be greater than 0")
   val excludeAttributeFlag = parameters.get("excludeAttribute").map(_.toBoolean).getOrElse(false)
   val treatEmptyValuesAsNulls =
     parameters.get("treatEmptyValuesAsNulls").map(_.toBoolean).getOrElse(false)
   val attributePrefix =
     parameters.getOrElse("attributePrefix", XmlOptions.DEFAULT_ATTRIBUTE_PREFIX)
+  require(attributePrefix.nonEmpty, "'attributePrefix' option should not be empty string.")
   val valueTag = parameters.getOrElse("valueTag", XmlOptions.DEFAULT_VALUE_TAG)
+  require(valueTag.nonEmpty, "'valueTag' option should not be empty string.")
+  require(valueTag != attributePrefix,
+    "'valueTag' and 'attributePrefix' options should not be the same.")
   val nullValue = parameters.getOrElse("nullValue", XmlOptions.DEFAULT_NULL_VALUE)
   val columnNameOfCorruptRecord =
     parameters.getOrElse("columnNameOfCorruptRecord", "_corrupt_record")
@@ -60,16 +66,9 @@ private[xml] class XmlOptions(
     XmlOptions.logger.warn(s"$parseMode is not a valid parse mode. Using ${ParseModes.DEFAULT}.")
   }
 
-  require(attributePrefix.nonEmpty, "'attributePrefix' option should not be empty string.")
-
   val failFast = ParseModes.isFailFastMode(parseMode)
   val dropMalformed = ParseModes.isDropMalformedMode(parseMode)
   val permissive = ParseModes.isPermissiveMode(parseMode)
-
-  require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")
-  require(valueTag.nonEmpty, "'valueTag' option should not be empty string.")
-  require(valueTag != attributePrefix,
-    "'valueTag' and 'attributePrefix' options should not be the same.")
 }
 
 private[xml] object XmlOptions {
