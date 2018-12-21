@@ -10,6 +10,9 @@ spName := "databricks/spark-xml"
 
 crossScalaVersions := Seq("2.11.12", "2.12.8")
 
+// Necessary for JUnit tests to be found?
+crossPaths := false
+
 scalacOptions := Seq("-unchecked", "-deprecation")
 
 sparkVersion := sys.props.get("spark.testVersion").getOrElse("2.4.0")
@@ -17,12 +20,12 @@ sparkVersion := sys.props.get("spark.testVersion").getOrElse("2.4.0")
 sparkComponents := Seq("core", "sql")
 
 libraryDependencies ++= Seq(
-  "org.slf4j" % "slf4j-api" % "1.7.25" % "provided",
-  "org.scalatest" %% "scalatest" % "3.0.3" % "test",
-  "com.novocode" % "junit-interface" % "0.11" % "test",
-  "org.apache.spark" %% "spark-core" % sparkVersion.value % "test",
-  "org.apache.spark" %% "spark-sql" % sparkVersion.value % "test",
-  "org.scala-lang" % "scala-library" % scalaVersion.value % "compile"
+  "org.slf4j" % "slf4j-api" % "1.7.25" % Provided,
+  "org.scalatest" %% "scalatest" % "3.0.3" % Test,
+  "com.novocode" % "junit-interface" % "0.11" % Test,
+  "org.apache.spark" %% "spark-core" % sparkVersion.value % Test,
+  "org.apache.spark" %% "spark-sql" % sparkVersion.value % Test,
+  "org.scala-lang" % "scala-library" % scalaVersion.value % Provided
 )
 
 // This is necessary because of how we explicitly specify Spark dependencies
@@ -60,3 +63,6 @@ parallelExecution in Test := false
 
 // Skip tests during assembly
 test in assembly := {}
+
+// Prints JUnit tests in output
+testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))

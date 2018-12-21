@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -54,6 +55,10 @@ public final class JavaXmlSuite {
         spark = null;
     }
 
+    private Path getEmptyTempDir() throws IOException {
+        return Files.createTempDirectory(tempDir, "test");
+    }
+
     @Test
     public void testXmlParser() {
         Dataset df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(spark, booksFile);
@@ -64,7 +69,7 @@ public final class JavaXmlSuite {
 
     @Test
     public void testLoad() {
-        HashMap<String, String> options = new HashMap<>();
+        Map<String, String> options = new HashMap<>();
         options.put("rowTag", booksFileTag);
         Dataset df = spark.read().options(options).format("xml").load(booksFile);
         long result = df.select("description").count();
@@ -72,11 +77,13 @@ public final class JavaXmlSuite {
     }
 
     @Test
-    public void testSave() {
-        Dataset df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(spark, booksFile);
-        df.select("price", "description").write().format("xml").save(tempDir.toString());
+    public void testSave() throws IOException {
+        Path booksPath = getEmptyTempDir().resolve("booksFile");
 
-        Dataset newDf = (new XmlReader()).xmlFile(spark, tempDir.toString());
+        Dataset df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(spark, booksFile);
+        df.select("price", "description").write().format("xml").save(booksPath.toString());
+
+        Dataset newDf = (new XmlReader()).xmlFile(spark, booksPath.toString());
         long result = newDf.select("price").count();
         Assert.assertEquals(result, numBooks);
     }
