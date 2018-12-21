@@ -19,7 +19,7 @@ import org.apache.hadoop.io.compress._
 import org.apache.hadoop.util.VersionInfo
 import org.scalatest.FunSuite
 
-class CompressionCodecsSuite extends FunSuite {
+final class CompressionCodecsSuite extends FunSuite {
 
   test("Get classes of compression codecs") {
     assert(CompressionCodecs.getCodecClass(classOf[GzipCodec].getName) == classOf[GzipCodec])
@@ -28,7 +28,7 @@ class CompressionCodecsSuite extends FunSuite {
     assume(VersionInfo.getVersion.take(1) >= "2",
       "Lz4 codec was added from Hadoop 2.x")
     val codecClassName = "org.apache.hadoop.io.compress.Lz4Codec"
-    assert(CompressionCodecs.getCodecClass(codecClassName).getName == codecClassName)
+    assert(CompressionCodecs.getCodecClass(codecClassName).getName === codecClassName)
   }
 
   test("Get classes of compression codecs with short names") {
@@ -38,6 +38,7 @@ class CompressionCodecsSuite extends FunSuite {
     assume(VersionInfo.getVersion.take(1) >= "2",
       "Lz4 codec was added from Hadoop 2.x")
     val codecClassName = "org.apache.hadoop.io.compress.Lz4Codec"
-    assert(CompressionCodecs.getCodecClass("lz4").getName == codecClassName)
+    assert(CompressionCodecs.getCodecClass("lz4").getName === codecClassName)
   }
+
 }

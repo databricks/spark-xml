@@ -28,7 +28,7 @@ private[xml] class XmlOptions(
     @transient private val parameters: Map[String, String])
   extends Serializable {
 
-  private val logger = LoggerFactory.getLogger(XmlRelation.getClass)
+  def this() = this(Map.empty)
 
   val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
   val codec = parameters.get("compression").orElse(parameters.get("codec")).orNull
@@ -57,7 +57,7 @@ private[xml] class XmlOptions(
 
   // Parse mode flags
   if (!ParseModes.isValidMode(parseMode)) {
-    logger.warn(s"$parseMode is not a valid parse mode. Using ${ParseModes.DEFAULT}.")
+    XmlOptions.logger.warn(s"$parseMode is not a valid parse mode. Using ${ParseModes.DEFAULT}.")
   }
 
   require(attributePrefix.nonEmpty, "'attributePrefix' option should not be empty string.")
@@ -79,6 +79,8 @@ private[xml] object XmlOptions {
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_CHARSET: String = StandardCharsets.UTF_8.name
   val DEFAULT_NULL_VALUE: String = null
+
+  private val logger = LoggerFactory.getLogger(XmlOptions.getClass)
 
   def apply(parameters: Map[String, String]): XmlOptions = new XmlOptions(parameters)
 }

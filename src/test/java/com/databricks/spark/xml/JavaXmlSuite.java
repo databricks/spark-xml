@@ -15,37 +15,48 @@
  */
 package com.databricks.spark.xml;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.spark.sql.*;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.SparkSession;
 
 public final class JavaXmlSuite {
 
     private static final int numBooks = 12;
     private static final String booksFile = "src/test/resources/books.xml";
     private static final String booksFileTag = "book";
-    private static final String tempDir = "target/test/xmlData/";
 
-    private transient SparkSession spark;
+    private SparkSession spark;
+    private Path tempDir;
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         spark = SparkSession.builder().
             master("local[2]").
             appName("XmlSuite").
+            config("spark.ui.enabled", false).
             getOrCreate();
+        tempDir = Files.createTempDirectory("JavaXmlSuite");
+        tempDir.toFile().deleteOnExit();
     }
 
     @After
     public void tearDown() {
         spark.stop();
         spark = null;
+    }
+
+    private Path getEmptyTempDir() throws IOException {
+        return Files.createTempDirectory(tempDir, "test");
     }
 
     @Test
@@ -58,7 +69,7 @@ public final class JavaXmlSuite {
 
     @Test
     public void testLoad() {
-        HashMap<String, String> options = new HashMap<>();
+        Map<String, String> options = new HashMap<>();
         options.put("rowTag", booksFileTag);
         Dataset df = spark.read().options(options).format("xml").load(booksFile);
         long result = df.select("description").count();
@@ -66,13 +77,15 @@ public final class JavaXmlSuite {
     }
 
     @Test
-    public void testSave() {
-        Dataset df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(spark, booksFile);
-        TestUtils.deleteRecursively(new File(tempDir));
-        df.select("price", "description").write().format("xml").save(tempDir);
+    public void testSave() throws IOException {
+        Path booksPath = getEmptyTempDir().resolve("booksFile");
 
-        Dataset newDf = (new XmlReader()).xmlFile(spark, tempDir);
+        Dataset df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(spark, booksFile);
+        df.select("price", "description").write().format("xml").save(booksPath.toString());
+
+        Dataset newDf = (new XmlReader()).xmlFile(spark, booksPath.toString());
         long result = newDf.select("price").count();
         Assert.assertEquals(result, numBooks);
     }
+
 }
