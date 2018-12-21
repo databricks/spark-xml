@@ -108,6 +108,12 @@ private[xml] object StaxXmlParser extends Serializable {
 
     (parser.peek, dataType) match {
       case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
+      case (_: EndElement, dt: StringType) =>
+        if (options.treatEmptyValuesAsNulls){
+          null
+        } else {
+          ""
+        }
       case (_: EndElement, _: DataType) => null
       case (c: Characters, _: DataType) if c.isWhiteSpace =>
         // When `Characters` is found, we need to look further to decide
@@ -215,10 +221,9 @@ private[xml] object StaxXmlParser extends Serializable {
       nameToIndex.get(f).foreach { row(_) = v }
     }
 
-    // Return null rather than empty row. For nested structs empty row causes
-    // ArrayOutOfBounds exceptions when executing an action.
     if (valuesMap.isEmpty) {
-      null
+      // Return an empty row with all nested elements by the schema set to null.
+      Row.fromSeq(Seq.fill(schema.fieldNames.length)(null))
     } else {
       Row.fromSeq(row)
     }

@@ -35,38 +35,40 @@ import org.apache.spark.SparkException
 
 final class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
-  private val agesFile = "src/test/resources/ages.xml"
-  private val agesWithSpacesFile = "src/test/resources/ages-with-spaces.xml"
-  private val booksFile = "src/test/resources/books.xml"
-  private val booksNestedObjectFile = "src/test/resources/books-nested-object.xml"
-  private val booksNestedArrayFile = "src/test/resources/books-nested-array.xml"
-  private val booksComplicatedFile = "src/test/resources/books-complicated.xml"
+  private val resDir = "src/test/resources/"
+  private val agesFile = resDir + "ages.xml"
+  private val agesWithSpacesFile = resDir + "ages-with-spaces.xml"
+  private val booksFile = resDir + "books.xml"
+  private val booksNestedObjectFile = resDir + "books-nested-object.xml"
+  private val booksNestedArrayFile = resDir + "books-nested-array.xml"
+  private val booksComplicatedFile = resDir + "books-complicated.xml"
   private val booksComplicatedFileNullAttribute =
-    "src/test/resources/books-complicated-null-attribute.xml"
-  private val carsFile = "src/test/resources/cars.xml"
-  private val carsFile8859 = "src/test/resources/cars-iso-8859-1.xml"
-  private val carsFileGzip = "src/test/resources/cars.xml.gz"
-  private val carsFileBzip2 = "src/test/resources/cars.xml.bz2"
-  private val carsNoIndentationFile = "src/test/resources/cars-no-indentation.xml"
-  private val carsMixedAttrNoChildFile = "src/test/resources/cars-mixed-attr-no-child.xml"
-  private val booksAttributesInNoChild = "src/test/resources/books-attributes-in-no-child.xml"
-  private val carsUnbalancedFile = "src/test/resources/cars-unbalanced-elements.xml"
-  private val carsMalformedFile = "src/test/resources/cars-malformed.xml"
-  private val nullNumbersFile = "src/test/resources/null-numbers.xml"
-  private val emptyFile = "src/test/resources/empty.xml"
-  private val topicsFile = "src/test/resources/topics-namespaces.xml"
-  private val gpsEmptyField = "src/test/resources/gps-empty-field.xml"
-  private val agesMixedTypes = "src/test/resources/ages-mixed-types.xml"
-  private val nullNestedStructFile = "src/test/resources/null-nested-struct.xml"
-  private val simpleNestedObjects = "src/test/resources/simple-nested-objects.xml"
+    resDir + "books-complicated-null-attribute.xml"
+  private val carsFile = resDir + "cars.xml"
+  private val carsFile8859 = resDir + "cars-iso-8859-1.xml"
+  private val carsFileGzip = resDir + "cars.xml.gz"
+  private val carsFileBzip2 = resDir + "cars.xml.bz2"
+  private val carsNoIndentationFile = resDir + "cars-no-indentation.xml"
+  private val carsMixedAttrNoChildFile = resDir + "cars-mixed-attr-no-child.xml"
+  private val booksAttributesInNoChild = resDir + "books-attributes-in-no-child.xml"
+  private val carsUnbalancedFile = resDir + "cars-unbalanced-elements.xml"
+  private val carsMalformedFile = resDir + "cars-malformed.xml"
+  private val nullNumbersFile = resDir + "null-numbers.xml"
+  private val emptyFile = resDir + "empty.xml"
+  private val topicsFile = resDir + "topics-namespaces.xml"
+  private val gpsEmptyField = resDir + "gps-empty-field.xml"
+  private val agesMixedTypes = resDir + "ages-mixed-types.xml"
+  private val nullNestedStructFile = resDir + "null-nested-struct.xml"
+  private val nullNestedStructFile2 = resDir + "null-nested-struct-2.xml"
+  private val simpleNestedObjects = resDir + "simple-nested-objects.xml"
   private val nestedElementWithNameOfParent =
-    "src/test/resources/nested-element-with-name-of-parent.xml"
-  private val booksMalformedAttributes = "src/test/resources/books-malformed-attributes.xml"
-  private val fiasHouse = "src/test/resources/fias_house.xml"
-  private val attributesStartWithNewLine = "src/test/resources/attributesStartWithNewLine.xml"
-  private val attributesStartWithNewLineLF = "src/test/resources/attributesStartWithNewLineLF.xml"
-  private val attributesStartWithNewLineCR = "src/test/resources/attributesStartWithNewLineCR.xml"
-  private val selfClosingTag = "src/test/resources/self-closing-tag.xml"
+    resDir + "nested-element-with-name-of-parent.xml"
+  private val booksMalformedAttributes = resDir + "books-malformed-attributes.xml"
+  private val fiasHouse = resDir + "fias_house.xml"
+  private val attributesStartWithNewLine = resDir + "attributesStartWithNewLine.xml"
+  private val attributesStartWithNewLineLF = resDir + "attributesStartWithNewLineLF.xml"
+  private val attributesStartWithNewLineCR = resDir + "attributesStartWithNewLineCR.xml"
+  private val selfClosingTag = resDir + "self-closing-tag.xml"
 
   private val booksTag = "book"
   private val booksRootTag = "books"
@@ -132,8 +134,8 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .select("date")
       .collect()
 
-    val attrValOne = results(0).get(0).asInstanceOf[Row](1)
-    val attrValTwo = results(1).get(0).asInstanceOf[Row](1)
+    val attrValOne = results(0).getStruct(0)(1)
+    val attrValTwo = results(1).getStruct(0)(1)
     assert(attrValOne == "string")
     assert(attrValTwo == "struct")
     assert(results.length === numCars)
@@ -147,13 +149,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     // This should not throw an exception `java.lang.ArrayIndexOutOfBoundsException`
     // as non-existing values are represented as `null`s.
-    val nullValue = results
-      .collect()
-      .toSeq.head
-      .toSeq.head
-      .asInstanceOf[Row]
-      .get(1)
-    assert(nullValue === null)
+    assert(results.collect()(0).getStruct(0).get(1) === null)
   }
 
   test("DSL test with mixed elements (struct, string)") {
@@ -169,8 +165,8 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .option("rowTag", agesTag)
       .xml(agesFile)
       .collect()
-    val attrValOne = results(0).get(0).asInstanceOf[Row](1)
-    val attrValTwo = results(1).get(0).asInstanceOf[Row](1)
+    val attrValOne = results(0).getStruct(0)(1)
+    val attrValTwo = results(1).getStruct(0)(1)
     assert(attrValOne == "1990-02-24")
     assert(attrValTwo == "1985-01-01")
     assert(results.length === numAges)
@@ -185,8 +181,8 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val results = dataFrame
       .select("comment", "year")
       .where(dataFrame("year") === 2012)
-    assert(results.first.getString(0) === "No comment")
-    assert(results.first.getLong(1) === 2012)
+
+    assert(results.head() === Row("No comment", 2012))
   }
 
   test("DSL test compressed file") {
@@ -254,7 +250,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xmlFile(spark, carsMalformedFile)
 
     assert(cars.count() == 1)
-    assert(cars.head().toSeq === Seq("Chevy", "Volt", 2015))
+    assert(cars.head() === Row("Chevy", "Volt", 2015))
   }
 
   test("DSL test for failing fast") {
@@ -275,8 +271,8 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val cars = carsDf.collect()
     assert(cars.length === 3)
 
-    val malformedRowOne = carsDf.select("_malformed_records").first().toSeq.head.toString
-    val malformedRowTwo = carsDf.select("_malformed_records").take(2).last.toSeq.head.toString
+    val malformedRowOne = carsDf.select("_malformed_records").first().get(0).toString
+    val malformedRowTwo = carsDf.select("_malformed_records").take(2).last.get(0).toString
     val expectedMalformedRowOne = "<ROW><year>2012</year><make>Tesla</make><model>>S" +
       "<comment>No comment</comment></ROW>"
     val expectedMalformedRowTwo = "<ROW></year><make>Ford</make><model>E350</model>model></model>" +
@@ -284,7 +280,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     assert(malformedRowOne.replaceAll("\\s", "") === expectedMalformedRowOne.replaceAll("\\s", ""))
     assert(malformedRowTwo.replaceAll("\\s", "") === expectedMalformedRowTwo.replaceAll("\\s", ""))
-    assert(cars(2).toSeq.head === null)
+    assert(cars(2)(0) === null)
     assert(cars(0).toSeq.takeRight(3) === Seq(null, null, null))
     assert(cars(1).toSeq.takeRight(3) === Seq(null, null, null))
     assert(cars(2).toSeq.takeRight(3) === Seq("Chevy", "Volt", 2015))
@@ -683,8 +679,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .select("comment", "year")
       .where(dataFrame("year") === 2012)
 
-    assert(results.first.getString(0) === "No comment")
-    assert(results.first.getLong(1) === 2012)
+    assert(results.head() === Row("No comment", 2012))
   }
 
   test("DSL test nullable fields") {
@@ -696,9 +691,9 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xmlFile(spark, nullNumbersFile)
       .collect()
 
-    assert(results.head.toSeq === Seq("alice", "35"))
-    assert(results(1).toSeq === Seq("bob", "    "))
-    assert(results(2).toSeq === Seq("coc", "24"))
+    assert(results(0) === Row("alice", "35"))
+    assert(results(1) === Row("bob", "    "))
+    assert(results(2) === Row("coc", "24"))
   }
 
   test("DSL test for treating empty string as null value") {
@@ -710,7 +705,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xmlFile(spark, nullNumbersFile)
       .collect()
 
-    assert(results(1).toSeq === Seq("bob", null))
+    assert(results(1) === Row("bob", null))
   }
 
   test("DSL test with namespaces ignored") {
@@ -722,14 +717,35 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(results.length === numTopics)
   }
 
-  test("Missing nested struct represented as null instead of empty Row") {
+  test("Missing nested struct represented as Row of nulls instead of null") {
     val result = spark.read
       .option("rowTag", "item")
       .xml(nullNestedStructFile)
       .select("b.es")
       .collect()
 
-    assert(result(1).toSeq === Seq(null))
+    assert(result(1).getStruct(0) !== null)
+    assert(result(1).getStruct(0)(0) === null)
+  }
+
+  test("Produces correct result for empty vs non-existent rows") {
+    val schema = StructType(Array(
+      StructField("b", StructType(Array(
+        StructField("es", StructType(Array(
+          StructField("e", StringType, true),
+          StructField("f", StringType, true))), true)
+      )), true)))
+    val result = spark.read
+      .option("rowTag", "item")
+      .schema(schema)
+      .xml(nullNestedStructFile2)
+      .collect()
+
+    assert(result(0) === Row(Row(null)))
+    assert(result(1) === Row(Row(Row(null, null))))
+    assert(result(2) === Row(Row(Row("E", null))))
+    assert(result(3) === Row(Row(Row("E", " "))))
+    assert(result(4) === Row(Row(Row("E", ""))))
   }
 
   test("Produces correct order of columns for nested rows when user specifies a schema") {
@@ -745,7 +761,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .select("c.a", "c.b")
       .collect()
 
-    assert(result(0).toSeq === Seq(111, 222))
+    assert(result(0) === Row(111, 222))
   }
 
   test("Nested element with same name as parent delineation") {
@@ -785,7 +801,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   test("Skip and project currently XML files without indentation") {
     val df = spark.read.xml(carsNoIndentationFile)
     val results = df.select("model").collect()
-    val years = results.map(_.toSeq.head).toSet
+    val years = results.map(_(0)).toSet
     assert(years === Set("S", "E350", "Volt"))
   }
 
@@ -834,13 +850,17 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val resultsOne = spark.read
       .option("treatEmptyValuesAsNulls", "true")
       .xml(gpsEmptyField)
-    assert(resultsOne.selectExpr("extensions.TrackPointExtension").head().isNullAt(0))
+    assert(resultsOne.selectExpr("extensions.TrackPointExtension").head.getStruct(0) !== null)
+    assert(resultsOne.selectExpr("extensions.TrackPointExtension")
+      .head.getStruct(0)(0) === null)
+    // Is the behavior below consistent? see line above.
+    assert(resultsOne.selectExpr("extensions.TrackPointExtension.hr").head.getStruct(0) === null)
     assert(resultsOne.collect().length === numGPS)
 
     val resultsTwo = spark.read
       .option("nullValue", "2013-01-24T06:18:43Z")
       .xml(gpsEmptyField)
-    assert(resultsTwo.selectExpr("time").head().isNullAt(0))
+    assert(resultsTwo.selectExpr("time").head.getStruct(0) === null)
     assert(resultsTwo.collect().length === numGPS)
   }
 
@@ -850,8 +870,8 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .withRowTag(agesTag)
       .xmlFile(spark, agesWithSpacesFile)
       .collect()
-    val attrValOne = results(0).get(0).asInstanceOf[Row](1)
-    val attrValTwo = results(1).get(0).asInstanceOf[Row](0)
+    val attrValOne = results(0).getStruct(0)(1)
+    val attrValTwo = results(1).getStruct(0)(0)
     assert(attrValOne === "1990-02-24")
     assert(attrValTwo === 30)
     assert(results.length === numAges)
@@ -913,7 +933,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xmlFile(spark, selfClosingTag)
       .collect()
 
-    assert(result(0).toSeq === Seq(1, null))
+    assert(result(0) === Row(1, null))
   }
 
   test("DSL save with null attributes") {
