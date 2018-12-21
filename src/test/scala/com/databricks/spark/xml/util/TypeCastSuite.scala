@@ -40,16 +40,10 @@ final class TypeCastSuite extends FunSuite {
 
   test("Nullable types are handled") {
     val options = new XmlOptions(Map("nullValue" -> "-"))
-    assert(TypeCast.castTo("-", ByteType, options) === null)
-    assert(TypeCast.castTo("-", ShortType, options) === null)
-    assert(TypeCast.castTo("-", IntegerType, options) === null)
-    assert(TypeCast.castTo("-", LongType, options) === null)
-    assert(TypeCast.castTo("-", FloatType, options) === null)
-    assert(TypeCast.castTo("-", DoubleType, options) === null)
-    assert(TypeCast.castTo("-", BooleanType, options) === null)
-    assert(TypeCast.castTo("-", TimestampType, options) === null)
-    assert(TypeCast.castTo("-", DateType, options) === null)
-    assert(TypeCast.castTo("-", StringType, options) === null)
+    for (t <- Seq(ByteType, ShortType, IntegerType, LongType, FloatType, DoubleType,
+                  BooleanType, TimestampType, DateType, StringType)) {
+      assert(TypeCast.castTo("-", t, options) === null)
+    }
   }
 
   test("String type should always return the same as the input") {
