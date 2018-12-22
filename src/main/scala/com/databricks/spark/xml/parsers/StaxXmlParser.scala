@@ -44,14 +44,15 @@ private[xml] object StaxXmlParser extends Serializable {
       xml: RDD[String],
       schema: StructType,
       options: XmlOptions): RDD[Row] = {
-    def failedRecord(record: String): Option[Row] = {
+    def failedRecord(record: String, cause: Throwable = null): Option[Row] = {
       // create a row even if no corrupt record column is present
       options.parseMode match {
         case FailFastMode =>
           throw new RuntimeException(
-            s"Malformed line in FAILFAST mode: ${record.replaceAll("\n", "")}")
+            s"Malformed line in FAILFAST mode: ${record.replaceAll("\n", "")}", cause)
         case DropMalformedMode =>
-          logger.warn(s"Dropping malformed line: ${record.replaceAll("\n", "")}")
+          val reason = if (cause != null) cause.getMessage else "Unknown";
+          logger.warn(s"Dropping malformed line: ${record.replaceAll("\n", "")}, Reason: $reason")
           None
         case PermissiveMode =>
           val row = new Array[Any](schema.length)
@@ -87,8 +88,8 @@ private[xml] object StaxXmlParser extends Serializable {
           Some(convertObject(parser, schema, options, rootAttributes))
             .orElse(failedRecord(xml))
         } catch {
-          case NonFatal(_) =>
-            failedRecord(xml)
+          case NonFatal(e) =>
+            failedRecord(xml, e)
         }
       }
     }
