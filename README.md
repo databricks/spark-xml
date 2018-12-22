@@ -35,7 +35,7 @@ version: 0.5.0
 ```
 
 ## Using with Spark shell
-This package can be added to  Spark using the `--packages` command line option.  For example, to include it when starting the spark shell:
+This package can be added to Spark using the `--packages` command line option. For example, to include it when starting the spark shell:
 
 
 ### Spark compiled with Scala 2.11
@@ -318,10 +318,9 @@ Automatically infer schema (data types)
 ```R
 library(SparkR)
 
-Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-xml_2.10:0.5.0" "sparkr-shell"')
-sqlContext <- sparkRSQL.init(sc)
+sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.10:0.5"))
 
-df <- read.df(sqlContext, "books.xml", source = "xml", rowTag = "book")
+df <- read.df("books.xml", source = "xml", rowTag = "book")
 
 # In this case, `rootTag` is set to "ROWS" and `rowTag` is set to "ROW".
 write.df(df, "newbooks.csv", "xml", "overwrite")
@@ -331,18 +330,17 @@ You can manually specify schema:
 ```R
 library(SparkR)
 
-Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:0.5.0" "sparkr-shell"')
-sqlContext <- sparkRSQL.init(sc)
+sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.10:0.5"))
 customSchema <- structType(
-    structField("_id", "string"),
-    structField("author", "string"),
-    structField("description", "string"),
-    structField("genre", "string"),
-    structField("price", "double"),
-    structField("publish_date", "string"),
-    structField("title", "string"))
+  structField("_id", "string"),
+  structField("author", "string"),
+  structField("description", "string"),
+  structField("genre", "string"),
+  structField("price", "double"),
+  structField("publish_date", "string"),
+  structField("title", "string"))
 
-df <- read.df(sqlContext, "books.xml", source = "xml", schema = customSchema, rowTag = "book")
+df <- read.df("books.xml", source = "xml", schema = customSchema, rowTag = "book")
 
 # In this case, `rootTag` is set to "ROWS" and `rowTag` is set to "ROW".
 write.df(df, "newbooks.csv", "xml", "overwrite")
