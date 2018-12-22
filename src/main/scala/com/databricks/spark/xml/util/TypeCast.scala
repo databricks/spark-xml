@@ -99,7 +99,7 @@ object TypeCast {
           sys.error(s"Failed to parse a value for data type $dataType.")
       }
     } catch {
-      case NonFatal(_) if options.permissive => null
+      case NonFatal(_) if options.parseMode == PermissiveMode => null
     }
   }
 

@@ -81,7 +81,12 @@ val ignoredABIProblems = {
     exclude[DirectMissingMethodProblem](
       "com.databricks.spark.xml.util.XmlFile.DEFAULT_ROW_SEPARATOR"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.InferSchema.findTightestCommonTypeOfTwo")
+      "com.databricks.spark.xml.util.InferSchema.findTightestCommonTypeOfTwo"),
+    exclude[DirectMissingMethodProblem]("com.databricks.spark.xml.XmlOptions.dropMalformed"),
+    exclude[DirectMissingMethodProblem]("com.databricks.spark.xml.XmlOptions.permissive"),
+    exclude[DirectMissingMethodProblem]("com.databricks.spark.xml.XmlOptions.failFast"),
+    exclude[MissingClassProblem]("com.databricks.spark.xml.util.ParseModes"),
+    exclude[MissingClassProblem]("com.databricks.spark.xml.util.ParseModes$")
   )
 }
 
