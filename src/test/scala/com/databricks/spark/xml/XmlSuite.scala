@@ -27,7 +27,7 @@ import org.apache.hadoop.io.compress.GzipCodec
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 import com.databricks.spark.xml.XmlOptions._
-import com.databricks.spark.xml.util.ParseModes
+import com.databricks.spark.xml.util._
 
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Row, SaveMode, SparkSession}
@@ -239,7 +239,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test for parsing a malformed XML file") {
     val results = new XmlReader()
-      .withParseMode(ParseModes.DROP_MALFORMED_MODE)
+      .withParseMode(DropMalformedMode.name)
       .xmlFile(spark, carsMalformedFile)
 
     assert(results.count() === 1)
@@ -247,7 +247,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test for dropping malformed rows") {
     val cars = new XmlReader()
-      .withParseMode(ParseModes.DROP_MALFORMED_MODE)
+      .withParseMode(DropMalformedMode.name)
       .xmlFile(spark, carsMalformedFile)
 
     assert(cars.count() == 1)
@@ -266,7 +266,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test for permissive mode for corrupt records") {
     val carsDf = new XmlReader()
-      .withParseMode(ParseModes.PERMISSIVE_MODE)
+      .withParseMode(PermissiveMode.name)
       .withColumnNameOfCorruptRecord("_malformed_records")
       .xmlFile(spark, carsMalformedFile)
     val cars = carsDf.collect()
@@ -880,7 +880,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test with malformed attributes") {
     val results = new XmlReader()
-      .withParseMode(ParseModes.DROP_MALFORMED_MODE)
+      .withParseMode(DropMalformedMode.name)
         .withRowTag(booksTag)
         .xmlFile(spark, booksMalformedAttributes)
         .collect()

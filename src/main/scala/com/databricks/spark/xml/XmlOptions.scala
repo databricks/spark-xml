@@ -19,7 +19,7 @@ import java.nio.charset.StandardCharsets
 
 import org.slf4j.LoggerFactory
 
-import com.databricks.spark.xml.util.ParseModes
+import com.databricks.spark.xml.util._
 
 /**
  * Options for the XML data source.
@@ -52,23 +52,7 @@ private[xml] class XmlOptions(
     parameters.getOrElse("columnNameOfCorruptRecord", "_corrupt_record")
   val ignoreSurroundingSpaces =
     parameters.get("ignoreSurroundingSpaces").map(_.toBoolean).getOrElse(false)
-
-  // Leave this option for backwards compatibility.
-  private val failFastFlag = parameters.get("failFast").map(_.toBoolean).getOrElse(false)
-  private val parseMode = if (failFastFlag) {
-    parameters.getOrElse("mode", ParseModes.FAIL_FAST_MODE)
-  } else {
-    parameters.getOrElse("mode", ParseModes.PERMISSIVE_MODE)
-  }
-
-  // Parse mode flags
-  if (!ParseModes.isValidMode(parseMode)) {
-    XmlOptions.logger.warn(s"$parseMode is not a valid parse mode. Using ${ParseModes.DEFAULT}.")
-  }
-
-  val failFast = ParseModes.isFailFastMode(parseMode)
-  val dropMalformed = ParseModes.isDropMalformedMode(parseMode)
-  val permissive = ParseModes.isPermissiveMode(parseMode)
+  val parseMode = ParseMode.fromString(parameters.getOrElse("mode", PermissiveMode.name))
 }
 
 private[xml] object XmlOptions {
@@ -78,8 +62,6 @@ private[xml] object XmlOptions {
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_CHARSET: String = StandardCharsets.UTF_8.name
   val DEFAULT_NULL_VALUE: String = null
-
-  private val logger = LoggerFactory.getLogger(XmlOptions.getClass)
 
   def apply(parameters: Map[String, String]): XmlOptions = new XmlOptions(parameters)
 }

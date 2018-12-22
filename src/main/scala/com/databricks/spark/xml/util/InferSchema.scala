@@ -73,7 +73,6 @@ private[xml] object InferSchema {
    *   3. Replace any remaining null fields with string, the top type
    */
   def infer(xml: RDD[String], options: XmlOptions): StructType = {
-    val shouldHandleCorruptRecord = options.permissive
     val schemaData = if (options.samplingRatio > 0.99) {
       xml
     } else {
@@ -103,7 +102,7 @@ private[xml] object InferSchema {
 
           Some(inferObject(parser, options, rootAttributes))
         } catch {
-          case NonFatal(_) if shouldHandleCorruptRecord =>
+          case NonFatal(_) if options.parseMode == PermissiveMode =>
             Some(StructType(Seq(StructField(options.columnNameOfCorruptRecord, StringType))))
           case NonFatal(_) =>
             None

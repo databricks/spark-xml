@@ -32,6 +32,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.TypeCast._
 import com.databricks.spark.xml.XmlOptions
+import com.databricks.spark.xml.util._
 
 /**
  * Wraps parser to iteration process.
@@ -45,20 +46,21 @@ private[xml] object StaxXmlParser extends Serializable {
       options: XmlOptions): RDD[Row] = {
     def failedRecord(record: String): Option[Row] = {
       // create a row even if no corrupt record column is present
-      if (options.failFast) {
-        throw new RuntimeException(
-          s"Malformed line in FAILFAST mode: ${record.replaceAll("\n", "")}")
-      } else if (options.dropMalformed) {
-        logger.warn(s"Dropping malformed line: ${record.replaceAll("\n", "")}")
-        None
-      } else {
-        val row = new Array[Any](schema.length)
-        val nameToIndex = schema.map(_.name).zipWithIndex.toMap
-        nameToIndex.get(options.columnNameOfCorruptRecord).foreach { corruptIndex =>
-          require(schema(corruptIndex).dataType == StringType)
-          row.update(corruptIndex, record)
-        }
-        Some(Row.fromSeq(row))
+      options.parseMode match {
+        case FailFastMode =>
+          throw new RuntimeException(
+            s"Malformed line in FAILFAST mode: ${record.replaceAll("\n", "")}")
+        case DropMalformedMode =>
+          logger.warn(s"Dropping malformed line: ${record.replaceAll("\n", "")}")
+          None
+        case PermissiveMode =>
+          val row = new Array[Any](schema.length)
+          val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+          nameToIndex.get(options.columnNameOfCorruptRecord).foreach { corruptIndex =>
+            require(schema(corruptIndex).dataType == StringType)
+            row.update(corruptIndex, record)
+          }
+          Some(Row.fromSeq(row))
       }
     }
 

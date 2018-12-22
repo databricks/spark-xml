@@ -19,6 +19,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SparkSession, SQLContext}
 import org.apache.spark.sql.types.StructType
 import com.databricks.spark.xml.util.XmlFile
+import com.databricks.spark.xml.util.FailFastMode
 
 /**
  * A collection of static functions for working with XML files in Spark SQL
@@ -58,7 +59,7 @@ class XmlReader extends Serializable {
   }
 
   def withFailFast(failFast: Boolean): XmlReader = {
-    parameters += ("failFast" -> failFast.toString)
+    parameters += ("mode" -> FailFastMode.name)
     this
   }
 
