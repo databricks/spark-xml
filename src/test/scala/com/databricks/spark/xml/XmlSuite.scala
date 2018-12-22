@@ -19,7 +19,6 @@ import java.nio.charset.{StandardCharsets, UnsupportedCharsetException}
 import java.nio.file.{Files, Path}
 import java.sql.{Date, Timestamp}
 
-import scala.annotation.varargs
 import scala.io.Source
 
 import org.apache.hadoop.conf.Configuration
@@ -115,7 +114,6 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   // Utilities to simplify schema specification:
 
-  @varargs
   private def buildSchema(fields: StructField*): StructType =
     StructType(fields)
 
@@ -125,15 +123,12 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       nullable: Boolean = true): StructField =
     StructField(name, dataType, nullable)
 
-  @varargs
   private def struct(fields: StructField*): StructType =
     buildSchema(fields: _*)
   
-  @varargs
   private def struct(name: String, fields: StructField*): StructField =
     field(name, struct(fields: _*))
 
-  @varargs
   private def structArray(name: String, fields: StructField*): StructField =
     field(name, ArrayType(struct(fields: _*)))
 
