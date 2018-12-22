@@ -58,7 +58,6 @@ pomExtra :=
     <developer>
       <id>hyukjinkwon</id>
       <name>Hyukjin Kwon</name>
-      <url>https://www.facebook.com/hyukjin.kwon.96</url>
     </developer>
   </developers>
 
