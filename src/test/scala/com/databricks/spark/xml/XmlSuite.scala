@@ -112,6 +112,31 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     Files.createTempDirectory(tempDir, "test")
   }
 
+  // Utilities to simplify schema specification:
+
+  private def buildSchema(fields: StructField*): StructType =
+    StructType(fields)
+
+  private def field(
+      name: String,
+      dataType: DataType = StringType,
+      nullable: Boolean = true): StructField =
+    StructField(name, dataType, nullable)
+
+  private def struct(fields: StructField*): StructType =
+    buildSchema(fields: _*)
+
+  private def struct(name: String, fields: StructField*): StructField =
+    field(name, struct(fields: _*))
+
+  private def structArray(name: String, fields: StructField*): StructField =
+    field(name, ArrayType(struct(fields: _*)))
+
+  private def array(name: String, dataType: DataType): StructField =
+    field(name, ArrayType(dataType))
+
+  // Tests
+
   test("DSL test") {
     val results = spark.read.format("xml")
       .load(carsFile)
@@ -289,7 +314,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   test("DSL test with empty file and known schema") {
     val results = new XmlReader()
-      .withSchema(StructType(Array(StructField("column", StringType, false))))
+      .withSchema(buildSchema(field("column", StringType, false)))
       .xmlFile(spark, emptyFile)
       .count()
 
@@ -297,12 +322,12 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test with poorly formatted file and string schema") {
-    val schema = new StructType(Array(
-      StructField("color", StringType, true),
-      StructField("year", StringType, true),
-      StructField("make", StringType, true),
-      StructField("model", StringType, true),
-      StructField("comment", StringType, true)))
+    val schema = buildSchema(
+      field("color"),
+      field("year"),
+      field("make"),
+      field("model"),
+      field("comment"))
     val results = new XmlReader()
       .withSchema(schema)
       .xmlFile(spark, carsUnbalancedFile)
@@ -451,7 +476,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DSL save dataframe not read from a XML file") {
     val copyFilePath = getEmptyTempDir().resolve("data-copy.xml")
 
-    val schema = StructType(Array(StructField("a", ArrayType(ArrayType(StringType)), true)))
+    val schema = buildSchema(array("a", ArrayType(StringType)))
     val data = spark.sparkContext.parallelize(
       List(List(List("aa", "bb"), List("aa", "bb")))).map(Row(_))
     val df = spark.createDataFrame(data, schema)
@@ -460,9 +485,9 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     // When [[ArrayType]] has [[ArrayType]] as elements, it is confusing what is the element
     // name for XML file. Now, it is "item". So, "item" field is additionally added
     // to wrap the element.
-    val schemaCopy = StructType(Array(
-      StructField("a", ArrayType(
-        StructType(Array(StructField("item", ArrayType(StringType), true)))), true)))
+    val schemaCopy = buildSchema(
+      structArray("a",
+        field("item", ArrayType(StringType))))
     val dfCopy = spark.read.xml(copyFilePath.toString)
 
     assert(dfCopy.count === df.count)
@@ -479,7 +504,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
         FloatType, DoubleType, DecimalType(25, 3), DecimalType(6, 5),
         DateType, TimestampType, MapType(StringType, StringType))
     val fields = dataTypes.zipWithIndex.map { case (dataType, index) =>
-      StructField(s"col$index", dataType, true)
+      field(s"col$index", dataType)
     }
     val schema = StructType(fields)
 
@@ -508,14 +533,14 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   test("DSL test schema inferred correctly") {
     val results = spark.read.option("rowTag", booksTag).xml(booksFile)
 
-    assert(results.schema === StructType(Array(
-      StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}id", StringType, true),
-      StructField("author", StringType, true),
-      StructField("description", StringType, true),
-      StructField("genre", StringType, true),
-      StructField("price", DoubleType, true),
-      StructField("publish_date", StringType, true),
-      StructField("title", StringType, true))))
+    assert(results.schema === buildSchema(
+      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
+      field("author"),
+      field("description"),
+      field("genre"),
+      field("price", DoubleType),
+      field("publish_date"),
+      field("title")))
 
     assert(results.collect().length === numBooks)
   }
@@ -526,14 +551,14 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .option("samplingRatio", 0.5)
       .xml(booksFile)
 
-    assert(results.schema === StructType(Array(
-      StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}id", StringType, true),
-      StructField("author", StringType, true),
-      StructField("description", StringType, true),
-      StructField("genre", StringType, true),
-      StructField("price", DoubleType, true),
-      StructField("publish_date", StringType, true),
-      StructField("title", StringType, true))))
+    assert(results.schema === buildSchema(
+      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
+      field("author"),
+      field("description"),
+      field("genre"),
+      field("price", DoubleType),
+      field("publish_date"),
+      field("title")))
 
     assert(results.collect().length === numBooks)
   }
@@ -543,15 +568,15 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .option("rowTag", booksTag)
       .xml(booksNestedObjectFile)
 
-    assert(results.schema === StructType(Array(
-      StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}id", StringType, true),
-      StructField("author", StringType, true),
-      StructField("description", StringType, true),
-      StructField("genre", StringType, true),
-      StructField("price", DoubleType, true),
-      StructField("publish_dates", StructType(
-        List(StructField("publish_date", StringType))), true),
-      StructField("title", StringType, true))))
+    assert(results.schema === buildSchema(
+      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
+      field("author"),
+      field("description"),
+      field("genre"),
+      field("price", DoubleType),
+      struct("publish_dates",
+        field("publish_date")),
+      field("title")))
 
     assert(results.collect().length === numBooks)
   }
@@ -561,14 +586,14 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .option("rowTag", booksTag)
       .xml(booksNestedArrayFile)
 
-    assert(results.schema === StructType(Array(
-      StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}id", StringType, true),
-      StructField("author", StringType, true),
-      StructField("description", StringType, true),
-      StructField("genre", StringType, true),
-      StructField("price", DoubleType, true),
-      StructField("publish_date", ArrayType(StringType), true),
-      StructField("title", StringType, true))))
+    assert(results.schema === buildSchema(
+      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
+      field("author"),
+      field("description"),
+      field("genre"),
+      field("price", DoubleType),
+      array("publish_date", StringType),
+      field("title")))
 
     assert(results.collect().length === numBooks)
   }
@@ -578,23 +603,21 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .option("rowTag", booksTag)
       .xml(booksComplicatedFile)
 
-    assert(results.schema == StructType(Array(
-      StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}id", StringType, true),
-      StructField("author", StringType, true),
-      StructField("genre", StructType(
-        List(StructField("genreid", LongType),
-          StructField("name", StringType))),
-        true),
-      StructField("price", DoubleType, true),
-      StructField("publish_dates", StructType(
-        List(StructField("publish_date",
-          ArrayType(StructType(
-            List(StructField(s"${DEFAULT_ATTRIBUTE_PREFIX}tag", StringType, true),
-              StructField("day", LongType, true),
-              StructField("month", LongType, true),
-              StructField("year", LongType, true))))))),
-        true),
-      StructField("title", StringType, true))))
+    assert(results.schema == buildSchema(
+      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
+      field("author"),
+      struct("genre",
+        field("genreid", LongType),
+        field("name")),
+      field("price", DoubleType),
+      struct("publish_dates",
+        array("publish_date",
+          struct(
+            field(s"${DEFAULT_ATTRIBUTE_PREFIX}tag"),
+            field("day", LongType),
+            field("month", LongType),
+            field("year", LongType)))),
+      field("title")))
 
     assert(results.collect().length === numBooksComplicated)
   }
@@ -605,15 +628,14 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .withRowTag(booksTag)
       .xmlFile(spark, booksAttributesInNoChild)
 
-    val schemaOne = StructType(Array(
-      StructField("_id", StringType, true),
-      StructField("author", StringType, true),
-      StructField("price", StructType(
-        List(StructField("_VALUE", StringType, true),
-          StructField(s"_unit", StringType, true))),
-        true),
-      StructField("publish_date", StringType, true),
-      StructField("title", StringType, true)))
+    val schemaOne = buildSchema(
+      field("_id"),
+      field("author"),
+      struct("price",
+        field("_VALUE"),
+        field(s"_unit")),
+      field("publish_date"),
+      field("title"))
 
     assert(resultsOne.schema === schemaOne)
     assert(resultsOne.count === numBooks)
@@ -627,15 +649,14 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .withValueTag(valueTag)
       .xmlFile(spark, booksAttributesInNoChild)
 
-    val schemaTwo = StructType(Array(
-      StructField(s"${attributePrefix}id", StringType, true),
-      StructField("author", StringType, true),
-      StructField("price", StructType(
-        List(StructField(valueTag, StringType, true),
-          StructField(s"${attributePrefix}unit", StringType, true))),
-        true),
-      StructField("publish_date", StringType, true),
-      StructField("title", StringType, true)))
+    val schemaTwo = buildSchema(
+      field(s"${attributePrefix}id"),
+      field("author"),
+      struct("price",
+        field(valueTag),
+        field(s"${attributePrefix}unit")),
+      field("publish_date"),
+      field("title"))
 
     assert(resultsTwo.schema === schemaTwo)
     assert(resultsTwo.count === numBooks)
@@ -647,24 +668,24 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .withRowTag(booksTag)
       .xmlFile(spark, booksFile)
 
-    val schema = StructType(Array(
-      StructField("author", StringType, true),
-      StructField("description", StringType, true),
-      StructField("genre", StringType, true),
-      StructField("price", DoubleType, true),
-      StructField("publish_date", StringType, true),
-      StructField("title", StringType, true)))
+    val schema = buildSchema(
+      field("author"),
+      field("description"),
+      field("genre"),
+      field("price", DoubleType),
+      field("publish_date"),
+      field("title"))
 
     assert(results.schema === schema)
   }
 
   test("DSL test with custom schema") {
-    val schema = new StructType(Array(
-      StructField("make", StringType, true),
-      StructField("model", StringType, true),
-      StructField("comment", StringType, true),
-      StructField("color", StringType, true),
-      StructField("year", IntegerType, true)))
+    val schema = buildSchema(
+      field("make"),
+      field("model"),
+      field("comment"),
+      field("color"),
+      field("year", IntegerType))
     val results = new XmlReader()
       .withSchema(schema)
       .xmlFile(spark, carsUnbalancedFile)
@@ -684,9 +705,9 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test nullable fields") {
-    val schema = StructType(Array(
-      StructField("name", StringType, false),
-      StructField("age", StringType, true)))
+    val schema = buildSchema(
+      field("name", StringType, false),
+      field("age"))
     val results = new XmlReader()
       .withSchema(schema)
       .xmlFile(spark, nullNumbersFile)
@@ -698,10 +719,11 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test for treating empty string as null value") {
+    val schema = buildSchema(
+      field("name", StringType, false),
+      field("age", IntegerType))
     val results = new XmlReader()
-      .withSchema(
-        StructType(Array(StructField("name", StringType, false),
-        StructField("age", IntegerType, true))))
+      .withSchema(schema)
       .withTreatEmptyValuesAsNulls(true)
       .xmlFile(spark, nullNumbersFile)
       .collect()
@@ -730,12 +752,11 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("Produces correct result for empty vs non-existent rows") {
-    val schema = StructType(Array(
-      StructField("b", StructType(Array(
-        StructField("es", StructType(Array(
-          StructField("e", StringType, true),
-          StructField("f", StringType, true))), true)
-      )), true)))
+    val schema = buildSchema(
+      struct("b",
+        struct("es",
+          field("e"),
+          field("f"))))
     val result = spark.read
       .option("rowTag", "item")
       .schema(schema)
@@ -750,11 +771,10 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("Produces correct order of columns for nested rows when user specifies a schema") {
-    val nestedSchema = StructType(Seq(
-      StructField("b", IntegerType, true),
-      StructField("a", IntegerType, true)))
-    val schema = StructType(Seq(
-      StructField("c", nestedSchema, true)))
+    val schema = buildSchema(
+      struct("c",
+        field("b", IntegerType),
+        field("a", IntegerType)))
 
     val result = new XmlReader()
       .withSchema(schema)
@@ -791,11 +811,10 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .withRowTag("parent")
       .xmlFile(spark, nestedElementWithNameOfParent)
 
-    val nestedSchema = StructType(Array(
-      StructField("child", StringType, true)))
-    val schema = StructType(Array(
-      StructField("child", StringType, true),
-      StructField("parent", nestedSchema, true)))
+    val schema = buildSchema(
+      field("child"),
+      struct("parent",
+        field("child")))
     assert(df.schema === schema)
   }
 
@@ -901,14 +920,14 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("attributes start with new line") {
-    val schema = StructType(Array(
-      StructField("_schemaLocation", StringType, true),
-      StructField("_xmlns", StringType, true),
-      StructField("_xsi", StringType, true),
-      StructField("body", StringType, true),
-      StructField("from", StringType, true),
-      StructField("heading", StringType, true),
-      StructField("to", StringType, true)))
+    val schema = buildSchema(
+      field("_schemaLocation"),
+      field("_xmlns"),
+      field("_xsi"),
+      field("body"),
+      field("from"),
+      field("heading"),
+      field("to"))
 
     val rowsCount = 1
 
@@ -925,9 +944,9 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("Produces correct result for a row with a self closing tag inside") {
-    val schema = StructType(Array(
-      StructField("non-empty-tag", IntegerType, true),
-      StructField("self-closing-tag", IntegerType, true)))
+    val schema = buildSchema(
+      field("non-empty-tag", IntegerType),
+      field("self-closing-tag", IntegerType))
 
     val result = new XmlReader()
       .withSchema(schema)
@@ -955,21 +974,18 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test nulls out invalid values when set to permissive and given explicit schema") {
-    val schema = StructType(Array(
-      StructField("integer_value", StructType(Array(
-        StructField("_VALUE", IntegerType, true),
-        StructField("_int", IntegerType, true)
-      ))),
-      StructField("long_value", StructType(Array(
-        StructField("_VALUE", LongType, true),
-        StructField("_int", IntegerType, true)
-      ))),
-      StructField("float_value", FloatType, true),
-      StructField("double_value", DoubleType, true),
-      StructField("boolean_value", BooleanType, true),
-      StructField("string_value", StringType, true),
-      StructField("integer_array", ArrayType(IntegerType), true)
-    ))
+    val schema = buildSchema(
+      struct("integer_value",
+        field("_VALUE", IntegerType),
+        field("_int", IntegerType)),
+      struct("long_value",
+        field("_VALUE", LongType),
+        field("_int", IntegerType)),
+      field("float_value", FloatType),
+      field("double_value", DoubleType),
+      field("boolean_value", BooleanType),
+      field("string_value"),
+      array("integer_array", IntegerType))
     val results = spark.read
       .option("mode", "PERMISSIVE")
       .schema(schema)
