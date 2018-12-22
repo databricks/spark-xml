@@ -53,6 +53,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   private val booksAttributesInNoChild = resDir + "books-attributes-in-no-child.xml"
   private val carsUnbalancedFile = resDir + "cars-unbalanced-elements.xml"
   private val carsMalformedFile = resDir + "cars-malformed.xml"
+  private val dataTypesValidAndInvalid = resDir + "datatypes-valid-and-invalid.xml"
   private val nullNumbersFile = resDir + "null-numbers.xml"
   private val emptyFile = resDir + "empty.xml"
   private val topicsFile = resDir + "topics-namespaces.xml"
@@ -951,6 +952,49 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xml(copyFilePath.toString)
     assert(booksCopy.count === books.count)
     assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+  }
+
+  test("DSL test nulls out invalid values when set to permissive and given explicit schema") {
+    val schema = StructType(Array(
+      StructField("integer_value", StructType(Array(
+        StructField("_VALUE", IntegerType, true),
+        StructField("_int", IntegerType, true)
+      ))),
+      StructField("long_value", StructType(Array(
+        StructField("_VALUE", LongType, true),
+        StructField("_int", IntegerType, true)
+      ))),
+      StructField("float_value", FloatType, true),
+      StructField("double_value", DoubleType, true),
+      StructField("boolean_value", BooleanType, true),
+      StructField("string_value", StringType, true),
+      StructField("integer_array", ArrayType(IntegerType), true)
+    ))
+    val results = spark.read
+      .option("mode", "PERMISSIVE")
+      .schema(schema)
+      .xml(dataTypesValidAndInvalid)
+
+    assert(results.schema === schema)
+    val objects = results.take(2)
+    assert(objects(0).getStruct(0)(0) === 10)
+    assert(objects(0).getStruct(0)(1) === 10)
+    assert(objects(0).getStruct(1)(0) === 10L)
+    assert(objects(0).getStruct(1)(1) === null)
+    assert(objects(0)(2) === 10.0)
+    assert(objects(0)(3) === 10.0)
+    assert(objects(0)(4) === true)
+    assert(objects(0)(5) === "Ten")
+    assert(objects(0)(6) === Array(1, 2))
+    assert(objects(1).getStruct(0)(0) === null)
+    assert(objects(1).getStruct(0)(1) === null)
+    assert(objects(1).getStruct(1)(0) === null)
+    assert(objects(1).getStruct(1)(1) === 10)
+    assert(objects(1)(2) === null)
+    assert(objects(1)(3) === null)
+    assert(objects(1)(4) === null)
+    assert(objects(1)(5) === "Ten")
+    assert(objects(1)(6) === Array(null, 2))
   }
 
 }
