@@ -125,13 +125,12 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   private def struct(fields: StructField*): StructType =
     buildSchema(fields: _*)
-  
+
   private def struct(name: String, fields: StructField*): StructField =
     field(name, struct(fields: _*))
 
   private def structArray(name: String, fields: StructField*): StructField =
     field(name, ArrayType(struct(fields: _*)))
-
 
   private def array(name: String, dataType: DataType): StructField =
     field(name, ArrayType(dataType))
