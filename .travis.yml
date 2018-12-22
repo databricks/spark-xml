@@ -6,17 +6,22 @@ cache:
     - $HOME/.ivy2
 matrix:
   include:
-    - scala: 2.11.12
-      env: TEST_SPARK_VERSION="2.2.2"
-    - scala: 2.11.12
-      env: TEST_SPARK_VERSION="2.3.2"
-    - scala: 2.12.8
-      env: TEST_SPARK_VERSION="2.4.0"
+    - scala:
+        - 2.11.12
+      env:
+        - TEST_SPARK_VERSION="2.2.2"
+        - MIMA="mimaReportBinaryIssues"
+    - scala:
+        - 2.11.12
+      env:
+        - TEST_SPARK_VERSION="2.3.2"
+        - MIMA="mimaReportBinaryIssues"
+    - scala:
+        - 2.12.8
+      env:
+        - TEST_SPARK_VERSION="2.4.0"
+        - MIMA="" # restore when 2.12 build released
 script:
-  - sbt -Dspark.testVersion=$TEST_SPARK_VERSION ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
-  - sbt ++$TRAVIS_SCALA_VERSION assembly
-  - sbt ++$TRAVIS_SCALA_VERSION scalastyle
-  - sbt ++$TRAVIS_SCALA_VERSION "test:scalastyle"
-  #- sbt ++$TRAVIS_SCALA_VERSION mimaReportBinaryIssues
+  - sbt -Dspark.testVersion=$TEST_SPARK_VERSION ++$TRAVIS_SCALA_VERSION clean scalastyle test:scalastyle $MIMA coverage test coverageReport
 after_success:
   - bash <(curl -s https://codecov.io/bash)
