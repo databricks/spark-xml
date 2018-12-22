@@ -86,7 +86,9 @@ val ignoredABIProblems = {
     exclude[DirectMissingMethodProblem]("com.databricks.spark.xml.XmlOptions.permissive"),
     exclude[DirectMissingMethodProblem]("com.databricks.spark.xml.XmlOptions.failFast"),
     exclude[MissingClassProblem]("com.databricks.spark.xml.util.ParseModes"),
-    exclude[MissingClassProblem]("com.databricks.spark.xml.util.ParseModes$")
+    exclude[MissingClassProblem]("com.databricks.spark.xml.util.ParseModes$"),
+    exclude[MissingTypesProblem]("com.databricks.spark.xml.XmlRelation"),
+    exclude[DirectMissingMethodProblem]("com.databricks.spark.xml.XmlRelation.buildScan")
   )
 }
 
