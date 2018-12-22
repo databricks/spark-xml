@@ -17,8 +17,6 @@ package com.databricks.spark.xml
 
 import java.nio.charset.StandardCharsets
 
-import org.slf4j.LoggerFactory
-
 import com.databricks.spark.xml.util._
 
 /**

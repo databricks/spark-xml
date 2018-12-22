@@ -17,7 +17,7 @@ package com.databricks.spark.xml.util
 
 import java.util.Locale
 
-import org.apache.spark.internal.Logging
+import org.slf4j.LoggerFactory
 
 
 sealed trait ParseMode {
@@ -42,7 +42,9 @@ case object DropMalformedMode extends ParseMode { val name = "DROPMALFORMED" }
  */
 case object FailFastMode extends ParseMode { val name = "FAILFAST" }
 
-object ParseMode extends Logging {
+object ParseMode {
+  private val logger = LoggerFactory.getLogger(ParseMode.getClass)
+
   /**
    * Returns the parse mode from the given string.
    */
@@ -51,7 +53,7 @@ object ParseMode extends Logging {
     case DropMalformedMode.name => DropMalformedMode
     case FailFastMode.name => FailFastMode
     case _ =>
-      logWarning(s"$mode is not a valid parse mode. Using ${PermissiveMode.name}.")
+      logger.warn(s"$mode is not a valid parse mode. Using ${PermissiveMode.name}.")
       PermissiveMode
   }
 }
