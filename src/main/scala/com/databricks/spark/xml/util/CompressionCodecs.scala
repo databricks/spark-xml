@@ -15,6 +15,8 @@
  */
 package com.databricks.spark.xml.util
 
+import java.util.Locale
+
 import scala.util.control.Exception._
 
 import org.apache.hadoop.io.compress._
@@ -32,16 +34,16 @@ private[xml] object CompressionCodecs {
   /**
    * Return the codec class of the given name.
    */
-  def getCodecClass: String => Class[_ <: CompressionCodec] = {
+  def getCodecClass(name: String): Class[_ <: CompressionCodec] = name match {
     case null => null
     case codec =>
-      val codecName = shortCompressionCodecNames.getOrElse(codec.toLowerCase, codec)
+      val codecName = shortCompressionCodecNames.getOrElse(codec.toLowerCase(Locale.ROOT), codec)
       try {
         // scalastyle:off classforname
         Class.forName(codecName).asInstanceOf[Class[CompressionCodec]]
         // scalastyle:on classforname
       } catch {
-        case e: ClassNotFoundException =>
+        case _: ClassNotFoundException =>
           throw new IllegalArgumentException(s"Codec [$codecName] is not " +
             s"available. Known codecs are ${shortCompressionCodecNames.keys.mkString(", ")}.")
       }
