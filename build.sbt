@@ -19,6 +19,9 @@ sparkVersion := sys.props.get("spark.testVersion").getOrElse("2.4.0")
 
 sparkComponents := Seq("core", "sql")
 
+// To avoid packaging it, it's Provided below
+autoScalaLibrary := false
+
 libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "1.7.25" % Provided,
   "org.scalatest" %% "scalatest" % "3.0.3" % Test,
@@ -66,3 +69,21 @@ test in assembly := {}
 
 // Prints JUnit tests in output
 testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
+
+mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.4.1")
+
+val ignoredABIProblems = {
+  import com.typesafe.tools.mima.core._
+  import com.typesafe.tools.mima.core.ProblemFilters._
+  Seq(
+    exclude[IncompatibleResultTypeProblem](
+      "com.databricks.spark.xml.XmlOptions.DEFAULT_NULL_VALUE"),
+    exclude[MissingClassProblem]("com.databricks.spark.xml.DefaultSource15"),
+    exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.util.XmlFile.DEFAULT_ROW_SEPARATOR"),
+    exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.util.InferSchema.findTightestCommonTypeOfTwo")
+  )
+}
+
+mimaBinaryIssueFilters ++= ignoredABIProblems
