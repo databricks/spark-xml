@@ -51,8 +51,8 @@ private[xml] object StaxXmlParser extends Serializable {
           throw new RuntimeException(
             s"Malformed line in FAILFAST mode: ${record.replaceAll("\n", "")}", cause)
         case DropMalformedMode =>
-          val reason = if (cause != null) cause.getMessage else "Unknown";
-          logger.warn(s"Dropping malformed line: ${record.replaceAll("\n", "")}, Reason: $reason")
+          val reason = if (cause != null) s"Reason: ${cause.getMessage}" else ""
+          logger.warn(s"Dropping malformed line: ${record.replaceAll("\n", "")}. $reason")
           None
         case PermissiveMode =>
           val row = new Array[Any](schema.length)
