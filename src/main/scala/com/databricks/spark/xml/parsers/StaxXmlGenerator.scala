@@ -37,15 +37,15 @@ private[xml] object StaxXmlGenerator {
       schema: StructType,
       writer: IndentingXMLStreamWriter,
       options: XmlOptions)(row: Row): Unit = {
-    def writeChildElement: (String, DataType, Any) => Unit = {
+    def writeChildElement(name: String, dt: DataType, v: Any): Unit = (name, dt, v) match {
       // If this is meant to be value but in no child, write only a value
-      case (_, _, null) |(_, NullType, _) if options.nullValue == null =>
-      // Because usually elements having `null` do not exist, just do not write
-      // elements when given values are `null`.
-      case (name, dt, v) if name == options.valueTag =>
+      case (_, _, null) | (_, NullType, _) if options.nullValue == null =>
+        // Because usually elements having `null` do not exist, just do not write
+        // elements when given values are `null`.
+      case (_, _, _) if name == options.valueTag =>
         // If this is meant to be value but in no child, write only a value
         writeElement(dt, v)
-      case (name, dt, v) =>
+      case (_, _, _) =>
         writer.writeStartElement(name)
         writeElement(dt, v)
         writer.writeEndElement()
@@ -73,7 +73,7 @@ private[xml] object StaxXmlGenerator {
       }
     }
 
-    def writeElement: (DataType, Any) => Unit = {
+    def writeElement(dt: DataType, v: Any): Unit = (dt, v) match {
       case (_, null) | (NullType, _) => writer.writeCharacters(options.nullValue)
       case (StringType, v: String) => writer.writeCharacters(v.toString)
       case (TimestampType, v: java.sql.Timestamp) => writer.writeCharacters(v.toString)
@@ -85,7 +85,7 @@ private[xml] object StaxXmlGenerator {
       case (DecimalType(), v: java.math.BigDecimal) => writer.writeCharacters(v.toString)
       case (ByteType, v: Byte) => writer.writeCharacters(v.toString)
       case (BooleanType, v: Boolean) => writer.writeCharacters(v.toString)
-      case (DateType, v) => writer.writeCharacters(v.toString)
+      case (DateType, _) => writer.writeCharacters(v.toString)
 
       // For the case roundtrip in reading and writing XML files, [[ArrayType]] cannot have
       // [[ArrayType]] as element type. It always wraps the element with [[StructType]]. So,
@@ -97,7 +97,7 @@ private[xml] object StaxXmlGenerator {
           writeChild("item", ty, e)
         }
 
-      case (MapType(kv, vt, _), mv: Map[_, _]) =>
+      case (MapType(_, vt, _), mv: Map[_, _]) =>
         val (attributes, elements) = mv.toSeq.partition { case (f, _) =>
           f.toString.startsWith(options.attributePrefix) && f.toString != options.valueTag
         }
@@ -113,11 +113,11 @@ private[xml] object StaxXmlGenerator {
         }
         // We need to write attributes first before the value.
         (attributes ++ elements).foreach {
-          case (field, v) =>
-            writeChild(field.name, field.dataType, v)
+          case (field, value) =>
+            writeChild(field.name, field.dataType, value)
         }
 
-      case (dt, v) =>
+      case (_, _) =>
         sys.error(
           s"Failed to convert value $v (class of ${v.getClass}) in type $dt to XML.")
     }

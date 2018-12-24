@@ -101,8 +101,8 @@ private[xml] object StaxXmlParser extends Serializable {
       parser: XMLEventReader,
       dataType: DataType,
       options: XmlOptions): Any = {
-    def convertComplicatedType: DataType => Any = {
-      case dt: StructType => convertObject(parser, dt, options)
+    def convertComplicatedType(dt: DataType): Any = dt match {
+      case st: StructType => convertObject(parser, st, options)
       case MapType(StringType, vt, _) => convertMap(parser, vt, options)
       case ArrayType(st, _) => convertField(parser, st, options)
       case _: StringType => StaxXmlParserUtils.currentStructureAsString(parser)
@@ -110,7 +110,7 @@ private[xml] object StaxXmlParser extends Serializable {
 
     (parser.peek, dataType) match {
       case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
-      case (_: EndElement, dt: StringType) =>
+      case (_: EndElement, _: StringType) =>
         if (options.treatEmptyValuesAsNulls){
           null
         } else {

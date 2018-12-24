@@ -242,7 +242,7 @@ private[xml] object InferSchema {
   /**
    * Convert NullType to StringType and remove StructTypes with no fields
    */
-  private def canonicalizeType: DataType => Option[DataType] = {
+  private def canonicalizeType(dt: DataType): Option[DataType] = dt match {
     case at @ ArrayType(elementType, _) =>
       for {
         canonicalType <- canonicalizeType(elementType)

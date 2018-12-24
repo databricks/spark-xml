@@ -88,7 +88,13 @@ val ignoredABIProblems = {
     exclude[MissingClassProblem]("com.databricks.spark.xml.util.ParseModes"),
     exclude[MissingClassProblem]("com.databricks.spark.xml.util.ParseModes$"),
     exclude[MissingTypesProblem]("com.databricks.spark.xml.XmlRelation"),
-    exclude[DirectMissingMethodProblem]("com.databricks.spark.xml.XmlRelation.buildScan")
+    exclude[DirectMissingMethodProblem]("com.databricks.spark.xml.XmlRelation.buildScan"),
+    exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.parsers.StaxXmlParser.com$databricks$" +
+        "spark$xml$parsers$StaxXmlParser$$convertObject$default$4"),
+    exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.util.CompressionCodecs.getCodecClass")
+
   )
 }
 
