@@ -68,6 +68,9 @@ final class TypeCastSuite extends FunSuite {
     assert(TypeCast.castTo("1.00", FloatType, options) === 1.0)
     assert(TypeCast.castTo("1.00", DoubleType, options) === 1.0)
     assert(TypeCast.castTo("true", BooleanType, options) === true)
+    assert(TypeCast.castTo("1", BooleanType, options) === true)
+    assert(TypeCast.castTo("false", BooleanType, options) === false)
+    assert(TypeCast.castTo("0", BooleanType, options) === false)
     val timestamp = "2015-01-01 00:00:00"
     assert(
       TypeCast.castTo(timestamp, TimestampType, options) === Timestamp.valueOf(timestamp))
