@@ -9,6 +9,10 @@
         <string_value>Ten</string_value>
         <integer_array>1</integer_array>
         <integer_array>2</integer_array>
+        <integer_map>
+          <b>345</b>
+          <a>123</a>
+        </integer_map>
     </ROW>
     <ROW>
         <integer_value int="Ten">Ten</integer_value>
@@ -19,5 +23,9 @@
         <string_value>Ten</string_value>
         <integer_array>Ten</integer_array>
         <integer_array>2</integer_array>
+        <integer_map>
+          <b>345</b>
+          <a>OneTwoThree</a>
+        </integer_map>
     </ROW>
 </ROWSET>

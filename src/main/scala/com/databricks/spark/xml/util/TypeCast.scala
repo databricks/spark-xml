@@ -22,7 +22,6 @@ import java.util.Locale
 
 import scala.util.Try
 import scala.util.control.Exception._
-import scala.util.control.NonFatal
 
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions
@@ -91,25 +90,21 @@ object TypeCast {
     } else {
       datum
     }
-    try {
-      dataType match {
-        case NullType => castTo(value, StringType, options)
-        case LongType => signSafeToLong(value, options)
-        case DoubleType => signSafeToDouble(value, options)
-        case BooleanType => castTo(value, BooleanType, options)
-        case StringType => castTo(value, StringType, options)
-        case DateType => castTo(value, DateType, options)
-        case TimestampType => castTo(value, TimestampType, options)
-        case FloatType => signSafeToFloat(value, options)
-        case ByteType => castTo(value, ByteType, options)
-        case ShortType => castTo(value, ShortType, options)
-        case IntegerType => signSafeToInt(value, options)
-        case dt: DecimalType => castTo(value, dt, options)
-        case _ =>
-          sys.error(s"Failed to parse a value for data type $dataType.")
-      }
-    } catch {
-      case NonFatal(_) if options.parseMode == PermissiveMode => null
+    dataType match {
+      case NullType => castTo(value, StringType, options)
+      case LongType => signSafeToLong(value, options)
+      case DoubleType => signSafeToDouble(value, options)
+      case BooleanType => castTo(value, BooleanType, options)
+      case StringType => castTo(value, StringType, options)
+      case DateType => castTo(value, DateType, options)
+      case TimestampType => castTo(value, TimestampType, options)
+      case FloatType => signSafeToFloat(value, options)
+      case ByteType => castTo(value, ByteType, options)
+      case ShortType => castTo(value, ShortType, options)
+      case IntegerType => signSafeToInt(value, options)
+      case dt: DecimalType => castTo(value, dt, options)
+      case _ =>
+        sys.error(s"Failed to parse a value for data type $dataType.")
     }
   }
 

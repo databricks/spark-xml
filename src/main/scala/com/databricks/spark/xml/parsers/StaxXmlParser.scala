@@ -159,12 +159,15 @@ private[xml] object StaxXmlParser extends Serializable {
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
-          keys += e.getName.getLocalPart
-          values += convertField(parser, valueType, options)
+          try {
+            keys += e.getName.getLocalPart
+            values += convertField(parser, valueType, options)
+          } catch {
+            case NonFatal(_) if options.parseMode == PermissiveMode => // do nothing
+          }
         case _: EndElement =>
           shouldStop = StaxXmlParserUtils.checkEndElement(parser)
-        case _ =>
-          shouldStop = shouldStop && parser.hasNext
+        case _ => // do nothing
       }
     }
     keys.zip(values).toMap
@@ -180,9 +183,13 @@ private[xml] object StaxXmlParser extends Serializable {
     val convertedValuesMap = collection.mutable.Map.empty[String, Any]
     val valuesMap = StaxXmlParserUtils.convertAttributesToValuesMap(attributes, options)
     valuesMap.foreach { case (f, v) =>
-      val nameToIndex = schema.map(_.name).zipWithIndex.toMap
-      nameToIndex.get(f).foreach { i =>
-        convertedValuesMap(f) = convertTo(v, schema(i).dataType, options)
+      try {
+        val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+        nameToIndex.get(f).foreach { i =>
+          convertedValuesMap(f) = convertTo(v, schema(i).dataType, options)
+        }
+      } catch {
+        case NonFatal(_) if options.parseMode == PermissiveMode => // do nothing
       }
     }
     convertedValuesMap.toMap
@@ -205,17 +212,23 @@ private[xml] object StaxXmlParser extends Serializable {
     val attributesMap = convertAttributes(attributes, schema, options)
 
     // Then, we read elements here.
-    val fieldsMap = convertField(parser, schema, options) match {
-      case row: Row =>
-        Map(schema.map(_.name).zip(row.toSeq): _*)
-      case v if schema.fieldNames.contains(options.valueTag) =>
-        // If this is the element having no children, then it wraps attributes
-        // with a row So, we first need to find the field name that has the real
-        // value and then push the value.
-        val valuesMap = schema.fieldNames.map((_, null)).toMap
-        valuesMap + (options.valueTag -> v)
-      case _ => Map.empty
-    }
+    val fieldsMap =
+      try {
+        convertField(parser, schema, options) match {
+          case row: Row =>
+            Map(schema.map(_.name).zip(row.toSeq): _*)
+          case v if schema.fieldNames.contains(options.valueTag) =>
+            // If this is the element having no children, then it wraps attributes
+            // with a row So, we first need to find the field name that has the real
+            // value and then push the value.
+            val valuesMap = schema.fieldNames.map((_, null)).toMap
+            valuesMap + (options.valueTag -> v)
+          case _ => Map.empty
+        }
+      } catch {
+        case NonFatal(_) if options.parseMode == PermissiveMode =>
+          Map.empty
+      }
 
     // Here we merge both to a row.
     val valuesMap = fieldsMap ++ attributesMap
@@ -251,42 +264,45 @@ private[xml] object StaxXmlParser extends Serializable {
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
-          val attributes = e.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
-          val field = e.asStartElement.getName.getLocalPart
+          try {
+            val attributes = e.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
+            val field = e.asStartElement.getName.getLocalPart
 
-          nameToIndex.get(field) match {
-            case Some(index) =>
-              schema(index).dataType match {
-                case st: StructType =>
-                  row(index) = convertObjectWithAttributes(parser, st, options, attributes)
+            nameToIndex.get(field) match {
+              case Some(index) =>
+                schema(index).dataType match {
+                  case st: StructType =>
+                    row(index) = convertObjectWithAttributes(parser, st, options, attributes)
 
-                case ArrayType(dt: DataType, _) =>
-                  val values = Option(row(index))
-                    .map(_.asInstanceOf[ArrayBuffer[Any]])
-                    .getOrElse(ArrayBuffer.empty[Any])
-                  val newValue = {
-                    dt match {
-                      case st: StructType =>
-                        convertObjectWithAttributes(parser, st, options, attributes)
-                      case dt: DataType =>
-                        convertField(parser, dt, options)
+                  case ArrayType(dt: DataType, _) =>
+                    val values = Option(row(index))
+                      .map(_.asInstanceOf[ArrayBuffer[Any]])
+                      .getOrElse(ArrayBuffer.empty[Any])
+                    val newValue = {
+                      dt match {
+                        case st: StructType =>
+                          convertObjectWithAttributes(parser, st, options, attributes)
+                        case dt: DataType =>
+                          convertField(parser, dt, options)
+                      }
                     }
-                  }
-                  row(index) = values :+ newValue
+                    row(index) = values :+ newValue
 
-                case dt: DataType =>
-                  row(index) = convertField(parser, dt, options)
-              }
+                  case dt: DataType =>
+                    row(index) = convertField(parser, dt, options)
+                }
 
-            case None =>
-              StaxXmlParserUtils.skipChildren(parser)
+              case None =>
+                StaxXmlParserUtils.skipChildren(parser)
+            }
+          } catch {
+            case NonFatal(_) if options.parseMode == PermissiveMode => // do nothing
           }
 
         case _: EndElement =>
           shouldStop = StaxXmlParserUtils.checkEndElement(parser)
 
-        case _ =>
-          shouldStop = shouldStop && parser.hasNext
+        case _ => // do nothing
       }
     }
     Row.fromSeq(row)

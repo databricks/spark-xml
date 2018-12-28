@@ -219,8 +219,7 @@ private[xml] object InferSchema {
         case _: EndElement =>
           shouldStop = StaxXmlParserUtils.checkEndElement(parser)
 
-        case _ =>
-          shouldStop = shouldStop && parser.hasNext
+        case _ => // do nothing
       }
     }
     // We need to manually merges the fields having the sames so that

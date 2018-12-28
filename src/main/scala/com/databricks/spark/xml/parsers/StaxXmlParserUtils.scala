@@ -3,6 +3,8 @@ package com.databricks.spark.xml.parsers
 import javax.xml.stream.XMLEventReader
 import javax.xml.stream.events._
 
+import scala.annotation.tailrec
+
 import com.databricks.spark.xml.XmlOptions
 
 private[xml] object StaxXmlParserUtils {
@@ -20,10 +22,10 @@ private[xml] object StaxXmlParserUtils {
   /**
    * Checks if current event points the EndElement.
    */
+  @tailrec
   def checkEndElement(parser: XMLEventReader): Boolean = {
     parser.peek match {
-      case _: EndElement => true
-      case _: EndDocument => true
+      case _: EndElement | _: EndDocument => true
       case _: StartElement => false
       case _ =>
         // When other events are found here rather than `EndElement` or `StartElement`
@@ -67,7 +69,7 @@ private[xml] object StaxXmlParserUtils {
     def convertChildren(): String = {
       var childrenXmlString = ""
       parser.peek match {
-        case e: StartElement =>
+        case _: StartElement =>
           childrenXmlString += currentStructureAsString(parser)
         case c: Characters if c.isWhiteSpace =>
           // There can be a `Characters` event between `StartElement`s.
@@ -99,8 +101,7 @@ private[xml] object StaxXmlParserUtils {
         case e: EndElement =>
           xmlString += "</" + e.getName + ">"
           shouldStop = checkEndElement(parser)
-        case e: XMLEvent =>
-          shouldStop = shouldStop && parser.hasNext
+        case _: XMLEvent => // do nothing
       }
     }
     xmlString
@@ -113,7 +114,7 @@ private[xml] object StaxXmlParserUtils {
     var shouldStop = checkEndElement(parser)
     while (!shouldStop) {
       parser.nextEvent match {
-        case e: StartElement =>
+        case _: StartElement =>
           val e = parser.peek
           if (e.isCharacters && e.asCharacters.isWhiteSpace) {
             // There can be a `Characters` event between `StartElement`s.
@@ -126,8 +127,7 @@ private[xml] object StaxXmlParserUtils {
           }
         case _: EndElement =>
           shouldStop = checkEndElement(parser)
-        case _: XMLEvent =>
-          shouldStop = shouldStop && parser.hasNext
+        case _: XMLEvent => // do nothing
       }
     }
   }

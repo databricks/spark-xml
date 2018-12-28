@@ -985,32 +985,22 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       field("double_value", DoubleType),
       field("boolean_value", BooleanType),
       field("string_value"),
-      array("integer_array", IntegerType))
+      array("integer_array", IntegerType),
+      StructField("integer_map", MapType(StringType, IntegerType)))
     val results = spark.read
       .option("mode", "PERMISSIVE")
       .schema(schema)
       .xml(dataTypesValidAndInvalid)
 
     assert(results.schema === schema)
-    val objects = results.take(2)
-    assert(objects(0).getStruct(0)(0) === 10)
-    assert(objects(0).getStruct(0)(1) === 10)
-    assert(objects(0).getStruct(1)(0) === 10L)
-    assert(objects(0).getStruct(1)(1) === null)
-    assert(objects(0)(2) === 10.0)
-    assert(objects(0)(3) === 10.0)
-    assert(objects(0)(4) === true)
-    assert(objects(0)(5) === "Ten")
-    assert(objects(0)(6) === Array(1, 2))
-    assert(objects(1).getStruct(0)(0) === null)
-    assert(objects(1).getStruct(0)(1) === null)
-    assert(objects(1).getStruct(1)(0) === null)
-    assert(objects(1).getStruct(1)(1) === 10)
-    assert(objects(1)(2) === null)
-    assert(objects(1)(3) === null)
-    assert(objects(1)(4) === null)
-    assert(objects(1)(5) === "Ten")
-    assert(objects(1)(6) === Array(null, 2))
+
+    val Array(valid, invalid) = results.take(2)
+    assert(valid.toSeq.toArray ===
+      Array(Row(10, 10), Row(10L, null), 10.0, 10.0, true,
+        "Ten", Array(1, 2), Map("a" -> 123, "b" -> 345)))
+    assert(invalid.toSeq.toArray ===
+      Array(Row(null, null), Row(null, 10), null, null, null,
+        "Ten", Array(2), Map("b" -> 345)))
   }
 
 }
