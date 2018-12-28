@@ -24,6 +24,7 @@ import javax.xml.stream._
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
+import scala.util.Try
 
 import org.slf4j.LoggerFactory
 
@@ -44,7 +45,24 @@ private[xml] object StaxXmlParser extends Serializable {
       xml: RDD[String],
       schema: StructType,
       options: XmlOptions): RDD[Row] = {
-    def failedRecord(record: String, cause: Throwable = null): Option[Row] = {
+
+    // The logic below is borrowed from Apache Spark's FailureSafeParser.
+    val corruptFieldIndex = Try(schema.fieldIndex(options.columnNameOfCorruptRecord)).toOption
+    val actualSchema = StructType(schema.filterNot(_.name == options.columnNameOfCorruptRecord))
+    val resultRow = new Array[Any](schema.length)
+    val toResultRow: (Option[Row], String) => Row = (row, badRecord) => {
+      var i = 0
+      while (i < actualSchema.length) {
+        val from = actualSchema(i)
+        resultRow(schema.fieldIndex(from.name)) = row.map(_.get(i)).orNull
+        i += 1
+      }
+      corruptFieldIndex.foreach(index => resultRow(index) = badRecord)
+      Row.fromSeq(resultRow)
+    }
+
+    def failedRecord(
+        record: String, cause: Throwable = null, partialResult: Option[Row] = None): Option[Row] = {
       // create a row even if no corrupt record column is present
       options.parseMode match {
         case FailFastMode =>
@@ -55,13 +73,7 @@ private[xml] object StaxXmlParser extends Serializable {
           logger.warn(s"Dropping malformed line: ${record.replaceAll("\n", "")}. $reason")
           None
         case PermissiveMode =>
-          val row = new Array[Any](schema.length)
-          val nameToIndex = schema.map(_.name).zipWithIndex.toMap
-          nameToIndex.get(options.columnNameOfCorruptRecord).foreach { corruptIndex =>
-            require(schema(corruptIndex).dataType == StringType)
-            row.update(corruptIndex, record)
-          }
-          Some(Row.fromSeq(row))
+          Some(toResultRow(partialResult, record))
       }
     }
 
@@ -88,6 +100,8 @@ private[xml] object StaxXmlParser extends Serializable {
           Some(convertObject(parser, schema, options, rootAttributes))
             .orElse(failedRecord(xml))
         } catch {
+          case e: PartialResultException =>
+            failedRecord(xml, e.cause, Some(e.partialResult))
           case NonFatal(e) =>
             failedRecord(xml, e)
         }
@@ -159,15 +173,12 @@ private[xml] object StaxXmlParser extends Serializable {
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
-          try {
-            keys += e.getName.getLocalPart
-            values += convertField(parser, valueType, options)
-          } catch {
-            case NonFatal(_) if options.parseMode == PermissiveMode => // do nothing
-          }
+          keys += e.getName.getLocalPart
+          values += convertField(parser, valueType, options)
         case _: EndElement =>
           shouldStop = StaxXmlParserUtils.checkEndElement(parser)
-        case _ => // do nothing
+        case _ =>
+          shouldStop = shouldStop && parser.hasNext
       }
     }
     keys.zip(values).toMap
@@ -183,13 +194,9 @@ private[xml] object StaxXmlParser extends Serializable {
     val convertedValuesMap = collection.mutable.Map.empty[String, Any]
     val valuesMap = StaxXmlParserUtils.convertAttributesToValuesMap(attributes, options)
     valuesMap.foreach { case (f, v) =>
-      try {
-        val nameToIndex = schema.map(_.name).zipWithIndex.toMap
-        nameToIndex.get(f).foreach { i =>
-          convertedValuesMap(f) = convertTo(v, schema(i).dataType, options)
-        }
-      } catch {
-        case NonFatal(_) if options.parseMode == PermissiveMode => // do nothing
+      val nameToIndex = schema.map(_.name).zipWithIndex.toMap
+      nameToIndex.get(f).foreach { i =>
+        convertedValuesMap(f) = convertTo(v, schema(i).dataType, options)
       }
     }
     convertedValuesMap.toMap
@@ -212,23 +219,17 @@ private[xml] object StaxXmlParser extends Serializable {
     val attributesMap = convertAttributes(attributes, schema, options)
 
     // Then, we read elements here.
-    val fieldsMap =
-      try {
-        convertField(parser, schema, options) match {
-          case row: Row =>
-            Map(schema.map(_.name).zip(row.toSeq): _*)
-          case v if schema.fieldNames.contains(options.valueTag) =>
-            // If this is the element having no children, then it wraps attributes
-            // with a row So, we first need to find the field name that has the real
-            // value and then push the value.
-            val valuesMap = schema.fieldNames.map((_, null)).toMap
-            valuesMap + (options.valueTag -> v)
-          case _ => Map.empty
-        }
-      } catch {
-        case NonFatal(_) if options.parseMode == PermissiveMode =>
-          Map.empty
-      }
+    val fieldsMap = convertField(parser, schema, options) match {
+      case row: Row =>
+        Map(schema.map(_.name).zip(row.toSeq): _*)
+      case v if schema.fieldNames.contains(options.valueTag) =>
+        // If this is the element having no children, then it wraps attributes
+        // with a row So, we first need to find the field name that has the real
+        // value and then push the value.
+        val valuesMap = schema.fieldNames.map((_, null)).toMap
+        valuesMap + (options.valueTag -> v)
+      case _ => Map.empty
+    }
 
     // Here we merge both to a row.
     val valuesMap = fieldsMap ++ attributesMap
@@ -260,44 +261,43 @@ private[xml] object StaxXmlParser extends Serializable {
     convertAttributes(rootAttributes, schema, options).toSeq.foreach { case (f, v) =>
       nameToIndex.get(f).foreach { row(_) = v }
     }
+    var badRecordException: Option[Throwable] = None
+
     var shouldStop = false
     while (!shouldStop) {
       parser.nextEvent match {
-        case e: StartElement =>
-          try {
-            val attributes = e.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
-            val field = e.asStartElement.getName.getLocalPart
+        case e: StartElement => try {
+          val attributes = e.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
+          val field = e.asStartElement.getName.getLocalPart
 
-            nameToIndex.get(field) match {
-              case Some(index) =>
-                schema(index).dataType match {
+          nameToIndex.get(field) match {
+            case Some(index) => schema(index).dataType match {
+              case st: StructType =>
+                row(index) = convertObjectWithAttributes(parser, st, options, attributes)
+
+              case ArrayType(dt: DataType, _) =>
+                val values = Option(row(index))
+                  .map(_.asInstanceOf[ArrayBuffer[Any]])
+                  .getOrElse(ArrayBuffer.empty[Any])
+                val newValue = dt match {
                   case st: StructType =>
-                    row(index) = convertObjectWithAttributes(parser, st, options, attributes)
-
-                  case ArrayType(dt: DataType, _) =>
-                    val values = Option(row(index))
-                      .map(_.asInstanceOf[ArrayBuffer[Any]])
-                      .getOrElse(ArrayBuffer.empty[Any])
-                    val newValue = {
-                      dt match {
-                        case st: StructType =>
-                          convertObjectWithAttributes(parser, st, options, attributes)
-                        case dt: DataType =>
-                          convertField(parser, dt, options)
-                      }
-                    }
-                    row(index) = values :+ newValue
-
+                    convertObjectWithAttributes(parser, st, options, attributes)
                   case dt: DataType =>
-                    row(index) = convertField(parser, dt, options)
+                    convertField(parser, dt, options)
                 }
+                row(index) = values :+ newValue
 
-              case None =>
-                StaxXmlParserUtils.skipChildren(parser)
+              case dt: DataType =>
+                row(index) = convertField(parser, dt, options)
             }
-          } catch {
-            case NonFatal(_) if options.parseMode == PermissiveMode => // do nothing
+
+            case None =>
+              StaxXmlParserUtils.skipChildren(parser)
           }
+        } catch {
+          case NonFatal(exception) if options.parseMode == PermissiveMode =>
+            badRecordException = badRecordException.orElse(Some(exception))
+        }
 
         case _: EndElement =>
           shouldStop = StaxXmlParserUtils.checkEndElement(parser)
@@ -305,6 +305,11 @@ private[xml] object StaxXmlParser extends Serializable {
         case _ => // do nothing
       }
     }
-    Row.fromSeq(row)
+
+    if (badRecordException.isEmpty) {
+      Row.fromSeq(row)
+    } else {
+      throw PartialResultException(Row.fromSeq(row), badRecordException.get)
+    }
   }
 }
