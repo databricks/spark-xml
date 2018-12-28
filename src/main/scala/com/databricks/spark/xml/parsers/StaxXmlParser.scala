@@ -177,8 +177,7 @@ private[xml] object StaxXmlParser extends Serializable {
           values += convertField(parser, valueType, options)
         case _: EndElement =>
           shouldStop = StaxXmlParserUtils.checkEndElement(parser)
-        case _ =>
-          shouldStop = shouldStop && parser.hasNext
+        case _ => // do nothing
       }
     }
     keys.zip(values).toMap
