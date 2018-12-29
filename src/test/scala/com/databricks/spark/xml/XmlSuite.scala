@@ -980,27 +980,33 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
         field("_int", IntegerType)),
       struct("long_value",
         field("_VALUE", LongType),
-        field("_int", IntegerType)),
+        field("_int", StringType)),
       field("float_value", FloatType),
       field("double_value", DoubleType),
       field("boolean_value", BooleanType),
-      field("string_value"),
-      array("integer_array", IntegerType),
-      StructField("integer_map", MapType(StringType, IntegerType)))
+      field("string_value"), array("integer_array", IntegerType),
+      field("integer_map", MapType(StringType, IntegerType)),
+      field("_malformed_records", StringType))
     val results = spark.read
       .option("mode", "PERMISSIVE")
+      .option("columnNameOfCorruptRecord", "_malformed_records")
       .schema(schema)
       .xml(dataTypesValidAndInvalid)
 
     assert(results.schema === schema)
 
     val Array(valid, invalid) = results.take(2)
-    assert(valid.toSeq.toArray ===
-      Array(Row(10, 10), Row(10L, null), 10.0, 10.0, true,
+
+    assert(valid.toSeq.toArray.take(schema.length - 1) ===
+      Array(Row(10, 10), Row(10, "Ten"), 10.0, 10.0, true,
         "Ten", Array(1, 2), Map("a" -> 123, "b" -> 345)))
-    assert(invalid.toSeq.toArray ===
-      Array(Row(null, null), Row(null, 10), null, null, null,
-        "Ten", Array(2), Map("b" -> 345)))
+    assert(invalid.toSeq.toArray.take(schema.length - 1) ===
+      Array(null, null, null, null, null,
+        "Ten", Array(2), null))
+
+    assert(valid.toSeq.toArray.last === null)
+    assert(invalid.toSeq.toArray.last.toString.contains(
+      <integer_value int="Ten">Ten</integer_value>.toString))
   }
 
 }
