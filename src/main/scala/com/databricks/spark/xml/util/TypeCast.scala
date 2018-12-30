@@ -65,7 +65,7 @@ object TypeCast {
         case _: TimestampType => Timestamp.valueOf(datum)
         case _: DateType => Date.valueOf(datum)
         case _: StringType => datum
-        case _ => throw new RuntimeException(s"Unsupported type: ${castType.typeName}")
+        case _ => throw new IllegalArgumentException(s"Unsupported type: ${castType.typeName}")
       }
     }
   }
