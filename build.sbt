@@ -10,9 +10,6 @@ spName := "databricks/spark-xml"
 
 crossScalaVersions := Seq("2.11.12", "2.12.8")
 
-// Necessary for JUnit tests to be found?
-crossPaths := false
-
 scalacOptions := Seq("-unchecked", "-deprecation")
 
 sparkVersion := sys.props.get("spark.testVersion").getOrElse("2.4.0")
@@ -60,6 +57,18 @@ pomExtra :=
       <name>Hyukjin Kwon</name>
     </developer>
   </developers>
+
+publishTo := {
+  val nexus = "https://oss.sonatype.org/"
+  if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
+  else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+}
+
+credentials += Credentials(
+  "Sonatype Nexus Repository Manager",
+  "oss.sonatype.org",
+  sys.env.get("USERNAME").getOrElse(""),
+  sys.env.get("PASSWORD").getOrElse(""))
 
 parallelExecution in Test := false
 
