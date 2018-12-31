@@ -76,7 +76,7 @@ case class XmlRelation protected[spark] (
       // Write the data. We assume that schema isn't changed, and we won't update it.
       XmlFile.saveAsXmlFile(data, filesystemPath.toString, parameters)
     } else {
-      sys.error("XML tables only support INSERT OVERWRITE for now.")
+      throw new IllegalArgumentException("XML tables only support INSERT OVERWRITE for now.")
     }
   }
 }

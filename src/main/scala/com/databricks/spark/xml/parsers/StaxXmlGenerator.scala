@@ -118,7 +118,7 @@ private[xml] object StaxXmlGenerator {
         }
 
       case (_, _) =>
-        sys.error(
+        throw new IllegalArgumentException(
           s"Failed to convert value $v (class of ${v.getClass}) in type $dt to XML.")
     }
 

@@ -103,8 +103,8 @@ object TypeCast {
       case ShortType => castTo(value, ShortType, options)
       case IntegerType => signSafeToInt(value, options)
       case dt: DecimalType => castTo(value, dt, options)
-      case _ =>
-        sys.error(s"Failed to parse a value for data type $dataType.")
+      case _ => throw new IllegalArgumentException(
+        s"Failed to parse a value for data type $dataType.")
     }
   }
 

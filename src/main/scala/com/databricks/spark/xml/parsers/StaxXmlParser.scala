@@ -158,7 +158,8 @@ private[xml] object StaxXmlParser extends Serializable {
       case (c: Characters, dt: DataType) =>
         convertTo(c.getData, dt, options)
       case (e: XMLEvent, dt: DataType) =>
-        sys.error(s"Failed to parse a value for data type $dt with event ${e.toString}")
+        throw new IllegalArgumentException(
+          s"Failed to parse a value for data type $dt with event ${e.toString}")
     }
   }
 
