@@ -38,7 +38,8 @@ class DefaultSource
   override def shortName(): String = "xml"
 
   private def checkPath(parameters: Map[String, String]): String = {
-    parameters.getOrElse("path", sys.error("'path' must be specified for XML data."))
+    parameters.getOrElse("path",
+      throw new IllegalArgumentException("'path' must be specified for XML data."))
   }
 
   /**
@@ -84,12 +85,13 @@ class DefaultSource
     val doSave = if (fs.exists(filesystemPath)) {
       mode match {
         case SaveMode.Append =>
-          sys.error(s"Append mode is not supported by ${this.getClass.getCanonicalName}")
+          throw new IllegalArgumentException(
+            s"Append mode is not supported by ${this.getClass.getCanonicalName}")
         case SaveMode.Overwrite =>
           fs.delete(filesystemPath, true)
           true
         case SaveMode.ErrorIfExists =>
-          sys.error(s"path $path already exists.")
+          throw new IllegalArgumentException(s"path $path already exists.")
         case SaveMode.Ignore => false
       }
     } else {

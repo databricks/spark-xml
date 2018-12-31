@@ -157,7 +157,7 @@ private[xml] object InferSchema {
         // This means data exists
         inferFrom(c.getData, options)
       case e: XMLEvent =>
-        sys.error(s"Failed to parse data with unexpected event $e")
+        throw new IllegalArgumentException(s"Failed to parse data with unexpected event $e")
     }
   }
 
