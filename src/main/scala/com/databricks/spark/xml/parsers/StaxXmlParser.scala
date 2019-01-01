@@ -115,7 +115,7 @@ private[xml] object StaxXmlParser extends Serializable {
 
   def parseColumn(xml: String,
                   schema: StructType,
-                  options: XmlOptions): InternalRow = {
+                  options: XmlOptions): Row = {
     val factory: XMLInputFactory = XMLInputFactory.newInstance()
     factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
     factory.setProperty(XMLInputFactory.IS_COALESCING, true)
@@ -126,14 +126,13 @@ private[xml] object StaxXmlParser extends Serializable {
         event.getEventType != XMLStreamConstants.COMMENT
     }
 
-    val reader = new ByteArrayInputStream(xml.getBytes)
-    val eventReader = factory.createXMLEventReader(reader)
+    val eventReader = factory.createXMLEventReader(new StringReader(xml))
     val parser = factory.createFilteredReader(eventReader, filter)
 
     val rootEvent =
       StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
     val rootAttributes =
-      rootEvent.asStartElement.getAttributes.map(_.asInstanceOf[Attribute]).toArray
+      rootEvent.asStartElement.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
     convertObject(parser, schema, options, rootAttributes)
   }
 

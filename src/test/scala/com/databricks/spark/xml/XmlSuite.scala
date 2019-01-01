@@ -1013,7 +1013,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
 
-  test("roundtrip happy path") {
+  test("from_xml roundtrip happy path") {
 
     val xmlData =
       s"""
@@ -1027,8 +1027,8 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       Seq(StructField("number", IntegerType, true), StructField("payload", StringType, true)))
     val expectedSchema: StructType = rowSchema.add("decoded", xmlSchema)
 
-    val df: DataFrame = sqlContext
-      .createDataFrame(sqlContext.sparkContext.parallelize(List(Row(8, xmlData))), rowSchema)
+    val df: DataFrame = spark.createDataFrame(
+      spark.sparkContext.parallelize(List(Row(8, xmlData))), rowSchema)
 
     val result: DataFrame = df.withColumn("decoded",
       from_xml(df.col("payload"), xmlSchema))
@@ -1039,7 +1039,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
   /*  this unit test shows that there is no current support for changing the root tag
      when using this function. Support may be added later. In which case, this test should pass */
-  test("roundtrip with rowTag or rootTag fails") {
+  test("from_xml roundtrip with rowTag or rootTag fails") {
 
     val xmlData =
       s"""
@@ -1055,15 +1055,14 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       Seq(StructField("number", IntegerType, true), StructField("payload", StringType, true)))
     val expectedSchema: StructType = rowSchema.add("decoded", xmlSchema)
 
-    val df: DataFrame = sqlContext
-      .createDataFrame(sqlContext.sparkContext.parallelize(List(Row(8, xmlData))), rowSchema)
+    val df: DataFrame = spark.createDataFrame(
+      spark.sparkContext.parallelize(List(Row(8, xmlData))), rowSchema)
 
     val result: DataFrame = df.withColumn("decoded",
       from_xml(df.col("payload"), xmlSchema, Map("rowTag" -> "parent", "rootTag" -> "parent")))
 
     assert(expectedSchema == result.schema)
     assert(result.where(col("decoded").isNotNull).count() > 0)
-    result.show(false)
 
     assert(0 == result
       .where(col("decoded.pid").isNotNull or col("decoded.name").isNotNull).count())
@@ -1088,18 +1087,22 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
         StructField("names", StructType
           .apply(Seq(StructField("name", ArrayType(StringType)))))))
 
-    val df: DataFrame = sqlContext.createDataFrame(
-      sqlContext.sparkContext.parallelize(List(Row(8, xmlData))),
+    val df: DataFrame = spark.createDataFrame(
+      spark.sparkContext.parallelize(List(Row(8, xmlData))),
       StructType(Seq(StructField("number", IntegerType, true),
         StructField("payload", StringType, true))))
 
 
     val expectedRowSeq: Seq[Row] = Seq(Row("dave guy"), Row("tom guy"), Row("sally gal"))
-    val result: Seq[Row] = df.withColumn("decoded",
+    val resultDF: DataFrame = df.withColumn("decoded",
       from_xml(df.col("payload"),
         schema, Map("rootTag" -> "parent")))
-      .select(explode(col("decoded.names.name"))).collect()
+
+    val result: Array[Row] = resultDF
+      .select(explode(col("decoded.names.name")))
+      .collect()
 
     assertResult(expectedRowSeq)(result)
+
   }
 }

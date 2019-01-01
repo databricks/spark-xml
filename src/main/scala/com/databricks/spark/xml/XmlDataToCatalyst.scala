@@ -32,9 +32,9 @@ case class XmlDataToCatalyst(child: Expression,
     xml match {
       case string: UTF8String =>
         CatalystTypeConverters.convertToCatalyst(
-          StaxXmlParser.parseColumn(string.getBytes, rowSchema, options))
+          StaxXmlParser.parseColumn(string.toString, rowSchema, options))
       case string: String =>
-        StaxXmlParser.parseColumn(string.getBytes, rowSchema, options)
+        StaxXmlParser.parseColumn(string.toString, rowSchema, options)
       case _ => null
     }
 
