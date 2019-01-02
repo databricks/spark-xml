@@ -249,6 +249,11 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
         si = 0
         ei = 0
         depth -= 1
+      } else if (si == (startTag.length - 1) && Character.isWhitespace(c)) {
+        // found a start tag with attributes
+        si = 0
+        ei = 0
+        depth += 1
       } else {
         // Not in start tag or end tag.
         si = 0
