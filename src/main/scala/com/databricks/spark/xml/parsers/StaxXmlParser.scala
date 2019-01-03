@@ -18,7 +18,7 @@ package com.databricks.spark.xml.parsers
 import java.io.StringReader
 import javax.xml.stream.events.{Attribute, XMLEvent}
 import javax.xml.stream.events._
-import javax.xml.stream._
+import javax.xml.stream.{XMLEventReader, _}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
@@ -26,7 +26,6 @@ import scala.util.control.NonFatal
 import scala.util.Try
 
 import org.slf4j.LoggerFactory
-
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
@@ -42,6 +41,31 @@ import org.apache.spark.unsafe.types.UTF8String
  */
 private[xml] object StaxXmlParser extends Serializable {
   private val logger = LoggerFactory.getLogger(StaxXmlParser.getClass)
+
+  private def filteredReader(xml: String): XMLEventReader = {
+    val factory: XMLInputFactory = XMLInputFactory.newInstance()
+    factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
+    factory.setProperty(XMLInputFactory.IS_COALESCING, true)
+
+    val filter: EventFilter = new EventFilter {
+      override def accept(event: XMLEvent): Boolean =
+      // Ignore comments. This library does not treat comments.
+        event.getEventType != XMLStreamConstants.COMMENT
+    }
+
+    // It does not have to skip for white space, since `XmlInputFormat`
+    // always finds the root tag without a heading space.
+    val eventReader = factory.createXMLEventReader(new StringReader(xml))
+
+    factory.createFilteredReader(eventReader, filter)
+  }
+
+  private def gatherRootAttributes(xmlEventReader: XMLEventReader): Array[Attribute] = {
+    val rootEvent =
+      StaxXmlParserUtils.skipUntil(xmlEventReader, XMLStreamConstants.START_ELEMENT)
+
+    rootEvent.asStartElement.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
+  }
 
   def parse(
       xml: RDD[String],
@@ -82,25 +106,11 @@ private[xml] object StaxXmlParser extends Serializable {
     }
 
     xml.mapPartitions { iter =>
-      val factory = XMLInputFactory.newInstance()
-      factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
-      factory.setProperty(XMLInputFactory.IS_COALESCING, true)
-      val filter = new EventFilter {
-        override def accept(event: XMLEvent): Boolean =
-          // Ignore comments. This library does not treat comments.
-          event.getEventType != XMLStreamConstants.COMMENT
-      }
 
       iter.flatMap { xml =>
-        // It does not have to skip for white space, since `XmlInputFormat`
-        // always finds the root tag without a heading space.
-        val eventReader = factory.createXMLEventReader(new StringReader(xml))
-        val parser = factory.createFilteredReader(eventReader, filter)
+        val parser = filteredReader(xml)
         try {
-          val rootEvent =
-            StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
-          val rootAttributes =
-            rootEvent.asStartElement.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
+          val rootAttributes = gatherRootAttributes(parser)
           Some(convertObject(parser, schema, options, rootAttributes))
             .orElse(failedRecord(xml))
         } catch {
@@ -116,23 +126,9 @@ private[xml] object StaxXmlParser extends Serializable {
   def parseColumn(xml: String,
                   schema: StructType,
                   options: XmlOptions): Row = {
-    val factory: XMLInputFactory = XMLInputFactory.newInstance()
-    factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
-    factory.setProperty(XMLInputFactory.IS_COALESCING, true)
+    val parser = filteredReader(xml)
+    val rootAttributes = gatherRootAttributes(parser)
 
-    val filter = new EventFilter {
-      override def accept(event: XMLEvent): Boolean =
-      // Ignore comments. This library does not treat comments.
-        event.getEventType != XMLStreamConstants.COMMENT
-    }
-
-    val eventReader = factory.createXMLEventReader(new StringReader(xml))
-    val parser = factory.createFilteredReader(eventReader, filter)
-
-    val rootEvent =
-      StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
-    val rootAttributes =
-      rootEvent.asStartElement.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
     convertObject(parser, schema, options, rootAttributes)
   }
 

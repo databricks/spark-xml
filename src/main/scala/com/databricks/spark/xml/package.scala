@@ -16,10 +16,11 @@
 package com.databricks.spark
 
 import scala.collection.Map
-import org.apache.hadoop.io.compress.CompressionCodec
-import org.apache.spark.sql._
+
 import com.databricks.spark.xml.util.XmlFile
+import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.spark.annotation.Experimental
+import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
 import org.apache.spark.sql.types.StructType
