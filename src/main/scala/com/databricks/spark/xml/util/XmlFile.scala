@@ -17,18 +17,19 @@ package com.databricks.spark.xml.util
 
 import java.io.CharArrayWriter
 import java.nio.charset.Charset
+
 import javax.xml.stream.XMLOutputFactory
 
 import scala.collection.Map
-
-import com.databricks.spark.xml.parsers.StaxXmlGenerator
+import com.databricks.spark.xml.parsers.{CustomTextOutputFormat, StaxXmlGenerator}
 import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter
-import org.apache.hadoop.io.{Text, LongWritable}
-
+import org.apache.hadoop.io.{LongWritable, NullWritable, Text}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.DataFrame
-import com.databricks.spark.xml.{XmlOptions, XmlInputFormat}
+import com.databricks.spark.xml.{XmlInputFormat, XmlOptions}
+
+import scala.reflect.ClassTag
 
 private[xml] object XmlFile {
   val DEFAULT_INDENT = "    "
@@ -82,6 +83,9 @@ private[xml] object XmlFile {
       val writer = new CharArrayWriter()
       val xmlWriter = factory.createXMLStreamWriter(writer)
       val indentingXmlWriter = new IndentingXMLStreamWriter(xmlWriter)
+      if (options.version != null){
+        indentingXmlWriter.writeStartDocument(options.charset, options.version)
+      }
       indentingXmlWriter.setIndentStep(indent)
 
       new Iterator[String] {
@@ -123,7 +127,20 @@ private[xml] object XmlFile {
     }
 
     codecClass match {
-      case null => xmlRDD.saveAsTextFile(path)
+      case null => {
+        val nullWritableClassTag = implicitly[ClassTag[NullWritable]]
+        val textClassTag = implicitly[ClassTag[Text]]
+        val r = xmlRDD.mapPartitions { iter =>
+          val text = new Text()
+          iter.map { x =>
+            text.set(x.toString)
+            (NullWritable.get(), text)
+          }
+        }
+        RDD.rddToPairRDDFunctions(r)(nullWritableClassTag, textClassTag, null)
+          .saveAsHadoopFile[CustomTextOutputFormat[NullWritable, Text]](path)
+      }
+
       case codec => xmlRDD.saveAsTextFile(path, codec)
     }
   }

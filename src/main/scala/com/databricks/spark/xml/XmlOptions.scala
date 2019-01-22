@@ -53,6 +53,7 @@ private[xml] class XmlOptions(
   val parseMode = ParseMode.fromString(parameters.getOrElse("mode", PermissiveMode.name))
   val version = parameters.getOrElse("version", null)
   val selfCloseTag = parameters.getOrElse("selfCloseTag", "false")
+
 }
 
 private[xml] object XmlOptions {

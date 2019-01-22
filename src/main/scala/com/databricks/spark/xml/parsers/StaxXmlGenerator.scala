@@ -46,9 +46,26 @@ private[xml] object StaxXmlGenerator {
         // If this is meant to be value but in no child, write only a value
         writeElement(dt, v)
       case (_, _, _) =>
-        writer.writeStartElement(name)
-        writeElement(dt, v)
-        writer.writeEndElement()
+        var hasChild = true
+        if (options.selfCloseTag == "true" && dt.isInstanceOf[StructType]){
+          val element = dt.asInstanceOf[StructType]
+          val count = element.length
+          if (count == 0){
+            hasChild = false
+          } else {
+            val prePattern = "^[^_]".r
+            hasChild = element.count(_.name.equalsIgnoreCase(options.valueTag))>0 ||
+                       element.count(e => prePattern.findFirstIn(e.name)!= None)>0
+          }
+        }
+        if (!hasChild) {
+          writer.writeEmptyElement(name)
+          writeElement(dt, v)
+        } else {
+          writer.writeStartElement(name)
+          writeElement(dt, v)
+          writer.writeEndElement()
+        }
     }
 
     def writeChild(name: String, dt: DataType, v: Any): Unit = {
@@ -125,8 +142,24 @@ private[xml] object StaxXmlGenerator {
     val (attributes, elements) = schema.zip(row.toSeq).partition { case (f, _) =>
       f.name.startsWith(options.attributePrefix) && f.name != options.valueTag
     }
+    var hasChild = true
+    if (options.selfCloseTag == "true" && elements.isEmpty ){
+      val element = attributes
+      val count = element.length
+      if (count == 0){
+        hasChild = false
+      } else {
+        val prePattern = "^[^_]".r
+        hasChild = element.count(_._1.name.equalsIgnoreCase(options.valueTag))>0 ||
+          element.count(e => prePattern.findFirstIn(e._1.name)!= None)>0
+      }
+    }
+    if(hasChild){
+      writer.writeStartElement(options.rowTag)
+    } else {
+      writer.writeEmptyElement(options.rowTag)
+    }
     // Writing attributes
-    writer.writeStartElement(options.rowTag)
     attributes.foreach {
       case (f, v) if v == null || f.dataType == NullType =>
         Option(options.nullValue).foreach {
@@ -135,11 +168,13 @@ private[xml] object StaxXmlGenerator {
       case (f, v) =>
         writer.writeAttribute(f.name.substring(options.attributePrefix.length), v.toString)
     }
-    // Writing elements
-    val (names, values) = elements.unzip
-    val elementSchema = StructType(schema.filter(names.contains))
-    val elementRow = Row.fromSeq(row.toSeq.filter(values.contains))
-    writeElement(elementSchema, elementRow)
-    writer.writeEndElement()
+    if(hasChild){
+      // Writing elements
+      val (names, values) = elements.unzip
+      val elementSchema = StructType(schema.filter(names.contains))
+      val elementRow = Row.fromSeq(row.toSeq.filter(values.contains))
+      writeElement(elementSchema, elementRow)
+      writer.writeEndElement()
+    }
   }
 }
