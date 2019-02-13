@@ -67,6 +67,8 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   private val simpleNestedObjects = resDir + "simple-nested-objects.xml"
   private val nestedElementWithNameOfParent =
     resDir + "nested-element-with-name-of-parent.xml"
+  private val nestedElementWithAttributesAndNameOfParent =
+    resDir + "nested-element-with-attributes-and-name-of-parent.xml"
   private val booksMalformedAttributes = resDir + "books-malformed-attributes.xml"
   private val fiasHouse = resDir + "fias_house.xml"
   private val attributesStartWithNewLine = resDir + "attributesStartWithNewLine.xml"
@@ -788,15 +790,15 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(result(0) === Row(111, 222))
   }
 
-  test("Nested element with same name as parent delineation") {
-    val lines = Source.fromFile(nestedElementWithNameOfParent).getLines.toList
+  private[this] def testNextedElementFromFile(xmlFile: String) = {
+    val lines = Source.fromFile(xmlFile).getLines.toList
     val firstExpected = lines(2).trim
     val lastExpected = lines(3).trim
     val config = new Configuration(spark.sparkContext.hadoopConfiguration)
     config.set(XmlInputFormat.START_TAG_KEY, "<parent>")
     config.set(XmlInputFormat.END_TAG_KEY, "</parent>")
     val records = spark.sparkContext.newAPIHadoopFile(
-      nestedElementWithNameOfParent,
+      xmlFile,
       classOf[XmlInputFormat],
       classOf[LongWritable],
       classOf[Text],
@@ -807,6 +809,14 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val lastActual = list.last
     assert(firstActual === firstExpected)
     assert(lastActual === lastExpected)
+  }
+
+  test("Nested element with same name as parent delineation") {
+    testNextedElementFromFile(nestedElementWithNameOfParent)
+  }
+
+  test("Nested element including attribute with same name as parent delineation") {
+    testNextedElementFromFile(nestedElementWithAttributesAndNameOfParent)
   }
 
   test("Nested element with same name as parent schema inference") {
