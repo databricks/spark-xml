@@ -42,10 +42,7 @@ import org.apache.spark.unsafe.types.UTF8String
 private[xml] object StaxXmlParser extends Serializable {
   private val logger = LoggerFactory.getLogger(StaxXmlParser.getClass)
 
-  private def filteredReader(xml: String): XMLEventReader = {
-    val factory: XMLInputFactory = XMLInputFactory.newInstance()
-    factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
-    factory.setProperty(XMLInputFactory.IS_COALESCING, true)
+  private def filteredReader(xml: String, factory: XMLInputFactory): XMLEventReader = {
 
     val filter: EventFilter = new EventFilter {
       override def accept(event: XMLEvent): Boolean =
@@ -106,9 +103,12 @@ private[xml] object StaxXmlParser extends Serializable {
     }
 
     xml.mapPartitions { iter =>
+      val partitionFactory: XMLInputFactory = XMLInputFactory.newInstance()
+      partitionFactory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
+      partitionFactory.setProperty(XMLInputFactory.IS_COALESCING, true)
 
       iter.flatMap { xml =>
-        val parser = filteredReader(xml)
+        val parser = filteredReader(xml, partitionFactory)
         try {
           val rootAttributes = gatherRootAttributes(parser)
           Some(convertObject(parser, schema, options, rootAttributes))
@@ -126,7 +126,11 @@ private[xml] object StaxXmlParser extends Serializable {
   def parseColumn(xml: String,
                   schema: StructType,
                   options: XmlOptions): Row = {
-    val parser = filteredReader(xml)
+    val factory: XMLInputFactory = XMLInputFactory.newInstance()
+    factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
+    factory.setProperty(XMLInputFactory.IS_COALESCING, true)
+
+    val parser = filteredReader(xml, factory)
     val rootAttributes = gatherRootAttributes(parser)
 
     convertObject(parser, schema, options, rootAttributes)
