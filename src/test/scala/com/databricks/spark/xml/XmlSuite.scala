@@ -55,6 +55,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   private val carsMalformedFile = resDir + "cars-malformed.xml"
   private val dataTypesValidAndInvalid = resDir + "datatypes-valid-and-invalid.xml"
   private val nullNumbersFile = resDir + "null-numbers.xml"
+  private val nullEmptyStringFile = resDir + "null-empty-string.xml"
   private val emptyFile = resDir + "empty.xml"
   private val topicsFile = resDir + "topics-namespaces.xml"
   private val gpsEmptyField = resDir + "gps-empty-field.xml"
@@ -1007,6 +1008,14 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(valid.toSeq.toArray.last === null)
     assert(invalid.toSeq.toArray.last.toString.contains(
       <integer_value int="Ten">Ten</integer_value>.toString))
+  }
+
+  test("empty string to null and back") {
+    val fruit = spark.read
+      .option("rowTag", "row")
+      .option("nullValue", "")
+      .xml(nullEmptyStringFile)
+    fruit.show()
   }
 
 }

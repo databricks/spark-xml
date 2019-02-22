@@ -126,7 +126,8 @@ private[xml] object StaxXmlParser extends Serializable {
     (parser.peek, dataType) match {
       case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
       case (_: EndElement, _: StringType) =>
-        if (options.treatEmptyValuesAsNulls){
+        // Empty. It's null if these are explicitly treated as null, or "" is the null value
+        if (options.treatEmptyValuesAsNulls || options.nullValue == ""){
           null
         } else {
           ""
