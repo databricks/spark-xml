@@ -1015,7 +1015,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .option("rowTag", "row")
       .option("nullValue", "")
       .xml(nullEmptyStringFile)
-    fruit.show()
+    assert(fruit.head().getAs[String]("color") === null)
   }
 
 }
