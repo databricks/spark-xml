@@ -51,6 +51,7 @@ private[xml] class XmlOptions(
   val ignoreSurroundingSpaces =
     parameters.get("ignoreSurroundingSpaces").map(_.toBoolean).getOrElse(false)
   val parseMode = ParseMode.fromString(parameters.getOrElse("mode", PermissiveMode.name))
+  val inferSchema = parameters.get("inferSchema").map(_.toBoolean).getOrElse(true)
 }
 
 private[xml] object XmlOptions {

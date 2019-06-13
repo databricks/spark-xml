@@ -62,6 +62,7 @@ When reading files the API accepts several options:
     * When it encounters a field of the wrong datatype, it sets the offending field to `null`.
   * `DROPMALFORMED` : ignores the whole corrupted records.
   * `FAILFAST` : throws an exception when it meets corrupted records.
+* `inferSchema`: if `true`, attempts to infer an appropriate type for each resulting DataFrame column, like a boolean, numeric or date type. If `false`, all resulting columns are of string type. Default is `true`.
 * `columnNameOfCorruptRecord`: The name of new field where malformed strings are stored. Default is `_corrupt_record`.
 * `attributePrefix`: The prefix for attributes so that we can differentiate attributes and elements. This will be the prefix for field names. Default is `_`.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
