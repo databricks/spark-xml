@@ -125,15 +125,19 @@ private[xml] object InferSchema {
       datum
     }
 
-    value match {
-      case null => NullType
-      case v if v.isEmpty => NullType
-      case v if isLong(v) => LongType
-      case v if isInteger(v) => IntegerType
-      case v if isDouble(v) => DoubleType
-      case v if isBoolean(v) => BooleanType
-      case v if isTimestamp(v) => TimestampType
-      case _ => StringType
+    if (options.inferSchema) {
+      value match {
+        case null => NullType
+        case v if v.isEmpty => NullType
+        case v if isLong(v) => LongType
+        case v if isInteger(v) => IntegerType
+        case v if isDouble(v) => DoubleType
+        case v if isBoolean(v) => BooleanType
+        case v if isTimestamp(v) => TimestampType
+        case _ => StringType
+      }
+    } else {
+      StringType
     }
   }
 

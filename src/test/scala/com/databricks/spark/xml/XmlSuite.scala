@@ -73,6 +73,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   private val attributesStartWithNewLineLF = resDir + "attributesStartWithNewLineLF.xml"
   private val attributesStartWithNewLineCR = resDir + "attributesStartWithNewLineCR.xml"
   private val selfClosingTag = resDir + "self-closing-tag.xml"
+  private val textColumn = resDir + "textColumn.xml"
 
   private val booksTag = "book"
   private val booksRootTag = "books"
@@ -1026,6 +1027,23 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .option("nullValue", "")
       .xml(nullEmptyStringFile)
     assert(fruit.head().getAs[String]("color") === null)
+  }
+
+  test("test all string data type infer strategy") {
+    val text = spark.read
+      .option("rowTag", "ROW")
+      .option("inferSchema", "false")
+      .xml(textColumn)
+    assert(text.head().getAs[String]("col1") === "00010")
+
+  }
+
+  test("test default data type infer strategy") {
+    val defualt = spark.read
+      .option("rowTag", "ROW")
+      .option("inferSchema", "true")
+      .xml(textColumn)
+    assert(defualt.head().getAs[Int]("col1") === 10)
   }
 
 }
