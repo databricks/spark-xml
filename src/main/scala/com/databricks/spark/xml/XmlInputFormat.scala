@@ -15,14 +15,14 @@
  */
 package com.databricks.spark.xml
 
-import java.io.{IOException, InputStream, InputStreamReader, Reader}
+import java.io.{ IOException, InputStream, InputStreamReader, Reader }
 import java.nio.charset.Charset
 
-import org.apache.hadoop.fs.Seekable
+import com.databricks.spark.xml.XmlRecordReader.PositionTracker
 import org.apache.hadoop.io.compress._
-import org.apache.hadoop.io.{LongWritable, Text}
-import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
-import org.apache.hadoop.mapreduce.lib.input.{FileSplit, TextInputFormat}
+import org.apache.hadoop.io.{ LongWritable, Text }
+import org.apache.hadoop.mapreduce.lib.input.{ FileSplit, TextInputFormat }
+import org.apache.hadoop.mapreduce.{ InputSplit, RecordReader, TaskAttemptContext }
 
 /**
  * Reads records that are delimited by a specific start/end tag.
@@ -58,8 +58,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private var currentValue: Text = _
   private var start: Long = _
   private var end: Long = _
-  private var reader: Reader = _
-  private var filePosition: Seekable = _
+  private var reader: Reader with PositionTracker = _
   private var decompressor: Decompressor = _
   private var buffer = new StringBuilder()
 
@@ -93,7 +92,6 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
           start = cIn.getAdjustedStart
           end = cIn.getAdjustedEnd
           in = cIn
-          filePosition = cIn
         case c: CompressionCodec =>
           if (start != 0) {
             // So we have a split that is only part of a file stored using
@@ -103,14 +101,14 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
           }
           val cIn = c.createInputStream(fsin, decompressor)
           in = cIn
-          filePosition = fsin
       }
     } else {
       in = fsin
-      filePosition = fsin
-      filePosition.seek(start)
+      fsin.seek(start)
     }
-    reader = new InputStreamReader(in, charset)
+    reader = new InputStreamReader(in, charset) with PositionTracker {
+      val initialPosition: Long = start
+    }
   }
 
   override def nextKeyValue: Boolean = {
@@ -132,7 +130,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       try {
         buffer.append(currentStartTag)
         if (readUntilEndElement(currentStartTag.endsWith(">"))) {
-          key.set(filePosition.getPos)
+          key.set(reader.getPosition)
           value.set(buffer.toString())
           return true
         }
@@ -148,7 +146,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     var i = 0
     while (true) {
       val cOrEOF = reader.read()
-      if (cOrEOF == -1 || (i == 0 && filePosition.getPos > end)) {
+      if (cOrEOF == -1 || (i == 0 && reader.getPosition > end)) {
         // End of file or end of split.
         return false
       }
@@ -265,7 +263,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     false
   }
 
-  override def getProgress: Float = (filePosition.getPos - start) / (end - start).toFloat
+  override def getProgress: Float = (reader.getPosition - start) / (end - start).toFloat
 
   override def getCurrentKey: LongWritable = currentKey
 
@@ -282,6 +280,21 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
         CodecPool.returnDecompressor(decompressor)
         decompressor = null
       }
+    }
+  }
+}
+
+object XmlRecordReader {
+  trait PositionTracker extends Reader {
+    val initialPosition: Long
+
+    private[this] var offset: Long = 0
+
+    def getPosition: Long = initialPosition + offset
+
+    override def read(): Int = {
+      offset += 1
+      super.read()
     }
   }
 }
