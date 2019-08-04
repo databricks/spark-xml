@@ -119,7 +119,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     }
 
     reader = new InputStreamReader(in, charset)
-    
+
     if (codec == null) {
       // Hack: in the uncompressed case (see more below), we must know how much the
       // InputStreamReader has buffered but not processed
