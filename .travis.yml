@@ -9,17 +9,12 @@ matrix:
     - scala:
         - 2.11.12
       env:
-        - TEST_SPARK_VERSION="2.2.2"
-        - MIMA="mimaReportBinaryIssues"
-    - scala:
-        - 2.11.12
-      env:
-        - TEST_SPARK_VERSION="2.3.2"
+        - TEST_SPARK_VERSION="2.3.3"
         - MIMA="mimaReportBinaryIssues"
     - scala:
         - 2.12.8
       env:
-        - TEST_SPARK_VERSION="2.4.0"
+        - TEST_SPARK_VERSION="2.4.3"
         - MIMA="" # restore when 2.12 build released
 script:
   - sbt -Dspark.testVersion=$TEST_SPARK_VERSION ++$TRAVIS_SCALA_VERSION clean scalastyle test:scalastyle $MIMA coverage test coverageReport

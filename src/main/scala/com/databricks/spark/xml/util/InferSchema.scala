@@ -21,6 +21,7 @@ import java.util.Comparator
 import javax.xml.stream._
 import javax.xml.stream.events._
 
+import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.Seq
 import scala.collection.mutable.ArrayBuffer
@@ -141,6 +142,7 @@ private[xml] object InferSchema {
     }
   }
 
+  @tailrec
   private def inferField(parser: XMLEventReader, options: XmlOptions): DataType = {
     parser.peek match {
       case _: EndElement => NullType

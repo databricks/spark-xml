@@ -354,7 +354,7 @@ which you may make direct use of as follows:
 
 ```scala
 import com.databricks.spark.xml.XmlInputFormat
-import org.apache.spark.SparkContext;
+import org.apache.spark.SparkContext
 import org.apache.hadoop.io.{LongWritable, Text}
 
 val sc: SparkContext = _
