@@ -39,7 +39,7 @@ final class XmlPartitioningSuite extends FunSuite with Matchers with BeforeAndAf
       spark.stop()
     }
   }
-  
+
   test("Uncompressed small file with specially chosen block size") {
     doPartitionTest("", 8342, false)
   }
@@ -57,7 +57,7 @@ final class XmlPartitioningSuite extends FunSuite with Matchers with BeforeAndAf
     // in the compressed input (e.g. bzip2 -1 on a file with much more than 100k data)
     doPartitionTest(".bz2", 500, true)
   }
-  
+
   test("gzip small file") {
     // Block size won't matter
     doPartitionTest(".gz", 500, false)
