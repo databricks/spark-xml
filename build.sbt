@@ -20,6 +20,7 @@ sparkComponents := Seq("core", "sql")
 autoScalaLibrary := false
 
 libraryDependencies ++= Seq(
+  "commons-io" % "commons-io" % "2.6",
   "org.slf4j" % "slf4j-api" % "1.7.25" % Provided,
   "org.scalatest" %% "scalatest" % "3.0.3" % Test,
   "com.novocode" % "junit-interface" % "0.11" % Test,
