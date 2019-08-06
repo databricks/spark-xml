@@ -23,7 +23,7 @@ You can link against this library in your program at the following coordinates:
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.11
-version: 0.5.0
+version: 0.6.0
 ```
 
 ### Scala 2.12
@@ -31,7 +31,7 @@ version: 0.5.0
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.12
-version: 0.5.0
+version: 0.6.0
 ```
 
 ## Using with Spark shell
@@ -40,12 +40,12 @@ This package can be added to Spark using the `--packages` command line option. F
 
 ### Spark compiled with Scala 2.11
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.5.0
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.6.0
 ```
 
 ### Spark compiled with Scala 2.12
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.12:0.5.0
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.12:0.6.0
 ```
 
 ## Features
@@ -354,7 +354,7 @@ which you may make direct use of as follows:
 
 ```scala
 import com.databricks.spark.xml.XmlInputFormat
-import org.apache.spark.SparkContext;
+import org.apache.spark.SparkContext
 import org.apache.hadoop.io.{LongWritable, Text}
 
 val sc: SparkContext = _
