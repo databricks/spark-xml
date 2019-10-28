@@ -1046,7 +1046,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .xml(textColumn)
     assert(default.head().getAs[Int]("col1") === 10)
   }
-  
+
   test("test XML with processing instruction") {
     val processingDF = spark.read
       .option("rowTag", "foo")
