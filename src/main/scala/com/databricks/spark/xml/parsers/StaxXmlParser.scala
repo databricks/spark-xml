@@ -85,8 +85,11 @@ private[xml] object StaxXmlParser extends Serializable {
       factory.setProperty(XMLInputFactory.IS_COALESCING, true)
       val filter = new EventFilter {
         override def accept(event: XMLEvent): Boolean =
-          // Ignore comments. This library does not treat comments.
-          event.getEventType != XMLStreamConstants.COMMENT
+          // Ignore comments and processing instructions
+          event.getEventType match {
+            case XMLStreamConstants.COMMENT | XMLStreamConstants.PROCESSING_INSTRUCTION => false
+            case _ => true
+          }
       }
 
       iter.flatMap { xml =>

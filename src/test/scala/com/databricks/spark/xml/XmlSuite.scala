@@ -74,6 +74,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   private val attributesStartWithNewLineCR = resDir + "attributesStartWithNewLineCR.xml"
   private val selfClosingTag = resDir + "self-closing-tag.xml"
   private val textColumn = resDir + "textColumn.xml"
+  private val processing = resDir + "processing.xml"
 
   private val booksTag = "book"
   private val booksRootTag = "books"
@@ -1039,11 +1040,19 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("test default data type infer strategy") {
-    val defualt = spark.read
+    val default = spark.read
       .option("rowTag", "ROW")
       .option("inferSchema", "true")
       .xml(textColumn)
-    assert(defualt.head().getAs[Int]("col1") === 10)
+    assert(default.head().getAs[Int]("col1") === 10)
+  }
+  
+  test("test XML with processing instruction") {
+    val processingDF = spark.read
+      .option("rowTag", "foo")
+      .option("inferSchema", "true")
+      .xml(processing)
+    processingDF.show()
   }
 
 }
