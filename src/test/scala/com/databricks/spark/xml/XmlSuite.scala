@@ -1052,7 +1052,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .option("rowTag", "foo")
       .option("inferSchema", "true")
       .xml(processing)
-    processingDF.show()
+    assert(processingDF.count() === 1)
   }
 
 }
