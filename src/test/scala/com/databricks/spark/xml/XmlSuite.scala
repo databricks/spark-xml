@@ -75,6 +75,8 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   private val selfClosingTag = resDir + "self-closing-tag.xml"
   private val textColumn = resDir + "textColumn.xml"
   private val processing = resDir + "processing.xml"
+  private val mixedChildren = resDir + "mixed_children.xml"
+  private val mixedChildren2 = resDir + "mixed_children_2.xml"
 
   private val booksTag = "book"
   private val booksRootTag = "books"
@@ -1053,6 +1055,25 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .option("inferSchema", "true")
       .xml(processing)
     assert(processingDF.count() === 1)
+  }
+
+  test("test mixed text and element children") {
+    val mixedDF = spark.read
+      .option("rowTag", "root")
+      .option("inferSchema", true)
+      .xml(mixedChildren)
+    val mixedRow = mixedDF.head()
+    assert(mixedRow.getAs[Row](0).toSeq === Seq(" issue ", " lorem "))
+    assert(mixedRow.getString(1) === " ipsum ")
+  }
+
+  test("test mixed text and complex element children") {
+    val mixedDF = spark.read
+      .option("rowTag", "root")
+      .option("inferSchema", true)
+      .xml(mixedChildren2)
+    assert(mixedDF.select("foo._VALUE").head().getDouble(0) === 3.0)
+    assert(mixedDF.select("foo.baz.bing").head().getLong(0) === 2)
   }
 
 }
