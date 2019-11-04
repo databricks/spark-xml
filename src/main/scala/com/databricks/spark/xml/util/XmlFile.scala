@@ -101,6 +101,7 @@ private[xml] object XmlFile {
                 rowSchema,
                 indentingXmlWriter,
                 options)(iter.next())
+              indentingXmlWriter.flush()
               writer.toString
             }
             writer.reset()
