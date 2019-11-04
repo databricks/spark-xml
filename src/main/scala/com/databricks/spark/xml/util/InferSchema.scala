@@ -169,12 +169,9 @@ private[xml] object InferSchema {
         parser.nextEvent()
         parser.peek match {
           case _: StartElement =>
-            // Some more elements follow; parse their schema too. Note that no other
-            // character elements will be handled.
-            val builder = Array.newBuilder[StructField]
-            builder += StructField(options.valueTag, characterType, nullable = true)
-            builder ++= inferObject(parser, options).asInstanceOf[StructType].fields
-            StructType(builder.result())
+            // Some more elements follow; so ignore the characters.
+            // Use the schema of the rest
+            inferObject(parser, options).asInstanceOf[StructType]
           case _ =>
             // That's all, just the character-only body; use that as the type
             characterType

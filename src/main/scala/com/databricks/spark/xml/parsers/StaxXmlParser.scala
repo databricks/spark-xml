@@ -154,33 +154,23 @@ private[xml] object StaxXmlParser extends Serializable {
       case (c: Characters, ArrayType(st, _)) =>
         // For `ArrayType`, it needs to return the type of element. The values are merged later.
         convertTo(c.getData, st, options)
-      case (c: Characters, st: StructType) if st.fields.map(_.name).contains(options.valueTag) =>
+      case (c: Characters, st: StructType) =>
         // If a value tag is present, this can be an attribute-only element whose values is in that
-        // value tag field. Or, it can be a mixed-type element with both a character body and other
-        // complex structure. First get the _leading_ character value only (any other separate
-        // character elements are ignored)
-        val dt = st.find(_.name == options.valueTag).get.dataType
-        val value = convertTo(c.getData, dt, options)
+        // value tag field. Or, it can be a mixed-type element with both some character elements
+        // and other complex structure. Character elements are ignored.
         val attributesOnly = st.fields.forall { f =>
           f.name == options.valueTag || f.name.startsWith(options.attributePrefix)
         }
         if (attributesOnly) {
           // If everything else is an attribute column, there's no complex structure.
           // Just return the value of the character element
-          value
+          val dt = st.find(_.name == options.valueTag).get.dataType
+          convertTo(c.getData, dt, options)
         } else {
-          // Otherwise, consume this text element, and continue parsing the following complex
+          // Otherwise, ignore this character element, and continue parsing the following complex
           // structure
           parser.next
-          val valueTagIndex = st.indexWhere(_.name == options.valueTag)
-          val restOfRow = convertObject(
-            parser, StructType(st.filterNot(_.name == options.valueTag)), options).toSeq
-          // stitch the result back together to match the schema
-          val row = new Array[Any](st.fields.length + 1)
-          for (i <- 0 until valueTagIndex) row(i) = restOfRow(i)
-          row(valueTagIndex) = value
-          for (i <- valueTagIndex until restOfRow.length) row(i + 1) = restOfRow(i)
-          Row.fromSeq(row)
+          convertObject(parser, st, options)
         }
       case (c: Characters, dt: DataType) =>
         convertTo(c.getData, dt, options)

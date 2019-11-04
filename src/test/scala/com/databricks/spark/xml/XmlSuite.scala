@@ -1063,7 +1063,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .option("inferSchema", true)
       .xml(mixedChildren)
     val mixedRow = mixedDF.head()
-    assert(mixedRow.getAs[Row](0).toSeq === Seq(" issue ", " lorem "))
+    assert(mixedRow.getAs[Row](0).toSeq === Seq(" lorem "))
     assert(mixedRow.getString(1) === " ipsum ")
   }
 
@@ -1072,8 +1072,9 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
       .option("rowTag", "root")
       .option("inferSchema", true)
       .xml(mixedChildren2)
-    assert(mixedDF.select("foo._VALUE").head().getDouble(0) === 3.0)
+    assert(mixedDF.select("foo.bar").head().getString(0) === " lorem ")
     assert(mixedDF.select("foo.baz.bing").head().getLong(0) === 2)
+    assert(mixedDF.select("missing").head().getString(0) === " ipsum ")
   }
 
 }
