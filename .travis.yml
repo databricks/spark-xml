@@ -9,14 +9,12 @@ matrix:
     - scala:
         - 2.11.12
       env:
-        - TEST_SPARK_VERSION="2.3.3"
-        - MIMA="mimaReportBinaryIssues"
+        - TEST_SPARK_VERSION="2.3.4"
     - scala:
-        - 2.12.8
+        - 2.12.10
       env:
-        - TEST_SPARK_VERSION="2.4.3"
-        - MIMA="" # restore when 2.12 build released
+        - TEST_SPARK_VERSION="2.4.4"
 script:
-  - sbt -Dspark.testVersion=$TEST_SPARK_VERSION ++$TRAVIS_SCALA_VERSION clean scalastyle test:scalastyle $MIMA coverage test coverageReport
+  - sbt -Dspark.testVersion=$TEST_SPARK_VERSION ++$TRAVIS_SCALA_VERSION clean scalastyle test:scalastyle mimaReportBinaryIssues coverage test coverageReport
 after_success:
   - bash <(curl -s https://codecov.io/bash)

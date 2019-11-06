@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/databricks/spark-xml.svg?branch=master)](https://travis-ci.org/databricks/spark-xml) [![codecov](https://codecov.io/gh/databricks/spark-xml/branch/master/graph/badge.svg)](https://codecov.io/gh/databricks/spark-xml)
 
-- A library for parsing and querying XML data with Apache Spark, for Spark SQL and DataFrames.
+`- A library for parsing and querying XML data with [Apache Spark](https://spark.apache.org), for Spark SQL and DataFrames.
 The structure and test tools are mostly copied from [CSV Data Source for Spark](https://github.com/databricks/spark-csv).
 
 - This package supports to process format-free XML files in a distributed way, unlike JSON datasource in Spark restricts in-line JSON format.
@@ -10,10 +10,12 @@ The structure and test tools are mostly copied from [CSV Data Source for Spark](
 
 ## Requirements
 
-This library requires Spark 2.2+ for 0.5.x.
-
-For Spark 2.0.x 2.1.x, use version 0.4.x.
-For a version that works with Spark 1.x, please check for [branch-0.3](https://github.com/databricks/spark-xml/tree/branch-0.3).
+| spark-xml | Spark         |
+| --------- | ------------- |
+| 0.6.x+    | 2.3.x+        |
+| 0.5.x     | 2.2.x - 2.4.x |
+| 0.4.x     | 2.0.x - 2.1.x |
+| 0.3.x     | 1.x           |
 
 ## Linking
 You can link against this library in your program at the following coordinates:
@@ -23,7 +25,7 @@ You can link against this library in your program at the following coordinates:
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.11
-version: 0.6.0
+version: 0.7.0
 ```
 
 ### Scala 2.12
@@ -31,7 +33,7 @@ version: 0.6.0
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.12
-version: 0.6.0
+version: 0.7.0
 ```
 
 ## Using with Spark shell
@@ -40,16 +42,16 @@ This package can be added to Spark using the `--packages` command line option. F
 
 ### Spark compiled with Scala 2.11
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.6.0
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.7.0
 ```
 
 ### Spark compiled with Scala 2.12
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.12:0.6.0
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.12:0.7.0
 ```
 
 ## Features
-This package allows reading XML files in local or distributed filesystem as [Spark DataFrames](https://spark.apache.org/docs/1.6.0/sql-programming-guide.html).
+This package allows reading XML files in local or distributed filesystem as [Spark DataFrames](https://spark.apache.org/docs/latest/sql-programming-guide.html).
 When reading files the API accepts several options:
 * `path`: Location of files. Similar to Spark can accept standard Hadoop globbing expressions.
 * `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
@@ -319,7 +321,7 @@ Automatically infer schema (data types)
 ```R
 library(SparkR)
 
-sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.10:0.5"))
+sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.11:0.7.0"))
 
 df <- read.df("books.xml", source = "xml", rowTag = "book")
 
@@ -331,7 +333,7 @@ You can manually specify schema:
 ```R
 library(SparkR)
 
-sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.10:0.5"))
+sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.11:0.7.0"))
 customSchema <- structType(
   structField("_id", "string"),
   structField("author", "string"),

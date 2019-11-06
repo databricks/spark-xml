@@ -1,6 +1,6 @@
 name := "spark-xml"
 
-version := "0.6.0"
+version := "0.7.0"
 
 organization := "com.databricks"
 
@@ -79,7 +79,7 @@ test in assembly := {}
 // Prints JUnit tests in output
 testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
 
-mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.5.0")
+mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.6.0")
 
 val ignoredABIProblems = {
   import com.typesafe.tools.mima.core._
