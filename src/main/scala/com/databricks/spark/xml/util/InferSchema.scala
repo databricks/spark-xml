@@ -163,8 +163,19 @@ private[xml] object InferSchema {
           case _ => inferField(parser, options)
         }
       case c: Characters if !c.isWhiteSpace =>
-        // This means data exists
-        inferFrom(c.getData, options)
+        // This could be the characters of a character-only element, or could have mixed
+        // characters and other complex structure
+        val characterType = inferFrom(c.getData, options)
+        parser.nextEvent()
+        parser.peek match {
+          case _: StartElement =>
+            // Some more elements follow; so ignore the characters.
+            // Use the schema of the rest
+            inferObject(parser, options).asInstanceOf[StructType]
+          case _ =>
+            // That's all, just the character-only body; use that as the type
+            characterType
+        }
       case e: XMLEvent =>
         throw new IllegalArgumentException(s"Failed to parse data with unexpected event $e")
     }
