@@ -15,9 +15,9 @@
  */
 package com.databricks.spark.xml.parsers
 
-import scala.collection.Map
+import javax.xml.stream.XMLStreamWriter
 
-import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter
+import scala.collection.Map
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
@@ -35,7 +35,7 @@ private[xml] object StaxXmlGenerator {
     */
   def apply(
       schema: StructType,
-      writer: IndentingXMLStreamWriter,
+      writer: XMLStreamWriter,
       options: XmlOptions)(row: Row): Unit = {
     def writeChildElement(name: String, dt: DataType, v: Any): Unit = (name, dt, v) match {
       // If this is meant to be value but in no child, write only a value

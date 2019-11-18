@@ -21,6 +21,7 @@ autoScalaLibrary := false
 
 libraryDependencies ++= Seq(
   "commons-io" % "commons-io" % "2.6",
+  "org.glassfish.jaxb" % "txw2" % "2.3.2",
   "org.slf4j" % "slf4j-api" % "1.7.25" % Provided,
   "org.scalatest" %% "scalatest" % "3.0.8" % Test,
   "com.novocode" % "junit-interface" % "0.11" % Test,
@@ -103,8 +104,9 @@ val ignoredABIProblems = {
       "com.databricks.spark.xml.parsers.StaxXmlParser.com$databricks$" +
         "spark$xml$parsers$StaxXmlParser$$convertObject$default$4"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.CompressionCodecs.getCodecClass")
-
+      "com.databricks.spark.xml.util.CompressionCodecs.getCodecClass"),
+    exclude[IncompatibleMethTypeProblem](
+      "com.databricks.spark.xml.parsers.StaxXmlGenerator.apply")
   )
 }
 
