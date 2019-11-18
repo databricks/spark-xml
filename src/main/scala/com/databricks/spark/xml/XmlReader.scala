@@ -93,6 +93,11 @@ class XmlReader extends Serializable {
     this
   }
 
+  def withRowValidationXSDPath(path: String): XmlReader = {
+    parameters += ("rowValidationXSDPath" -> path)
+    this
+  }
+
   def xmlFile(spark: SparkSession, path: String): DataFrame = {
     // We need the `charset` and `rowTag` before creating the relation.
     val (charset, rowTag) = {

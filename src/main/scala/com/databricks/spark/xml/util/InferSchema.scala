@@ -16,10 +16,14 @@
 package com.databricks.spark.xml.util
 
 import java.io.StringReader
+import java.nio.file.Paths
 import java.util.Comparator
 
-import javax.xml.stream._
-import javax.xml.stream.events._
+import javax.xml.XMLConstants
+import javax.xml.stream.{EventFilter, XMLEventReader, XMLInputFactory, XMLStreamConstants}
+import javax.xml.stream.events.{Attribute, Characters, EndElement, StartElement, XMLEvent}
+import javax.xml.transform.stream.StreamSource
+import javax.xml.validation.SchemaFactory
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -93,12 +97,22 @@ private[xml] object InferSchema {
           }
       }
 
+      val xsdSchema = Option(options.rowValidationXSDPath).map { schemaFile =>
+        val schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+        schemaFactory.newSchema(Paths.get(schemaFile).toFile)
+      }
+
       iter.flatMap { xml =>
-        // It does not have to skip for white space, since [[XmlInputFormat]]
-        // always finds the root tag without a heading space.
-        val eventReader = factory.createXMLEventReader(new StringReader(xml))
-        val parser = factory.createFilteredReader(eventReader, filter)
         try {
+          xsdSchema.foreach { schema =>
+            schema.newValidator().validate(new StreamSource(new StringReader(xml)))
+          }
+
+          // It does not have to skip for white space, since `XmlInputFormat`
+          // always finds the root tag without a heading space.
+          val eventReader = factory.createXMLEventReader(new StringReader(xml))
+          val parser = factory.createFilteredReader(eventReader, filter)
+
           val rootEvent =
             StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
           val rootAttributes =

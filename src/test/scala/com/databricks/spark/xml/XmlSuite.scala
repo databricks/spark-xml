@@ -77,6 +77,9 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   private val processing = resDir + "processing.xml"
   private val mixedChildren = resDir + "mixed_children.xml"
   private val mixedChildren2 = resDir + "mixed_children_2.xml"
+  private val basket = resDir + "basket.xml"
+  private val basketInvalid = resDir + "basket_invalid.xml"
+  private val basketXSD = resDir + "basket.xsd"
 
   private val booksTag = "book"
   private val booksRootTag = "books"
@@ -1075,6 +1078,27 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(mixedDF.select("foo.bar").head().getString(0) === " lorem ")
     assert(mixedDF.select("foo.baz.bing").head().getLong(0) === 2)
     assert(mixedDF.select("missing").head().getString(0) === " ipsum ")
+  }
+
+  test("test XSD validation") {
+    val basketDF = spark.read
+      .option("rowTag", "basket")
+      .option("inferSchema", true)
+      .option("rowValidationXSDPath", basketXSD)
+      .xml(basket)
+    // Mostly checking it doesn't fail
+    assert(basketDF.selectExpr("entry[0].key").head().getLong(0) === 9027)
+  }
+
+  test("test XSD validation with validation error") {
+    val basketDF = spark.read
+      .option("rowTag", "basket")
+      .option("inferSchema", true)
+      .option("rowValidationXSDPath", basketXSD)
+      .option("mode", "PERMISSIVE")
+      .option("columnNameOfCorruptRecord", "_malformed_records")
+      .xml(basketInvalid)
+    assert(basketDF.select("_malformed_records").head().getString(0).startsWith("<basket>"))
   }
 
 }
