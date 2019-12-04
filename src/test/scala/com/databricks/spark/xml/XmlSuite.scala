@@ -1109,7 +1109,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val rdd = spark.sparkContext.parallelize(data)
     assert(new XmlReader().xmlRdd(spark, rdd).collect().length === 3)
   }
-  
+
   test("test xmlDataFrame") {
     val data = Seq(
       "<ROW><year>2012</year><make>Tesla</make><model>S</model><comment>No comment</comment></ROW>",
