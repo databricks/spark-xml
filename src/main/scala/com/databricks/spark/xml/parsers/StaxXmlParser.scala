@@ -16,13 +16,10 @@
 package com.databricks.spark.xml.parsers
 
 import java.io.StringReader
-import java.nio.file.Paths
 
-import javax.xml.XMLConstants
 import javax.xml.stream.{EventFilter, XMLEventReader, XMLInputFactory, XMLStreamConstants}
 import javax.xml.stream.events.{Attribute, Characters, EndElement, StartElement, XMLEvent}
 import javax.xml.transform.stream.StreamSource
-import javax.xml.validation.SchemaFactory
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
@@ -95,10 +92,7 @@ private[xml] object StaxXmlParser extends Serializable {
           }
       }
 
-      val xsdSchema = Option(options.rowValidationXSDPath).map { schemaFile =>
-        val schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-        schemaFactory.newSchema(Paths.get(schemaFile).toFile)
-      }
+      val xsdSchema = Option(options.rowValidationXSDPath).map(ValidatorUtil.getSchema)
 
       iter.flatMap { xml =>
         try {

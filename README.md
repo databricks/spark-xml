@@ -70,7 +70,12 @@ When reading files the API accepts several options:
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
 * `charset`: Defaults to 'UTF-8' but can be set to other valid charset names
 * `ignoreSurroundingSpaces`: Defines whether or not surrounding whitespaces from values being read should be skipped. Default is false.
-* `rowValidationXSDPath`: Path to an XSD file that is used to validate the XML for each row individually. Rows that fail to validate are treated like parse errors as above. The XSD does not otherwise affect the schema provided, or inferred. New in 0.8.0.
+* `rowValidationXSDPath`: Path to an XSD file that is used to validate the XML for each row individually. Rows that fail to 
+validate are treated like parse errors as above. The XSD does not otherwise affect the schema provided, or inferred. 
+Note that if the same local path is not already also visible on the executors in the cluster, then the XSD and any others 
+it depends on should be added to the Spark executors with 
+[`SparkContext.addFile`](https://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.SparkContext@addFile(path:String):Unit).
+In this case, to use local XSD `/foo/bar.xsd`, call `addFile("/foo/bar.xsd")` and pass just `"bar.xsd"` as `rowValidationXSDPath`. New in 0.8.0.
 
 When writing files the API accepts several options:
 * `path`: Location to write files.
