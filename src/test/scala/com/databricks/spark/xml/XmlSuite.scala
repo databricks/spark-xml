@@ -1101,4 +1101,22 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(basketDF.select("_malformed_records").head().getString(0).startsWith("<basket>"))
   }
 
+  test("test xmlRdd") {
+    val data = Seq(
+      "<ROW><year>2012</year><make>Tesla</make><model>S</model><comment>No comment</comment></ROW>",
+      "<ROW><year>1997</year><make>Ford</make><model>E350</model><comment>Get one</comment></ROW>",
+      "<ROW><year>2015</year><make>Chevy</make><model>Volt</model><comment>No</comment></ROW>")
+    val rdd = spark.sparkContext.parallelize(data)
+    assert(new XmlReader().xmlRdd(spark, rdd).collect().length === 3)
+  }
+  
+  test("test xmlDataFrame") {
+    val data = Seq(
+      "<ROW><year>2012</year><make>Tesla</make><model>S</model><comment>No comment</comment></ROW>",
+      "<ROW><year>1997</year><make>Ford</make><model>E350</model><comment>Get one</comment></ROW>",
+      "<ROW><year>2015</year><make>Chevy</make><model>Volt</model><comment>No</comment></ROW>")
+    val df = spark.createDataFrame(data.map(Tuple1(_)))
+    assert(new XmlReader().xmlDataFrame(spark, df).collect().length === 3)
+  }
+
 }
