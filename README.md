@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/databricks/spark-xml.svg?branch=master)](https://travis-ci.org/databricks/spark-xml) [![codecov](https://codecov.io/gh/databricks/spark-xml/branch/master/graph/badge.svg)](https://codecov.io/gh/databricks/spark-xml)
 
-`- A library for parsing and querying XML data with [Apache Spark](https://spark.apache.org), for Spark SQL and DataFrames.
+- A library for parsing and querying XML data with [Apache Spark](https://spark.apache.org), for Spark SQL and DataFrames.
 The structure and test tools are mostly copied from [CSV Data Source for Spark](https://github.com/databricks/spark-csv).
 
 - This package supports to process format-free XML files in a distributed way, unlike JSON datasource in Spark restricts in-line JSON format.
