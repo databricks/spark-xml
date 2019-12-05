@@ -81,6 +81,11 @@ package object xml {
    */
   implicit class XmlDataFrameReader(reader: DataFrameReader) {
     def xml: String => DataFrame = reader.format("com.databricks.spark.xml").load
+
+    def xml(xmlDataset: Dataset[String]): DataFrame = {
+      val spark = SparkSession.builder.getOrCreate()
+      new XmlReader().xmlDataset(spark, xmlDataset)
+    }
   }
 
   /**
