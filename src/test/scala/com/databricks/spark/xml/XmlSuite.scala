@@ -1101,4 +1101,16 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(basketDF.select("_malformed_records").head().getString(0).startsWith("<basket>"))
   }
 
+  test("test XSD validation with addFile() with validation error") {
+    spark.sparkContext.addFile(basketXSD)
+    val basketDF = spark.read
+      .option("rowTag", "basket")
+      .option("inferSchema", true)
+      .option("rowValidationXSDPath", "basket.xsd")
+      .option("mode", "PERMISSIVE")
+      .option("columnNameOfCorruptRecord", "_malformed_records")
+      .xml(basketInvalid)
+    assert(basketDF.select("_malformed_records").head().getString(0).startsWith("<basket>"))
+  }
+
 }
