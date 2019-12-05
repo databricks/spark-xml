@@ -95,16 +95,19 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   private val numGPS = 2
   private val numFiasHouses = 37
 
-  private var spark: SparkSession = _
-  private var tempDir: Path = _
-
-  override protected def beforeAll(): Unit = {
-    super.beforeAll()
-    spark = SparkSession.builder().
+  private lazy val spark: SparkSession = {
+    // It is intentionally a val to allow import implicits.
+    SparkSession.builder().
       master("local[2]").
       appName("XmlSuite").
       config("spark.ui.enabled", false).
       getOrCreate()
+  }
+  private var tempDir: Path = _
+
+  override protected def beforeAll(): Unit = {
+    super.beforeAll()
+    spark  // Initialize Spark session
     tempDir = Files.createTempDirectory("XmlSuite")
     tempDir.toFile.deleteOnExit()
   }
@@ -112,7 +115,6 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   override protected def afterAll(): Unit = {
     try {
       spark.stop()
-      spark = null
     } finally {
       super.afterAll()
     }
@@ -1122,13 +1124,17 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(new XmlReader().xmlRdd(spark, rdd).collect().length === 3)
   }
 
-  test("test xmlDataFrame") {
+  test("test xmlDataset and spark.read.xml(dataset)") {
+    import spark.implicits._
+
     val data = Seq(
       "<ROW><year>2012</year><make>Tesla</make><model>S</model><comment>No comment</comment></ROW>",
       "<ROW><year>1997</year><make>Ford</make><model>E350</model><comment>Get one</comment></ROW>",
       "<ROW><year>2015</year><make>Chevy</make><model>Volt</model><comment>No</comment></ROW>")
     val df = spark.createDataFrame(data.map(Tuple1(_)))
-    assert(new XmlReader().xmlDataFrame(spark, df).collect().length === 3)
+
+    assert(new XmlReader().xmlDataset(spark, df.as[String]).collect().length === 3)
+    assert(spark.read.xml(df.as[String]).collect().length === 3)
   }
 
 }

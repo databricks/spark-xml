@@ -16,8 +16,8 @@
 package com.databricks.spark.xml
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, SparkSession, SQLContext}
-import org.apache.spark.sql.types.{StringType, StructType}
+import org.apache.spark.sql.{DataFrame, Dataset, SQLContext, SparkSession}
+import org.apache.spark.sql.types.StructType
 import com.databricks.spark.xml.util.XmlFile
 import com.databricks.spark.xml.util.FailFastMode
 
@@ -119,14 +119,11 @@ class XmlReader extends Serializable {
 
   /**
    * @param spark current SparkSession
-   * @param df XML for individual 'rows' as Strings
+   * @param ds XML for individual 'rows' as Strings
    * @return XML parsed as a DataFrame
    */
-  def xmlDataFrame(spark: SparkSession, df: DataFrame): DataFrame = {
-    require(df.columns.length == 1 && df.schema.fields.head.dataType == StringType,
-      "DataFrame must have a single String column containing XML")
-    import spark.implicits._
-    xmlRdd(spark, df.as[String].rdd)
+  def xmlDataset(spark: SparkSession, ds: Dataset[String]): DataFrame = {
+    xmlRdd(spark, ds.rdd)
   }
 
   /**
