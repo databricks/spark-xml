@@ -18,6 +18,6 @@ matrix:
       env:
         - TEST_SPARK_VERSION="3.0.0-preview"
 script:
-  - sbt -Dspark.testVersion=$TEST_SPARK_VERSION ++$TRAVIS_SCALA_VERSION clean scalastyle test:scalastyle mimaReportBinaryIssues coverage test coverageReport
+  - ./build/sbt -Dspark.testVersion=$TEST_SPARK_VERSION ++$TRAVIS_SCALA_VERSION clean scalastyle test:scalastyle mimaReportBinaryIssues coverage test coverageReport
 after_success:
   - bash <(curl -s https://codecov.io/bash)
