@@ -1,13 +1,60 @@
+/*
+ * Copyright 2019 Databricks
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.databricks.spark.xml.parsers
 
-import javax.xml.stream.XMLEventReader
+import java.io.StringReader
+import javax.xml.stream.{EventFilter, XMLEventReader, XMLInputFactory, XMLStreamConstants}
 import javax.xml.stream.events._
 
 import scala.annotation.tailrec
+import scala.collection.JavaConverters._
 
 import com.databricks.spark.xml.XmlOptions
 
 private[xml] object StaxXmlParserUtils {
+  
+  def buildFactory(): XMLInputFactory = {
+    val factory = XMLInputFactory.newInstance()
+    factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
+    factory.setProperty(XMLInputFactory.IS_COALESCING, true)
+    factory
+  }
+  
+  def filteredReader(xml: String, factory: XMLInputFactory): XMLEventReader = {
+    val filter = new EventFilter {
+      override def accept(event: XMLEvent): Boolean =
+        // Ignore comments and processing instructions
+        event.getEventType match {
+          case XMLStreamConstants.COMMENT | XMLStreamConstants.PROCESSING_INSTRUCTION => false
+          case _ => true
+        }
+    }
+    // It does not have to skip for white space, since `XmlInputFormat`
+    // always finds the root tag without a heading space.
+    val eventReader = factory.createXMLEventReader(new StringReader(xml))
+    factory.createFilteredReader(eventReader, filter)
+  }
+  
+  def gatherRootAttributes(parser: XMLEventReader): Array[Attribute] = {
+    val rootEvent =
+      StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
+    rootEvent.asStartElement.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
+  }
+  
   /**
    * Skips elements until this meets the given type of a element
    */

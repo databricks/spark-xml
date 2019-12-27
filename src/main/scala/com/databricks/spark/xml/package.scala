@@ -19,10 +19,64 @@ import scala.collection.Map
 
 import org.apache.hadoop.io.compress.CompressionCodec
 
+import org.apache.spark.annotation.Experimental
 import org.apache.spark.sql._
-import com.databricks.spark.xml.util.XmlFile
+import org.apache.spark.sql.catalyst.expressions.Expression
+import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
+import org.apache.spark.sql.types.StructType
+
+import com.databricks.spark.xml.util.{InferSchema, XmlFile}
 
 package object xml {
+
+  private def withExpr(expr: Expression): Column = new Column(expr)
+
+  /**
+   * Infers the schema of XML documents as strings.
+   *
+   * @param ds Dataset of XML strings
+   * @return inferred schema for XML
+   */
+  @Experimental
+  def inferSchema(ds: Dataset[String]): StructType =
+    inferSchema(ds, Map.empty[String, String])
+
+  /**
+   * Infers the schema of XML documents as strings.
+   *
+   * @param ds Dataset of XML strings
+   * @param options additional XML parsing options
+   * @return inferred schema for XML
+   */
+  @Experimental
+  def inferSchema(ds: Dataset[String], options: Map[String, String]): StructType =
+    InferSchema.infer(ds.rdd, XmlOptions(options.toMap))
+
+  /**
+   * Parses a column containing a XML string into a `StructType` with the specified schema.
+   *
+   * @param e a string column containing XML data
+   * @param schema the schema to use when parsing the XML string
+   */
+  @Experimental
+  implicit def from_xml(e: Column, schema: StructType): Column =
+    from_xml(e, schema, Map.empty[String, String])
+
+  /**
+   * Parses a column containing a XML string into a `StructType` with the specified schema.
+   *
+   * @param e a string column containing XML data
+   * @param schema the schema to use when parsing the XML string
+   * @param options key-value pairs that correspond to those supported by [[XmlOptions]]
+   */
+  @Experimental
+  implicit def from_xml(e: Column, schema: StructType, options: Map[String, String]): Column =
+    withExpr {
+      val map = options + ("isFunction" -> "true")
+      val expr = CatalystSqlParser.parseExpression(e.toString())
+      XmlDataToCatalyst(expr, schema, XmlOptions(map.toMap))
+    }
+
   /**
    * Adds a method, `xmlFile`, to [[SQLContext]] that allows reading XML data.
    */

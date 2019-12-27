@@ -17,7 +17,7 @@ package com.databricks.spark.xml.parsers
 
 import java.io.StringReader
 
-import javax.xml.stream.{EventFilter, XMLEventReader, XMLInputFactory, XMLStreamConstants}
+import javax.xml.stream.{XMLEventReader, XMLInputFactory}
 import javax.xml.stream.events.{Attribute, Characters, EndElement, StartElement, XMLEvent}
 import javax.xml.transform.stream.StreamSource
 
@@ -80,18 +80,7 @@ private[xml] object StaxXmlParser extends Serializable {
     }
 
     xml.mapPartitions { iter =>
-      val factory = XMLInputFactory.newInstance()
-      factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
-      factory.setProperty(XMLInputFactory.IS_COALESCING, true)
-      val filter = new EventFilter {
-        override def accept(event: XMLEvent): Boolean =
-          // Ignore comments and processing instructions
-          event.getEventType match {
-            case XMLStreamConstants.COMMENT | XMLStreamConstants.PROCESSING_INSTRUCTION => false
-            case _ => true
-          }
-      }
-
+      val factory = StaxXmlParserUtils.buildFactory()
       val xsdSchema = Option(options.rowValidationXSDPath).map(ValidatorUtil.getSchema)
 
       iter.flatMap { xml =>
@@ -100,15 +89,8 @@ private[xml] object StaxXmlParser extends Serializable {
             schema.newValidator().validate(new StreamSource(new StringReader(xml)))
           }
 
-          // It does not have to skip for white space, since `XmlInputFormat`
-          // always finds the root tag without a heading space.
-          val eventReader = factory.createXMLEventReader(new StringReader(xml))
-          val parser = factory.createFilteredReader(eventReader, filter)
-
-          val rootEvent =
-            StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
-          val rootAttributes =
-            rootEvent.asStartElement.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
+          val parser = StaxXmlParserUtils.filteredReader(xml, factory)
+          val rootAttributes = StaxXmlParserUtils.gatherRootAttributes(parser)
           Some(convertObject(parser, schema, options, rootAttributes))
             .orElse(failedRecord(xml))
         } catch {
@@ -119,6 +101,13 @@ private[xml] object StaxXmlParser extends Serializable {
         }
       }
     }
+  }
+
+  def parseColumn(xml: String, schema: StructType, factory: XMLInputFactory,
+      options: XmlOptions): Row = {
+    val parser = StaxXmlParserUtils.filteredReader(xml, factory)
+    val rootAttributes = StaxXmlParserUtils.gatherRootAttributes(parser)
+    convertObject(parser, schema, options, rootAttributes)
   }
 
   /**

@@ -1137,4 +1137,21 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(spark.read.xml(df.as[String]).collect().length === 3)
   }
 
+  test("from_xml basic test") {
+    val xmlData =
+      """<parent foo="bar"><pid>14ft3</pid>
+        |  <name>dave guy</name>
+        |</parent>
+       """.stripMargin
+    import spark.implicits._
+    val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
+    val xmlSchema = inferSchema(df.select("payload").as[String])
+    val expectedSchema = df.schema.add("decoded", xmlSchema)
+    val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
+
+    assert(expectedSchema === result.schema)
+    assert(result.select("decoded.pid").head().getString(0) === "14ft3")
+    assert(result.select("decoded._foo").head().getString(0) === "bar")
+  }
+
 }
