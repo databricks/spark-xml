@@ -36,7 +36,7 @@ object functions {
    */
   @Experimental
   def schema_of_xml(ds: Dataset[String]): StructType =
-    inferSchema(ds, Map.empty[String, String])
+    schema_of_xml(ds, Map.empty[String, String])
 
   /**
    * Infers the schema of XML documents as strings.
