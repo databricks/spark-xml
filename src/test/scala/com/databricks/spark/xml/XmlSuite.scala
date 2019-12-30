@@ -27,6 +27,7 @@ import org.apache.hadoop.io.compress.GzipCodec
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 import com.databricks.spark.xml.XmlOptions._
+import com.databricks.spark.xml.functions._
 import com.databricks.spark.xml.util._
 
 import org.apache.spark.sql.types._

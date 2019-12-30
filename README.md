@@ -51,8 +51,11 @@ $SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.12:0.7.0
 ```
 
 ## Features
+
 This package allows reading XML files in local or distributed filesystem as [Spark DataFrames](https://spark.apache.org/docs/latest/sql-programming-guide.html).
+
 When reading files the API accepts several options:
+
 * `path`: Location of files. Similar to Spark can accept standard Hadoop globbing expressions.
 * `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
 * `samplingRatio`: Sampling ratio for inferring schema (0.0 ~ 1). Default is 1. Possible types are `StructType`, `ArrayType`, `StringType`, `LongType`, `DoubleType`, `BooleanType`, `TimestampType` and `NullType`, unless user provides a schema for this.
@@ -78,6 +81,7 @@ it depends on should be added to the Spark executors with
 In this case, to use local XSD `/foo/bar.xsd`, call `addFile("/foo/bar.xsd")` and pass just `"bar.xsd"` as `rowValidationXSDPath`. New in 0.8.0.
 
 When writing files the API accepts several options:
+
 * `path`: Location to write files.
 * `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
 * `rootTag`: The root tag of your xml files to treat as the root. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `books`. Default is `ROWS`.
@@ -87,6 +91,20 @@ When writing files the API accepts several options:
 * `compression`: compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec` or one of case-insensitive shorten names (`bzip2`, `gzip`, `lz4`, and `snappy`). Defaults to no compression when a codec is not specified.
 
 Currently it supports the shortened name usage. You can use just `xml` instead of `com.databricks.spark.xml`.
+
+### Parsing Nested XML
+
+Although primarily used to convert (portions of) large XML documents into a DataFrame, from version 0.8.0 onwards,
+`spark-xml` can also parse XML in a string-valued column in an existing DataFrame with `from_xml`, in order to add
+it as a new column with parsed results as a struct.
+
+```scala
+import com.databricks.spark.xml.functions._
+import spark.implicits._
+val df = ... /// DataFrame with XML in column 'payload' 
+val payloadSchema = inferSchema(df.select("payload").as[String])
+val parsed = df.withColumn("decoded", from_xml(df.col("payload"), payloadSchema))
+``` 
 
 ## Structure Conversion
 
