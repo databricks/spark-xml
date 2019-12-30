@@ -102,7 +102,7 @@ it as a new column with parsed results as a struct.
 import com.databricks.spark.xml.functions._
 import spark.implicits._
 val df = ... /// DataFrame with XML in column 'payload' 
-val payloadSchema = inferSchema(df.select("payload").as[String])
+val payloadSchema = schema_of_xml(df.select("payload").as[String])
 val parsed = df.withColumn("decoded", from_xml(df.col("payload"), payloadSchema))
 ``` 
 

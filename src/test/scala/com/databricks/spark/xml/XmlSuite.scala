@@ -1146,7 +1146,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
        """.stripMargin
     import spark.implicits._
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
-    val xmlSchema = inferSchema(df.select("payload").as[String])
+    val xmlSchema = schema_of_xml(df.select("payload").as[String])
     val expectedSchema = df.schema.add("decoded", xmlSchema)
     val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
 
@@ -1164,7 +1164,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
        """.stripMargin
     import spark.implicits._
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
-    val xmlSchema = inferSchema(df.select("payload").as[String])
+    val xmlSchema = schema_of_xml(df.select("payload").as[String])
     val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
     assert(result.select("decoded._corrupt_record").head().getString(0).nonEmpty)
   }

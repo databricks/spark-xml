@@ -35,7 +35,7 @@ object functions {
    * @return inferred schema for XML
    */
   @Experimental
-  def inferSchema(ds: Dataset[String]): StructType =
+  def schema_of_xml(ds: Dataset[String]): StructType =
     inferSchema(ds, Map.empty[String, String])
 
   /**
@@ -46,7 +46,7 @@ object functions {
    * @return inferred schema for XML
    */
   @Experimental
-  def inferSchema(ds: Dataset[String], options: Map[String, String]): StructType =
+  def schema_of_xml(ds: Dataset[String], options: Map[String, String]): StructType =
     InferSchema.infer(ds.rdd, XmlOptions(options))
 
   /**
