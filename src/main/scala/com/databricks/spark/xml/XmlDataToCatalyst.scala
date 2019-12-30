@@ -35,7 +35,7 @@ case class XmlDataToCatalyst(
 
   @transient
   private lazy val factory: XMLInputFactory = StaxXmlParserUtils.buildFactory()
-  
+
   override lazy val dataType: DataType = schema
 
   override def checkInputDataTypes(): TypeCheckResult = schema match {

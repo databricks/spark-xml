@@ -26,14 +26,14 @@ import scala.collection.JavaConverters._
 import com.databricks.spark.xml.XmlOptions
 
 private[xml] object StaxXmlParserUtils {
-  
+
   def buildFactory(): XMLInputFactory = {
     val factory = XMLInputFactory.newInstance()
     factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
     factory.setProperty(XMLInputFactory.IS_COALESCING, true)
     factory
   }
-  
+
   def filteredReader(xml: String, factory: XMLInputFactory): XMLEventReader = {
     val filter = new EventFilter {
       override def accept(event: XMLEvent): Boolean =
@@ -48,13 +48,13 @@ private[xml] object StaxXmlParserUtils {
     val eventReader = factory.createXMLEventReader(new StringReader(xml))
     factory.createFilteredReader(eventReader, filter)
   }
-  
+
   def gatherRootAttributes(parser: XMLEventReader): Array[Attribute] = {
     val rootEvent =
       StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
     rootEvent.asStartElement.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
   }
-  
+
   /**
    * Skips elements until this meets the given type of a element
    */
