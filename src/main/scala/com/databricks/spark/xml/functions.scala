@@ -17,10 +17,11 @@
 package com.databricks.spark.xml
 
 import org.apache.spark.annotation.Experimental
-import org.apache.spark.sql.{Column, Dataset}
+import org.apache.spark.sql.{Column, Dataset, Row}
 import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
 import org.apache.spark.sql.types.StructType
 
+import com.databricks.spark.xml.parsers.StaxXmlParser
 import com.databricks.spark.xml.util.InferSchema
 
 /**
@@ -32,32 +33,12 @@ object functions {
    * Infers the schema of XML documents as strings.
    *
    * @param ds Dataset of XML strings
-   * @return inferred schema for XML
-   */
-  @Experimental
-  def schema_of_xml(ds: Dataset[String]): StructType =
-    schema_of_xml(ds, Map.empty[String, String])
-
-  /**
-   * Infers the schema of XML documents as strings.
-   *
-   * @param ds Dataset of XML strings
    * @param options additional XML parsing options
    * @return inferred schema for XML
    */
   @Experimental
-  def schema_of_xml(ds: Dataset[String], options: Map[String, String]): StructType =
+  def schema_of_xml(ds: Dataset[String], options: Map[String, String] = Map.empty): StructType =
     InferSchema.infer(ds.rdd, XmlOptions(options))
-
-  /**
-   * Parses a column containing a XML string into a `StructType` with the specified schema.
-   *
-   * @param e a string column containing XML data
-   * @param schema the schema to use when parsing the XML string
-   */
-  @Experimental
-  def from_xml(e: Column, schema: StructType): Column =
-    from_xml(e, schema, Map.empty)
 
   /**
    * Parses a column containing a XML string into a `StructType` with the specified schema.
@@ -67,9 +48,21 @@ object functions {
    * @param options key-value pairs that correspond to those supported by [[XmlOptions]]
    */
   @Experimental
-  def from_xml(e: Column, schema: StructType, options: Map[String, String]): Column = {
+  def from_xml(e: Column, schema: StructType, options: Map[String, String] = Map.empty): Column = {
     val expr = CatalystSqlParser.parseExpression(e.toString())
     new Column(XmlDataToCatalyst(expr, schema, XmlOptions(options)))
+  }
+
+  /**
+   * @param xml XML document to parse, as string
+   * @param schema the schema to use when parsing the XML string
+   * @param options key-value pairs that correspond to those supported by [[XmlOptions]]
+   * @return [[Row]] representing the parsed XML structure
+   */
+  @Experimental
+  def from_xml_string(xml: String, schema: StructType,
+       options: Map[String, String] = Map.empty): Row = {
+    StaxXmlParser.parseColumn(xml, schema, XmlOptions(options))
   }
 
 }

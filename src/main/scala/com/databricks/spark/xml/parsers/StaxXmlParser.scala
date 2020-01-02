@@ -47,7 +47,6 @@ private[xml] object StaxXmlParser extends Serializable {
       options: XmlOptions): RDD[Row] = {
 
     xml.mapPartitions { iter =>
-      val factory = StaxXmlParserUtils.buildFactory()
       val xsdSchema = Option(options.rowValidationXSDPath).map(ValidatorUtil.getSchema)
 
       iter.flatMap { xml =>
@@ -56,7 +55,7 @@ private[xml] object StaxXmlParser extends Serializable {
             schema.newValidator().validate(new StreamSource(new StringReader(xml)))
           }
 
-          val parser = StaxXmlParserUtils.filteredReader(xml, factory)
+          val parser = StaxXmlParserUtils.filteredReader(xml)
           val rootAttributes = StaxXmlParserUtils.gatherRootAttributes(parser)
           Some(convertObject(parser, schema, options, rootAttributes))
             .orElse(failedRecord(xml, options, schema))
@@ -70,10 +69,9 @@ private[xml] object StaxXmlParser extends Serializable {
     }
   }
 
-  def parseColumn(xml: String, schema: StructType, factory: XMLInputFactory,
-      options: XmlOptions): Row = {
+  def parseColumn(xml: String, schema: StructType, options: XmlOptions): Row = {
     try {
-      val parser = StaxXmlParserUtils.filteredReader(xml, factory)
+      val parser = StaxXmlParserUtils.filteredReader(xml)
       val rootAttributes = StaxXmlParserUtils.gatherRootAttributes(parser)
       convertObject(parser, schema, options, rootAttributes)
     } catch {

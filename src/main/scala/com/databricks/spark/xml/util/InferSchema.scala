@@ -82,7 +82,6 @@ private[xml] object InferSchema {
     }
     // perform schema inference on each row and merge afterwards
     val rootType = schemaData.mapPartitions { iter =>
-      val factory = StaxXmlParserUtils.buildFactory()
       val xsdSchema = Option(options.rowValidationXSDPath).map(ValidatorUtil.getSchema)
 
       iter.flatMap { xml =>
@@ -91,7 +90,7 @@ private[xml] object InferSchema {
             schema.newValidator().validate(new StreamSource(new StringReader(xml)))
           }
 
-          val parser = StaxXmlParserUtils.filteredReader(xml, factory)
+          val parser = StaxXmlParserUtils.filteredReader(xml)
           val rootAttributes = StaxXmlParserUtils.gatherRootAttributes(parser)
           Some(inferObject(parser, options, rootAttributes))
         } catch {

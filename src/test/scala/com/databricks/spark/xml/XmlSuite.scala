@@ -1169,4 +1169,20 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(result.select("decoded._corrupt_record").head().getString(0).nonEmpty)
   }
 
+  test("from_xml_string basic test") {
+    val xmlData =
+      """<parent foo="bar"><pid>14ft3</pid>
+        |  <name>dave guy</name>
+        |</parent>
+       """.stripMargin
+    import spark.implicits._
+    val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
+    val xmlSchema = schema_of_xml(df.select("payload").as[String])
+    val result = from_xml_string(xmlData, xmlSchema)
+
+    assert(result.getString(0) === "bar")
+    assert(result.getString(1) === "dave guy")
+    assert(result.getString(2) === "14ft3")
+  }
+
 }

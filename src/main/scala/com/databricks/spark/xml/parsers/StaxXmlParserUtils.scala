@@ -27,14 +27,14 @@ import com.databricks.spark.xml.XmlOptions
 
 private[xml] object StaxXmlParserUtils {
 
-  def buildFactory(): XMLInputFactory = {
+  private val factory: XMLInputFactory = {
     val factory = XMLInputFactory.newInstance()
     factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
     factory.setProperty(XMLInputFactory.IS_COALESCING, true)
     factory
   }
 
-  def filteredReader(xml: String, factory: XMLInputFactory): XMLEventReader = {
+  def filteredReader(xml: String): XMLEventReader = {
     val filter = new EventFilter {
       override def accept(event: XMLEvent): Boolean =
         // Ignore comments and processing instructions
