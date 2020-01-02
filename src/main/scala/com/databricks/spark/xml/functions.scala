@@ -19,7 +19,7 @@ package com.databricks.spark.xml
 import org.apache.spark.annotation.Experimental
 import org.apache.spark.sql.{Column, Dataset, Row}
 import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{ArrayType, DataType, StructType}
 
 import com.databricks.spark.xml.parsers.StaxXmlParser
 import com.databricks.spark.xml.util.InferSchema
@@ -41,14 +41,27 @@ object functions {
     InferSchema.infer(ds.rdd, XmlOptions(options))
 
   /**
+   * Infers the schema of XML documents when inputs are arrays of strings, each an XML doc.
+   *
+   * @param ds Dataset of XML strings
+   * @param options additional XML parsing options
+   * @return inferred schema for XML. Will be an ArrayType[StructType].
+   */
+  @Experimental
+  def schema_of_xml_array(ds: Dataset[Array[String]],
+      options: Map[String, String] = Map.empty): ArrayType =
+    ArrayType(InferSchema.infer(ds.rdd.flatMap(a => a), XmlOptions(options)))
+
+  /**
    * Parses a column containing a XML string into a `StructType` with the specified schema.
    *
    * @param e a string column containing XML data
-   * @param schema the schema to use when parsing the XML string
+   * @param schema the schema to use when parsing the XML string. Must be a StructType if
+   *   column is string-valued, or ArrayType[StructType] if column is an array of strings 
    * @param options key-value pairs that correspond to those supported by [[XmlOptions]]
    */
   @Experimental
-  def from_xml(e: Column, schema: StructType, options: Map[String, String] = Map.empty): Column = {
+  def from_xml(e: Column, schema: DataType, options: Map[String, String] = Map.empty): Column = {
     val expr = CatalystSqlParser.parseExpression(e.toString())
     new Column(XmlDataToCatalyst(expr, schema, XmlOptions(options)))
   }

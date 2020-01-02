@@ -20,11 +20,9 @@ import scala.collection.Map
 import org.apache.hadoop.io.compress.CompressionCodec
 
 import org.apache.spark.sql._
-
 import com.databricks.spark.xml.util.XmlFile
 
 package object xml {
-
   /**
    * Adds a method, `xmlFile`, to [[SQLContext]] that allows reading XML data.
    */
