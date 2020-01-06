@@ -94,17 +94,22 @@ Currently it supports the shortened name usage. You can use just `xml` instead o
 
 ### Parsing Nested XML
 
-Although primarily used to convert (portions of) large XML documents into a DataFrame, from version 0.8.0 onwards,
+Although primarily used to convert (portions of) large XML documents into a `DataFrame`, from version 0.8.0 onwards,
 `spark-xml` can also parse XML in a string-valued column in an existing DataFrame with `from_xml`, in order to add
 it as a new column with parsed results as a struct.
 
 ```scala
-import com.databricks.spark.xml.functions._
+import com.databricks.spark.xml.functions.from_xml
+import com.databricks.spark.xml.schema_of_xml
 import spark.implicits._
 val df = ... /// DataFrame with XML in column 'payload' 
 val payloadSchema = schema_of_xml(df.select("payload").as[String])
-val parsed = df.withColumn("decoded", from_xml(df.col("payload"), payloadSchema))
-``` 
+val parsed = df.withColumn("parsed", from_xml($"payload", payloadSchema))
+```
+
+- This can converts arrays of strings containing XML to arrays of parsed structs. Use `schema_of_xml_array` instead
+- `com.databricks.spark.xml.from_xml_string` is an alternative that operates on a String directly instead of a column,
+  for use in UDFsa
 
 ## Structure Conversion
 
