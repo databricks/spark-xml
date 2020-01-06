@@ -66,7 +66,7 @@ package object xml {
   implicit class XmlSchemaRDD(dataFrame: DataFrame) {
     @deprecated("Use write.format(\"xml\") or write.xml", "0.4.0")
     def saveAsXmlFile(
-        path: String, parameters: Map[String, String] = Map(),
+        path: String, parameters: scala.collection.Map[String, String] = Map(),
         compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
       val mutableParams = collection.mutable.Map(parameters.toSeq: _*)
       val safeCodec = mutableParams.get("codec")
