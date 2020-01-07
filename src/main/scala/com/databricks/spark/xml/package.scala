@@ -15,12 +15,14 @@
  */
 package com.databricks.spark
 
-import scala.collection.Map
-
 import org.apache.hadoop.io.compress.CompressionCodec
 
+import org.apache.spark.annotation.Experimental
 import org.apache.spark.sql._
-import com.databricks.spark.xml.util.XmlFile
+import org.apache.spark.sql.types.{ArrayType, StructType}
+
+import com.databricks.spark.xml.parsers.StaxXmlParser
+import com.databricks.spark.xml.util.{InferSchema, XmlFile}
 
 package object xml {
   /**
@@ -64,7 +66,7 @@ package object xml {
   implicit class XmlSchemaRDD(dataFrame: DataFrame) {
     @deprecated("Use write.format(\"xml\") or write.xml", "0.4.0")
     def saveAsXmlFile(
-        path: String, parameters: Map[String, String] = Map(),
+        path: String, parameters: scala.collection.Map[String, String] = Map(),
         compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
       val mutableParams = collection.mutable.Map(parameters.toSeq: _*)
       val safeCodec = mutableParams.get("codec")
@@ -111,4 +113,40 @@ package object xml {
     // Namely, roundtrip in writing and reading can end up in different schema structure.
     def xml: String => Unit = writer.format("com.databricks.spark.xml").save
   }
+
+  /**
+   * Infers the schema of XML documents as strings.
+   *
+   * @param ds Dataset of XML strings
+   * @param options additional XML parsing options
+   * @return inferred schema for XML
+   */
+  @Experimental
+  def schema_of_xml(ds: Dataset[String], options: Map[String, String] = Map.empty): StructType =
+    InferSchema.infer(ds.rdd, XmlOptions(options))
+
+  /**
+   * Infers the schema of XML documents when inputs are arrays of strings, each an XML doc.
+   *
+   * @param ds Dataset of XML strings
+   * @param options additional XML parsing options
+   * @return inferred schema for XML. Will be an ArrayType[StructType].
+   */
+  @Experimental
+  def schema_of_xml_array(ds: Dataset[Array[String]],
+                          options: Map[String, String] = Map.empty): ArrayType =
+    ArrayType(InferSchema.infer(ds.rdd.flatMap(a => a), XmlOptions(options)))
+
+  /**
+   * @param xml XML document to parse, as string
+   * @param schema the schema to use when parsing the XML string
+   * @param options key-value pairs that correspond to those supported by [[XmlOptions]]
+   * @return [[Row]] representing the parsed XML structure
+   */
+  @Experimental
+  def from_xml_string(xml: String, schema: StructType,
+                      options: Map[String, String] = Map.empty): Row = {
+    StaxXmlParser.parseColumn(xml, schema, XmlOptions(options))
+  }
+
 }

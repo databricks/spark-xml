@@ -106,7 +106,11 @@ val ignoredABIProblems = {
     exclude[DirectMissingMethodProblem](
       "com.databricks.spark.xml.util.CompressionCodecs.getCodecClass"),
     exclude[IncompatibleMethTypeProblem](
-      "com.databricks.spark.xml.parsers.StaxXmlGenerator.apply")
+      "com.databricks.spark.xml.parsers.StaxXmlGenerator.apply"),
+    ProblemFilters.exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.parsers.StaxXmlParser.com$databricks$spark$xml$parsers$StaxXmlParser$$failedRecord$default$3$1"),
+    ProblemFilters.exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.parsers.StaxXmlParser.com$databricks$spark$xml$parsers$StaxXmlParser$$failedRecord$default$2$1")
   )
 }
 

@@ -27,6 +27,7 @@ import org.apache.hadoop.io.compress.GzipCodec
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 import com.databricks.spark.xml.XmlOptions._
+import com.databricks.spark.xml.functions._
 import com.databricks.spark.xml.util._
 
 import org.apache.spark.sql.types._
@@ -1135,6 +1136,68 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
 
     assert(new XmlReader().xmlDataset(spark, df.as[String]).collect().length === 3)
     assert(spark.read.xml(df.as[String]).collect().length === 3)
+  }
+
+  test("from_xml basic test") {
+    val xmlData =
+      """<parent foo="bar"><pid>14ft3</pid>
+        |  <name>dave guy</name>
+        |</parent>
+       """.stripMargin
+    import spark.implicits._
+    val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
+    val xmlSchema = schema_of_xml(df.select("payload").as[String])
+    val expectedSchema = df.schema.add("decoded", xmlSchema)
+    val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
+
+    assert(expectedSchema === result.schema)
+    assert(result.select("decoded.pid").head().getString(0) === "14ft3")
+    assert(result.select("decoded._foo").head().getString(0) === "bar")
+  }
+
+  test("from_xml array basic test") {
+    val xmlData = Array(
+      "<parent><pid>14ft3</pid><name>dave guy</name></parent>",
+      "<parent><pid>12345</pid><name>other guy</name></parent>")
+    import spark.implicits._
+    val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
+    val xmlSchema = schema_of_xml_array(df.select("payload").as[Array[String]])
+    val expectedSchema = df.schema.add("decoded", xmlSchema)
+    val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
+
+    assert(expectedSchema === result.schema)
+    assert(result.selectExpr("decoded[0].pid").head().getString(0) === "14ft3")
+    assert(result.selectExpr("decoded[1].pid").head().getString(0) === "12345")
+  }
+
+  test("from_xml error test") {
+    // XML contains error
+    val xmlData =
+      """<parent foo="bar"><pid>14ft3
+        |  <name>dave guy</name>
+        |</parent>
+       """.stripMargin
+    import spark.implicits._
+    val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
+    val xmlSchema = schema_of_xml(df.select("payload").as[String])
+    val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
+    assert(result.select("decoded._corrupt_record").head().getString(0).nonEmpty)
+  }
+
+  test("from_xml_string basic test") {
+    val xmlData =
+      """<parent foo="bar"><pid>14ft3</pid>
+        |  <name>dave guy</name>
+        |</parent>
+       """.stripMargin
+    import spark.implicits._
+    val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
+    val xmlSchema = schema_of_xml(df.select("payload").as[String])
+    val result = from_xml_string(xmlData, xmlSchema)
+
+    assert(result.getString(0) === "bar")
+    assert(result.getString(1) === "dave guy")
+    assert(result.getString(2) === "14ft3")
   }
 
 }

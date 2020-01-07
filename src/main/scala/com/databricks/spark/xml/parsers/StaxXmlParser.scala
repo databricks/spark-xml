@@ -17,7 +17,7 @@ package com.databricks.spark.xml.parsers
 
 import java.io.StringReader
 
-import javax.xml.stream.{EventFilter, XMLEventReader, XMLInputFactory, XMLStreamConstants}
+import javax.xml.stream.{XMLEventReader, XMLInputFactory}
 import javax.xml.stream.events.{Attribute, Characters, EndElement, StartElement, XMLEvent}
 import javax.xml.transform.stream.StreamSource
 
@@ -46,52 +46,7 @@ private[xml] object StaxXmlParser extends Serializable {
       schema: StructType,
       options: XmlOptions): RDD[Row] = {
 
-    // The logic below is borrowed from Apache Spark's FailureSafeParser.
-    val corruptFieldIndex = Try(schema.fieldIndex(options.columnNameOfCorruptRecord)).toOption
-    val actualSchema = StructType(schema.filterNot(_.name == options.columnNameOfCorruptRecord))
-    val resultRow = new Array[Any](schema.length)
-    val toResultRow: (Option[Row], String) => Row = (row, badRecord) => {
-      var i = 0
-      while (i < actualSchema.length) {
-        val from = actualSchema(i)
-        resultRow(schema.fieldIndex(from.name)) = row.map(_.get(i)).orNull
-        i += 1
-      }
-      corruptFieldIndex.foreach(index => resultRow(index) = badRecord)
-      Row.fromSeq(resultRow)
-    }
-
-    def failedRecord(
-        record: String, cause: Throwable = null, partialResult: Option[Row] = None): Option[Row] = {
-      // create a row even if no corrupt record column is present
-      options.parseMode match {
-        case FailFastMode =>
-          throw new IllegalArgumentException(
-            s"Malformed line in FAILFAST mode: ${record.replaceAll("\n", "")}", cause)
-        case DropMalformedMode =>
-          val reason = if (cause != null) s"Reason: ${cause.getMessage}" else ""
-          logger.warn(s"Dropping malformed line: ${record.replaceAll("\n", "")}. $reason")
-          logger.debug("Malformed line cause:", cause)
-          None
-        case PermissiveMode =>
-          logger.debug("Malformed line cause:", cause)
-          Some(toResultRow(partialResult, record))
-      }
-    }
-
     xml.mapPartitions { iter =>
-      val factory = XMLInputFactory.newInstance()
-      factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
-      factory.setProperty(XMLInputFactory.IS_COALESCING, true)
-      val filter = new EventFilter {
-        override def accept(event: XMLEvent): Boolean =
-          // Ignore comments and processing instructions
-          event.getEventType match {
-            case XMLStreamConstants.COMMENT | XMLStreamConstants.PROCESSING_INSTRUCTION => false
-            case _ => true
-          }
-      }
-
       val xsdSchema = Option(options.rowValidationXSDPath).map(ValidatorUtil.getSchema)
 
       iter.flatMap { xml =>
@@ -100,24 +55,63 @@ private[xml] object StaxXmlParser extends Serializable {
             schema.newValidator().validate(new StreamSource(new StringReader(xml)))
           }
 
-          // It does not have to skip for white space, since `XmlInputFormat`
-          // always finds the root tag without a heading space.
-          val eventReader = factory.createXMLEventReader(new StringReader(xml))
-          val parser = factory.createFilteredReader(eventReader, filter)
-
-          val rootEvent =
-            StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
-          val rootAttributes =
-            rootEvent.asStartElement.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
+          val parser = StaxXmlParserUtils.filteredReader(xml)
+          val rootAttributes = StaxXmlParserUtils.gatherRootAttributes(parser)
           Some(convertObject(parser, schema, options, rootAttributes))
-            .orElse(failedRecord(xml))
+            .orElse(failedRecord(xml, options, schema))
         } catch {
           case e: PartialResultException =>
-            failedRecord(xml, e.cause, Some(e.partialResult))
+            failedRecord(xml, options, schema, e.cause, Some(e.partialResult))
           case NonFatal(e) =>
-            failedRecord(xml, e)
+            failedRecord(xml, options, schema, e)
         }
       }
+    }
+  }
+
+  def parseColumn(xml: String, schema: StructType, options: XmlOptions): Row = {
+    try {
+      val parser = StaxXmlParserUtils.filteredReader(xml)
+      val rootAttributes = StaxXmlParserUtils.gatherRootAttributes(parser)
+      convertObject(parser, schema, options, rootAttributes)
+    } catch {
+      case e: PartialResultException =>
+        // Null only if mode is DropMalformedMode
+        failedRecord(xml, options, schema, e.cause, Some(e.partialResult)).orNull
+      case NonFatal(e) =>
+        failedRecord(xml, options, schema, e).orNull
+    }
+  }
+
+  private def failedRecord(record: String,
+      options: XmlOptions,
+      schema: StructType,
+      cause: Throwable = null,
+      partialResult: Option[Row] = None): Option[Row] = {
+    // create a row even if no corrupt record column is present
+    options.parseMode match {
+      case FailFastMode =>
+        throw new IllegalArgumentException(
+          s"Malformed line in FAILFAST mode: ${record.replaceAll("\n", "")}", cause)
+      case DropMalformedMode =>
+        val reason = if (cause != null) s"Reason: ${cause.getMessage}" else ""
+        logger.warn(s"Dropping malformed line: ${record.replaceAll("\n", "")}. $reason")
+        logger.debug("Malformed line cause:", cause)
+        None
+      case PermissiveMode =>
+        logger.debug("Malformed line cause:", cause)
+        // The logic below is borrowed from Apache Spark's FailureSafeParser.
+        val corruptFieldIndex = Try(schema.fieldIndex(options.columnNameOfCorruptRecord)).toOption
+        val actualSchema = StructType(schema.filterNot(_.name == options.columnNameOfCorruptRecord))
+        val resultRow = new Array[Any](schema.length)
+        var i = 0
+        while (i < actualSchema.length) {
+          val from = actualSchema(i)
+          resultRow(schema.fieldIndex(from.name)) = partialResult.map(_.get(i)).orNull
+          i += 1
+        }
+        corruptFieldIndex.foreach(index => resultRow(index) = record)
+        Some(Row.fromSeq(resultRow))
     }
   }
 
