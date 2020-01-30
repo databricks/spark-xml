@@ -1199,5 +1199,25 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(result.getString(1) === "dave guy")
     assert(result.getString(2) === "14ft3")
   }
+  
+  test("from_xml with PERMISSIVE parse mode with no corrupt col schema") {
+    // XML contains error
+    val xmlData =
+      """<parent foo="bar"><pid>14ft3
+        |  <name>dave guy</name>
+        |</parent>
+       """.stripMargin
+    val xmlDataNoError =
+      """<parent foo="bar">
+        |  <name>dave guy</name>
+        |</parent>
+       """.stripMargin
+    import spark.implicits._
+    val dfNoError = spark.createDataFrame(Seq((8, xmlDataNoError))).toDF("number", "payload")
+    val xmlSchema = schema_of_xml(dfNoError.select("payload").as[String])
+    val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
+    val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
+    assert(result.select("decoded").head().get(0) === null)
+  }
 
 }
