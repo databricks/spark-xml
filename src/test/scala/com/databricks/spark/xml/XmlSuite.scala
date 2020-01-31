@@ -1199,7 +1199,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     assert(result.getString(1) === "dave guy")
     assert(result.getString(2) === "14ft3")
   }
-  
+
   test("from_xml with PERMISSIVE parse mode with no corrupt col schema") {
     // XML contains error
     val xmlData =
