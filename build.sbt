@@ -86,33 +86,11 @@ mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.8.0")
 
 val ignoredABIProblems = {
   import com.typesafe.tools.mima.core._
-  import com.typesafe.tools.mima.core.ProblemFilters._
   Seq(
-    exclude[IncompatibleResultTypeProblem](
-      "com.databricks.spark.xml.XmlOptions.DEFAULT_NULL_VALUE"),
-    exclude[MissingClassProblem]("com.databricks.spark.xml.DefaultSource15"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.XmlFile.DEFAULT_ROW_SEPARATOR"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.InferSchema.findTightestCommonTypeOfTwo"),
-    exclude[DirectMissingMethodProblem]("com.databricks.spark.xml.XmlOptions.dropMalformed"),
-    exclude[DirectMissingMethodProblem]("com.databricks.spark.xml.XmlOptions.permissive"),
-    exclude[DirectMissingMethodProblem]("com.databricks.spark.xml.XmlOptions.failFast"),
-    exclude[MissingClassProblem]("com.databricks.spark.xml.util.ParseModes"),
-    exclude[MissingClassProblem]("com.databricks.spark.xml.util.ParseModes$"),
-    exclude[MissingTypesProblem]("com.databricks.spark.xml.XmlRelation"),
-    exclude[DirectMissingMethodProblem]("com.databricks.spark.xml.XmlRelation.buildScan"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.parsers.StaxXmlParser.com$databricks$" +
-        "spark$xml$parsers$StaxXmlParser$$convertObject$default$4"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.CompressionCodecs.getCodecClass"),
-    exclude[IncompatibleMethTypeProblem](
-      "com.databricks.spark.xml.parsers.StaxXmlGenerator.apply"),
     ProblemFilters.exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.parsers.StaxXmlParser.com$databricks$spark$xml$parsers$StaxXmlParser$$failedRecord$default$3$1"),
+      "com.databricks.spark.xml.parsers.StaxXmlParser.com$databricks$spark$xml$parsers$StaxXmlParser$$failedRecord$default$5"),
     ProblemFilters.exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.parsers.StaxXmlParser.com$databricks$spark$xml$parsers$StaxXmlParser$$failedRecord$default$2$1")
+      "com.databricks.spark.xml.parsers.StaxXmlParser.com$databricks$spark$xml$parsers$StaxXmlParser$$failedRecord$default$4")
   )
 }
 

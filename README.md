@@ -109,7 +109,13 @@ val parsed = df.withColumn("parsed", from_xml($"payload", payloadSchema))
 
 - This can converts arrays of strings containing XML to arrays of parsed structs. Use `schema_of_xml_array` instead
 - `com.databricks.spark.xml.from_xml_string` is an alternative that operates on a String directly instead of a column,
-  for use in UDFsa
+  for use in UDFs
+- If you use `DROPMALFORMED` mode with `from_xml`, then XML values that do not parse correctly will result in a
+  `null` value for the column. No rows will be dropped.
+- If you use `PERMISSIVE` mode with `from_xml` et al, which is the default, then the parse mode will actually
+  instead default to `DROPMALFORMED`.
+  If however you include a column in the schema for `from_xml` that matches the `columnNameOfCorruptRecord`, then
+  `PERMISSIVE` mode will still output malformed records to that column in the resulting struct. 
 
 ## Structure Conversion
 

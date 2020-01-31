@@ -17,9 +17,10 @@ package com.databricks.spark.xml.parsers
 
 import java.io.StringReader
 
-import javax.xml.stream.{XMLEventReader, XMLInputFactory}
+import javax.xml.stream.XMLEventReader
 import javax.xml.stream.events.{Attribute, Characters, EndElement, StartElement, XMLEvent}
 import javax.xml.transform.stream.StreamSource
+import javax.xml.validation.Schema
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
@@ -45,51 +46,60 @@ private[xml] object StaxXmlParser extends Serializable {
       xml: RDD[String],
       schema: StructType,
       options: XmlOptions): RDD[Row] = {
-
     xml.mapPartitions { iter =>
       val xsdSchema = Option(options.rowValidationXSDPath).map(ValidatorUtil.getSchema)
-
       iter.flatMap { xml =>
-        try {
-          xsdSchema.foreach { schema =>
-            schema.newValidator().validate(new StreamSource(new StringReader(xml)))
-          }
-
-          val parser = StaxXmlParserUtils.filteredReader(xml)
-          val rootAttributes = StaxXmlParserUtils.gatherRootAttributes(parser)
-          Some(convertObject(parser, schema, options, rootAttributes))
-            .orElse(failedRecord(xml, options, schema))
-        } catch {
-          case e: PartialResultException =>
-            failedRecord(xml, options, schema, e.cause, Some(e.partialResult))
-          case NonFatal(e) =>
-            failedRecord(xml, options, schema, e)
-        }
+        doParseColumn(xml, schema, options, options.parseMode, xsdSchema)
       }
     }
   }
 
   def parseColumn(xml: String, schema: StructType, options: XmlOptions): Row = {
+    // The user=specified schema from from_xml, etc will typically not include a
+    // "corrupted record" column. In PERMISSIVE mode, which puts bad records in
+    // such a column, this would cause an error. In this mode, if such a column
+    // is not manually specified, then fall back to DROPMALFORMED, which will return
+    // null column values where parsing fails.
+    val parseMode =
+      if (options.parseMode == PermissiveMode &&
+          !schema.fields.exists(_.name == options.columnNameOfCorruptRecord)) {
+        DropMalformedMode
+      } else {
+        options.parseMode
+      }
+    val xsdSchema = Option(options.rowValidationXSDPath).map(ValidatorUtil.getSchema)
+    doParseColumn(xml, schema, options, parseMode, xsdSchema).orNull
+  }
+
+  private def doParseColumn(xml: String,
+      schema: StructType,
+      options: XmlOptions,
+      parseMode: ParseMode,
+      xsdSchema: Option[Schema]): Option[Row] = {
     try {
+      xsdSchema.foreach { schema =>
+        schema.newValidator().validate(new StreamSource(new StringReader(xml)))
+      }
       val parser = StaxXmlParserUtils.filteredReader(xml)
       val rootAttributes = StaxXmlParserUtils.gatherRootAttributes(parser)
-      convertObject(parser, schema, options, rootAttributes)
+      Some(convertObject(parser, schema, options, rootAttributes))
     } catch {
       case e: PartialResultException =>
-        // Null only if mode is DropMalformedMode
-        failedRecord(xml, options, schema, e.cause, Some(e.partialResult)).orNull
+        failedRecord(xml, options, parseMode, schema,
+          e.cause, Some(e.partialResult))
       case NonFatal(e) =>
-        failedRecord(xml, options, schema, e).orNull
+        failedRecord(xml, options, parseMode, schema, e)
     }
   }
 
   private def failedRecord(record: String,
       options: XmlOptions,
+      parseMode: ParseMode,
       schema: StructType,
       cause: Throwable = null,
       partialResult: Option[Row] = None): Option[Row] = {
     // create a row even if no corrupt record column is present
-    options.parseMode match {
+    parseMode match {
       case FailFastMode =>
         throw new IllegalArgumentException(
           s"Malformed line in FAILFAST mode: ${record.replaceAll("\n", "")}", cause)
