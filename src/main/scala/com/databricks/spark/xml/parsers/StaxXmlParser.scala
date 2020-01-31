@@ -70,7 +70,7 @@ private[xml] object StaxXmlParser extends Serializable {
     val xsdSchema = Option(options.rowValidationXSDPath).map(ValidatorUtil.getSchema)
     doParseColumn(xml, schema, options, parseMode, xsdSchema).orNull
   }
-  
+
   private def doParseColumn(xml: String,
       schema: StructType,
       options: XmlOptions,
