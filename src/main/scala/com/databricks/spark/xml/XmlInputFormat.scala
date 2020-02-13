@@ -171,11 +171,12 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     if (readUntilStartElement()) {
       try {
         buffer.append(currentStartTag)
-        if (readUntilEndElement(currentStartTag.endsWith(">"))) {
-          key.set(getFilePosition())
-          value.set(buffer.toString())
-          return true
-        }
+        // Don't check whether the end element was found. Even if not, return everything
+        // that was read, which will invariably cause a parse error later
+        readUntilEndElement(currentStartTag.endsWith(">"))
+        key.set(getFilePosition())
+        value.set(buffer.toString())
+        return true
       } finally {
         buffer = new StringBuilder()
       }

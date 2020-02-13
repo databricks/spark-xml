@@ -81,6 +81,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   private val basket = resDir + "basket.xml"
   private val basketInvalid = resDir + "basket_invalid.xml"
   private val basketXSD = resDir + "basket.xsd"
+  private val unclosedTag = resDir + "unclosed_tag.xml"
 
   private val booksTag = "book"
   private val booksRootTag = "books"
@@ -298,6 +299,17 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
         .withFailFast(true)
         .xmlFile(spark, carsMalformedFile)
         .collect()
+    }
+    assert(exceptionInParse.getMessage.contains("Malformed line in FAILFAST mode"))
+  }
+
+  test("test FAILFAST with unclosed tag") {
+    val exceptionInParse = intercept[SparkException] {
+      spark.read
+        .option("rowTag", "book")
+        .option("mode", "FAILFAST")
+        .xml(unclosedTag)
+        .show()
     }
     assert(exceptionInParse.getMessage.contains("Malformed line in FAILFAST mode"))
   }

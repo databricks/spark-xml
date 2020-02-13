@@ -101,11 +101,15 @@ private[xml] object StaxXmlParser extends Serializable {
     // create a row even if no corrupt record column is present
     parseMode match {
       case FailFastMode =>
+        val abbreviatedRecord =
+          if (record.length() > 1000) record.substring(0, 1000) + "..." else record
         throw new IllegalArgumentException(
-          s"Malformed line in FAILFAST mode: ${record.replaceAll("\n", "")}", cause)
+          s"Malformed line in FAILFAST mode: ${abbreviatedRecord.replaceAll("\n", "")}", cause)
       case DropMalformedMode =>
         val reason = if (cause != null) s"Reason: ${cause.getMessage}" else ""
-        logger.warn(s"Dropping malformed line: ${record.replaceAll("\n", "")}. $reason")
+        val abbreviatedRecord =
+          if (record.length() > 1000) record.substring(0, 1000) + "..." else record
+        logger.warn(s"Dropping malformed line: ${abbreviatedRecord.replaceAll("\n", "")}. $reason")
         logger.debug("Malformed line cause:", cause)
         None
       case PermissiveMode =>
