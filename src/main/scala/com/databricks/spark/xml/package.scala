@@ -126,6 +126,17 @@ package object xml {
     InferSchema.infer(ds.rdd, XmlOptions(options))
 
   /**
+   * Infers the schema of XML documents as strings.
+   *
+   * @param df one-column DataFrame of XML strings
+   * @param options additional XML parsing options
+   * @return inferred schema for XML
+   */
+  @Experimental
+  def schema_of_xml_df(df: DataFrame, options: Map[String, String] = Map.empty): StructType =
+    schema_of_xml(df.as[String](Encoders.STRING), options);
+
+  /**
    * Infers the schema of XML documents when inputs are arrays of strings, each an XML doc.
    *
    * @param ds Dataset of XML strings

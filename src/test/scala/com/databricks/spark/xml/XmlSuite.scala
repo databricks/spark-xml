@@ -1146,7 +1146,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
        """.stripMargin
     import spark.implicits._
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
-    val xmlSchema = schema_of_xml(df.select("payload").as[String])
+    val xmlSchema = schema_of_xml_df(df.select("payload"))
     val expectedSchema = df.schema.add("decoded", xmlSchema)
     val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
 
@@ -1179,7 +1179,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
        """.stripMargin
     import spark.implicits._
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
-    val xmlSchema = schema_of_xml(df.select("payload").as[String])
+    val xmlSchema = schema_of_xml_df(df.select("payload"))
     val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
     assert(result.select("decoded._corrupt_record").head().getString(0).nonEmpty)
   }
@@ -1192,7 +1192,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
        """.stripMargin
     import spark.implicits._
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
-    val xmlSchema = schema_of_xml(df.select("payload").as[String])
+    val xmlSchema = schema_of_xml_df(df.select("payload"))
     val result = from_xml_string(xmlData, xmlSchema)
 
     assert(result.getString(0) === "bar")
@@ -1214,7 +1214,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
        """.stripMargin
     import spark.implicits._
     val dfNoError = spark.createDataFrame(Seq((8, xmlDataNoError))).toDF("number", "payload")
-    val xmlSchema = schema_of_xml(dfNoError.select("payload").as[String])
+    val xmlSchema = schema_of_xml_df(dfNoError.select("payload"))
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
     val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
     assert(result.select("decoded").head().get(0) === null)
