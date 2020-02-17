@@ -34,7 +34,7 @@ import com.databricks.spark.xml.util.TypeCast._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 
-private[xml] object InferSchema {
+object InferSchema {
 
   /**
    * Copied from internal Spark api
@@ -69,6 +69,16 @@ private[xml] object InferSchema {
   }
 
   /**
+   * Infer the type of a xml string.
+   * Useful for doing row by row schema inference
+   */
+  def infer(xml: String, options: XmlOptions): Option[StructType] = {
+    inferDataType(xml, options)
+      .flatMap(canonicalizeType)
+      .map(structTypeProjection)
+  }
+
+  /**
    * Infer the type of a collection of XML records in three stages:
    *   1. Infer the type of each record
    *   2. Merge types by choosing the lowest type necessary to cover equal keys
@@ -82,23 +92,8 @@ private[xml] object InferSchema {
     }
     // perform schema inference on each row and merge afterwards
     val rootType = schemaData.mapPartitions { iter =>
-      val xsdSchema = Option(options.rowValidationXSDPath).map(ValidatorUtil.getSchema)
-
       iter.flatMap { xml =>
-        try {
-          xsdSchema.foreach { schema =>
-            schema.newValidator().validate(new StreamSource(new StringReader(xml)))
-          }
-
-          val parser = StaxXmlParserUtils.filteredReader(xml)
-          val rootAttributes = StaxXmlParserUtils.gatherRootAttributes(parser)
-          Some(inferObject(parser, options, rootAttributes))
-        } catch {
-          case NonFatal(_) if options.parseMode == PermissiveMode =>
-            Some(StructType(Seq(StructField(options.columnNameOfCorruptRecord, StringType))))
-          case NonFatal(_) =>
-            None
-        }
+        inferDataType(xml, options)
       }
     }.fold(StructType(Seq()))(compatibleType(options))
 
@@ -107,6 +102,34 @@ private[xml] object InferSchema {
       case _ =>
         // canonicalizeType erases all empty structs, including the only one we want to keep
         StructType(Seq())
+    }
+  }
+
+  private def inferDataType(
+      xml: String,
+      options: XmlOptions
+  ): Option[DataType] = {
+    val xsdSchema = Option(options.rowValidationXSDPath).map(ValidatorUtil.getSchema)
+
+    try {
+      xsdSchema.foreach { schema =>
+        schema.newValidator().validate(new StreamSource(new StringReader(xml)))
+      }
+      val parser = StaxXmlParserUtils.filteredReader(xml)
+      val rootAttributes = StaxXmlParserUtils.gatherRootAttributes(parser)
+      Some(inferObject(parser, options, rootAttributes))
+    } catch {
+      case NonFatal(_) if options.parseMode == PermissiveMode =>
+        Some(StructType(Seq(StructField(options.columnNameOfCorruptRecord, StringType))))
+      case NonFatal(_) =>
+        None
+    }
+  }
+
+  private def structTypeProjection(rootType: DataType): StructType = {
+    rootType match {
+      case st: StructType => st
+      case _ => StructType(Seq())
     }
   }
 
