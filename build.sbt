@@ -12,7 +12,7 @@ crossScalaVersions := Seq("2.11.12", "2.12.10")
 
 scalacOptions := Seq("-unchecked", "-deprecation")
 
-sparkVersion := sys.props.get("spark.testVersion").getOrElse("2.4.4")
+sparkVersion := sys.props.get("spark.testVersion").getOrElse("2.4.5")
 
 sparkComponents := Seq("core", "sql")
 
@@ -23,7 +23,7 @@ libraryDependencies ++= Seq(
   "commons-io" % "commons-io" % "2.6",
   "org.glassfish.jaxb" % "txw2" % "2.3.2",
   "org.slf4j" % "slf4j-api" % "1.7.25" % Provided,
-  "org.scalatest" %% "scalatest" % "3.0.8" % Test,
+  "org.scalatest" %% "scalatest" % "3.1.1" % Test,
   "com.novocode" % "junit-interface" % "0.11" % Test,
   "org.apache.spark" %% "spark-core" % sparkVersion.value % Test,
   "org.apache.spark" %% "spark-sql" % sparkVersion.value % Test,
