@@ -1,6 +1,6 @@
 name := "spark-xml"
 
-version := "0.9.0"
+version := "0.10.0"
 
 organization := "com.databricks"
 
@@ -82,15 +82,11 @@ test in assembly := {}
 // Prints JUnit tests in output
 testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
 
-mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.8.0")
+mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.9.0")
 
 val ignoredABIProblems = {
   import com.typesafe.tools.mima.core._
   Seq(
-    ProblemFilters.exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.parsers.StaxXmlParser.com$databricks$spark$xml$parsers$StaxXmlParser$$failedRecord$default$5"),
-    ProblemFilters.exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.parsers.StaxXmlParser.com$databricks$spark$xml$parsers$StaxXmlParser$$failedRecord$default$4")
   )
 }
 
