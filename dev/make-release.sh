@@ -15,19 +15,19 @@
 #
 # 4. Run this script, for instance, as below:
 #   'USERNAME=username PASSWORD=password dev/make-release.sh'
-#   USERNAME and PASSWORD are the user name and password for Sonatype Nexsus Repository Manager.
+#   USERNAME and PASSWORD are the user name and password for Sonatype Nexus Repository Manager.
 #
-# 5. After pushing the artifect to staging repogitory by running this script, you can manually
+# 5. After pushing the artifact to staging repository by running this script, you can manually
 #   release it in https://oss.sonatype.org.
 #   See also https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html
 
 if [[ -z "${USERNAME}" ]]; then
-  echo "'USERNAME' environment varible for 'Sonatype Nexus Repository Manager' is undefiend."
+  echo "'USERNAME' environment variable for 'Sonatype Nexus Repository Manager' is undefined."
   exit 1
 fi
 
 if [[ -z "${PASSWORD}" ]]; then
-  echo "'PASSWORD' environment varible for 'Sonatype Nexus Repository Manager' is undefiend."
+  echo "'PASSWORD' environment variable for 'Sonatype Nexus Repository Manager' is undefined."
   exit 1
 fi
 
