@@ -115,6 +115,17 @@ package object xml {
   }
 
   /**
+   * Infers the schema of an XML document as a string.
+   *
+   * @param s XML string
+   * @param options additional XML parsing options
+   * @return inferred schema for XML
+   */
+  @Experimental
+  def schema_of_xml_from_string(s: String, options: Map[String, String] = Map.empty): StructType =
+    InferSchema.infer(s, XmlOptions(options))
+
+  /**
    * Infers the schema of XML documents as strings.
    *
    * @param ds Dataset of XML strings

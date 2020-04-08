@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interchange>
+  <date>201903060708</date>
+  <message>
+    <id>1</id>
+    <sender>sender 1</sender>
+    <recipient>recipient 1</recipient>
+  </message>
+  <message>
+    <id>2</id>
+    <sender>sender 2</sender>
+    <recipient>recipient 2</recipient>
+  </message>
+  <message>
+    <id>3</id>
+    <sender>sender 3</sender>
+    <recipient>recipient 3</recipient>
+  </message>
+</interchange>

@@ -34,7 +34,7 @@ import com.databricks.spark.xml.util.TypeCast._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 
-object InferSchema {
+private[xml] object InferSchema {
 
   /**
    * Copied from internal Spark api
@@ -72,10 +72,11 @@ object InferSchema {
    * Infer the type of a xml string.
    * Useful for doing row by row schema inference
    */
-  def infer(xml: String, options: XmlOptions): Option[StructType] = {
+  def infer(xml: String, options: XmlOptions): StructType = {
     inferDataType(xml, options)
       .flatMap(canonicalizeType)
       .map(structTypeProjection)
+      .getOrElse(StructType(Seq()))
   }
 
   /**
