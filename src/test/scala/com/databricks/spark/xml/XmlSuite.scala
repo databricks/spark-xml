@@ -1232,7 +1232,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
     assert(result.select("decoded").head().get(0) === null)
   }
-  
+
   test("double field encounters whitespace-only value") {
     val schema = buildSchema(struct("Book", field("Price", DoubleType)), field("_corrupt_record"))
     val whitespaceDF = spark.read
