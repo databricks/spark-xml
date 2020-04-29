@@ -153,19 +153,6 @@ private[xml] object StaxXmlParser extends Serializable {
           ""
         }
       case (_: EndElement, _: DataType) => null
-      case (c: Characters, _: DataType) if c.isWhiteSpace =>
-        // When `Characters` is found, we need to look further to decide
-        // if this is really data or space between other elements.
-        val data = c.getData
-        parser.next
-        parser.peek match {
-          case _: StartElement => convertComplicatedType(dataType)
-          case _: EndElement if data.isEmpty => null
-          case _: EndElement if options.treatEmptyValuesAsNulls => null
-          case _: EndElement => data
-          case _ => convertField(parser, dataType, options)
-        }
-
       case (c: Characters, ArrayType(st, _)) =>
         // For `ArrayType`, it needs to return the type of element. The values are merged later.
         convertTo(c.getData, st, options)
@@ -186,6 +173,18 @@ private[xml] object StaxXmlParser extends Serializable {
           // structure
           parser.next
           convertObject(parser, st, options)
+        }
+      case (c: Characters, _: DataType) if c.isWhiteSpace =>
+        // When `Characters` is found, we need to look further to decide
+        // if this is really data or space between other elements.
+        val data = c.getData
+        parser.next
+        parser.peek match {
+          case _: StartElement => convertComplicatedType(dataType)
+          case _: EndElement if data.isEmpty => null
+          case _: EndElement if options.treatEmptyValuesAsNulls => null
+          case _: EndElement => convertTo(data, dataType, options)
+          case _ => convertField(parser, dataType, options)
         }
       case (c: Characters, dt: DataType) =>
         convertTo(c.getData, dt, options)
