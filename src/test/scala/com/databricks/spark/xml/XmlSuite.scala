@@ -82,6 +82,7 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
   private val basketInvalid = resDir + "basket_invalid.xml"
   private val basketXSD = resDir + "basket.xsd"
   private val unclosedTag = resDir + "unclosed_tag.xml"
+  private val whitespaceError = resDir + "whitespace_error.xml"
 
   private val booksTag = "book"
   private val booksRootTag = "books"
@@ -1230,6 +1231,17 @@ final class XmlSuite extends FunSuite with BeforeAndAfterAll {
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
     val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
     assert(result.select("decoded").head().get(0) === null)
+  }
+
+  test("double field encounters whitespace-only value") {
+    val schema = buildSchema(struct("Book", field("Price", DoubleType)), field("_corrupt_record"))
+    val whitespaceDF = spark.read
+      .option("rowTag", "Books")
+      .schema(schema)
+      .xml(whitespaceError)
+
+    assert(whitespaceDF.count() === 1)
+    assert(whitespaceDF.take(1).head.getAs[String]("_corrupt_record") !== null)
   }
 
 }
