@@ -71,7 +71,7 @@ object TypeCast {
           ), datum)
         case _: DateType => parseXmlDate(List(
             DateTimeFormatter.ISO_DATE
-          ), datum)        
+          ), datum)
         case _: StringType => datum
         case _ => throw new IllegalArgumentException(s"Unsupported type: ${castType.typeName}")
       }
@@ -100,7 +100,7 @@ object TypeCast {
             parseXmlDate(tail, value)
         }
     }
-  }  
+  }
 
   @scala.annotation.tailrec
   def parseXmlTimestamp(formatters: List[DateTimeFormatter], value: String): Timestamp = {
