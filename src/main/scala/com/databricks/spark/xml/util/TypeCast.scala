@@ -83,7 +83,8 @@ object TypeCast {
   }
 
   val supportedXmlDateFormatters = List(
-    // '2011-12-03+01:00'; '2011-12-03'
+    // 2011-12-03
+    // 2011-12-03+01:00
     DateTimeFormatter.ISO_DATE
   )
 
@@ -102,7 +103,7 @@ object TypeCast {
   }
 
   val supportedXmlTimestampFormatters = List(
-    // "2002-05-30 21:46:54"
+    // 2002-05-30 21:46:54
     new DateTimeFormatterBuilder()
       .parseCaseInsensitive()
       .append(DateTimeFormatter.ISO_LOCAL_DATE)
