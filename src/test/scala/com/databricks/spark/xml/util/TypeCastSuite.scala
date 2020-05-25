@@ -17,6 +17,7 @@ package com.databricks.spark.xml.util
 
 import java.math.BigDecimal
 import java.sql.{Date, Timestamp}
+import java.time.{ZoneId, ZonedDateTime}
 import java.util.Locale
 
 import org.scalatest.FunSuite
@@ -71,10 +72,26 @@ final class TypeCastSuite extends FunSuite {
     assert(TypeCast.castTo("1", BooleanType, options) === true)
     assert(TypeCast.castTo("false", BooleanType, options) === false)
     assert(TypeCast.castTo("0", BooleanType, options) === false)
-    val timestamp = "2015-01-01 00:00:00"
-    assert(
-      TypeCast.castTo(timestamp, TimestampType, options) === Timestamp.valueOf(timestamp))
-    assert(TypeCast.castTo("2015-01-01", DateType, options) === Date.valueOf("2015-01-01"))
+    assert(TypeCast.castTo("2002-05-30T21:46:54", TimestampType, options) === 
+      Timestamp.from(ZonedDateTime.of(2002, 5, 30, 21, 46, 54, 0, ZoneId.of("UTC")).toInstant()))
+    assert(TypeCast.castTo("2002-05-30T21:46:54.1234", TimestampType, options) === 
+      Timestamp.from(ZonedDateTime.of(2002, 5, 30, 21, 46, 54, 123400000, ZoneId.of("UTC")).toInstant()))
+    assert(TypeCast.castTo("2002-05-30T21:46:54Z", TimestampType, options) === 
+      Timestamp.from(ZonedDateTime.of(2002, 5, 30, 21, 46, 54, 0, ZoneId.of("UTC")).toInstant()))
+    assert(TypeCast.castTo("2002-05-30T21:46:54-06:00", TimestampType, options) === 
+      Timestamp.from(ZonedDateTime.of(2002, 5, 30, 21, 46, 54, 0, ZoneId.of("-06:00")).toInstant()))
+    assert(TypeCast.castTo("2002-05-30T21:46:54+06:00", TimestampType, options) === 
+      Timestamp.from(ZonedDateTime.of(2002, 5, 30, 21, 46, 54, 0, ZoneId.of("+06:00")).toInstant()))
+    assert(TypeCast.castTo("2002-05-30T21:46:54.1234Z", TimestampType, options) === 
+      Timestamp.from(ZonedDateTime.of(2002, 5, 30, 21, 46, 54, 123400000, ZoneId.of("UTC")).toInstant()))
+    assert(TypeCast.castTo("2002-05-30T21:46:54.1234-06:00", TimestampType, options) === 
+      Timestamp.from(ZonedDateTime.of(2002, 5, 30, 21, 46, 54, 123400000, ZoneId.of("-06:00")).toInstant()))
+    assert(TypeCast.castTo("2002-05-30T21:46:54.1234+06:00", TimestampType, options) === 
+      Timestamp.from(ZonedDateTime.of(2002, 5, 30, 21, 46, 54, 123400000, ZoneId.of("+06:00")).toInstant()))      
+    assert(TypeCast.castTo("2002-09-24", DateType, options) === Date.valueOf("2002-09-24"))
+    assert(TypeCast.castTo("2002-09-24Z", DateType, options) === Date.valueOf("2002-09-24"))
+    assert(TypeCast.castTo("2002-09-24-06:00", DateType, options) === Date.valueOf("2002-09-24"))
+    assert(TypeCast.castTo("2002-09-24+06:00", DateType, options) === Date.valueOf("2002-09-24"))
   }
 
   test("Types with sign are cast correctly") {

@@ -19,6 +19,8 @@ import java.math.BigDecimal
 import java.sql.{Date, Timestamp}
 import java.text.NumberFormat
 import java.util.Locale
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, ZoneId, ZonedDateTime}
 
 import scala.util.Try
 import scala.util.control.Exception._
@@ -62,8 +64,14 @@ object TypeCast {
           .getOrElse(NumberFormat.getInstance(Locale.getDefault).parse(datum).doubleValue())
         case _: BooleanType => parseXmlBoolean(datum)
         case _: DecimalType => new BigDecimal(datum.replaceAll(",", ""))
-        case _: TimestampType => Timestamp.valueOf(datum)
-        case _: DateType => Date.valueOf(datum)
+        case _: TimestampType => parseXmlTimestamp(List(
+            DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.of("UTC")),
+            DateTimeFormatter.ISO_OFFSET_DATE_TIME,
+            DateTimeFormatter.ISO_INSTANT
+          ), datum)
+        case _: DateType => parseXmlDate(List(
+            DateTimeFormatter.ISO_DATE
+          ), datum)        
         case _: StringType => datum
         case _ => throw new IllegalArgumentException(s"Unsupported type: ${castType.typeName}")
       }
@@ -77,6 +85,34 @@ object TypeCast {
       case "1" => true
       case "0" => false
       case _ => throw new IllegalArgumentException(s"For input string: $s")
+    }
+  }
+
+  @scala.annotation.tailrec
+  def parseXmlDate(formatters: List[DateTimeFormatter], value: String): Date = {
+    formatters match {
+      case Nil => throw new IllegalArgumentException(s"cannot convert value $value to Date")
+      case head :: tail =>
+        try {
+          java.sql.Date.valueOf(LocalDate.parse(value, head))
+        } catch {
+          case e: Exception =>
+            parseXmlDate(tail, value)
+        }
+    }
+  }  
+
+  @scala.annotation.tailrec
+  def parseXmlTimestamp(formatters: List[DateTimeFormatter], value: String): Timestamp = {
+    formatters match {
+      case Nil => throw new IllegalArgumentException(s"cannot convert value $value to Timestamp")
+      case head :: tail =>
+        try {
+          Timestamp.from(ZonedDateTime.parse(value, head).toInstant)
+        } catch {
+          case e: Exception =>
+            parseXmlTimestamp(tail, value)
+        }
     }
   }
 
