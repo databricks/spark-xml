@@ -18,6 +18,8 @@ package com.databricks.spark.xml.util
 import java.math.BigDecimal
 import java.sql.{Date, Timestamp}
 import java.text.NumberFormat
+import java.time.{LocalDate, ZoneId, ZonedDateTime}
+import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import java.util.Locale
 
 import scala.util.Try
@@ -62,8 +64,8 @@ object TypeCast {
           .getOrElse(NumberFormat.getInstance(Locale.getDefault).parse(datum).doubleValue())
         case _: BooleanType => parseXmlBoolean(datum)
         case _: DecimalType => new BigDecimal(datum.replaceAll(",", ""))
-        case _: TimestampType => Timestamp.valueOf(datum)
-        case _: DateType => Date.valueOf(datum)
+        case _: TimestampType => parseXmlTimestamp(supportedXmlTimestampFormatters, datum)
+        case _: DateType => parseXmlDate(supportedXmlDateFormatters, datum)
         case _: StringType => datum
         case _ => throw new IllegalArgumentException(s"Unsupported type: ${castType.typeName}")
       }
@@ -77,6 +79,57 @@ object TypeCast {
       case "1" => true
       case "0" => false
       case _ => throw new IllegalArgumentException(s"For input string: $s")
+    }
+  }
+
+  val supportedXmlDateFormatters = List(
+    // 2011-12-03
+    // 2011-12-03+01:00
+    DateTimeFormatter.ISO_DATE
+  )
+
+  @scala.annotation.tailrec
+  def parseXmlDate(formatters: List[DateTimeFormatter], value: String): Date = {
+    formatters match {
+      case Nil => throw new IllegalArgumentException(s"cannot convert value $value to Date")
+      case head :: tail =>
+        try {
+          java.sql.Date.valueOf(LocalDate.parse(value, head))
+        } catch {
+          case e: Exception =>
+            parseXmlDate(tail, value)
+        }
+    }
+  }
+
+  val supportedXmlTimestampFormatters = List(
+    // 2002-05-30 21:46:54
+    new DateTimeFormatterBuilder()
+      .parseCaseInsensitive()
+      .append(DateTimeFormatter.ISO_LOCAL_DATE)
+      .appendLiteral(' ')
+      .append(DateTimeFormatter.ISO_LOCAL_TIME)
+      .toFormatter()
+      .withZone(ZoneId.of("UTC")),
+    // 2002-05-30T21:46:54
+    DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.of("UTC")),
+    // 2002-05-30T21:46:54+06:00
+    DateTimeFormatter.ISO_OFFSET_DATE_TIME,
+    // 2002-05-30T21:46:54.1234Z
+    DateTimeFormatter.ISO_INSTANT
+  )
+
+  @scala.annotation.tailrec
+  def parseXmlTimestamp(formatters: List[DateTimeFormatter], value: String): Timestamp = {
+    formatters match {
+      case Nil => throw new IllegalArgumentException(s"cannot convert value $value to Timestamp")
+      case head :: tail =>
+        try {
+          Timestamp.from(ZonedDateTime.parse(value, head).toInstant)
+        } catch {
+          case e: Exception =>
+            parseXmlTimestamp(tail, value)
+        }
     }
   }
 
