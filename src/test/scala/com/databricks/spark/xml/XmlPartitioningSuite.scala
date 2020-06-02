@@ -15,12 +15,14 @@
 package com.databricks.spark.xml
 
 import org.apache.spark.sql.SparkSession
-import org.scalatest.{ BeforeAndAfterAll, FunSuite, Matchers }
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Tests various cases of partition size, compression.
  */
-final class XmlPartitioningSuite extends FunSuite with Matchers with BeforeAndAfterAll {
+final class XmlPartitioningSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
 
   private def doPartitionTest(suffix: String, blockSize: Long, large: Boolean): Unit = {
     val spark = SparkSession.builder()

@@ -24,7 +24,8 @@ import scala.io.Source
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.io.compress.GzipCodec
-import org.scalatest.{BeforeAndAfterAll, FunSuite}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funsuite.AnyFunSuite
 
 import com.databricks.spark.xml.XmlOptions._
 import com.databricks.spark.xml.functions._
@@ -34,7 +35,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Row, SaveMode, SparkSession}
 import org.apache.spark.SparkException
 
-final class XmlSuite extends FunSuite with BeforeAndAfterAll {
+final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
 
   private val resDir = "src/test/resources/"
   private val agesFile = resDir + "ages.xml"

@@ -75,7 +75,7 @@ private[xml] object StaxXmlGenerator {
 
     def writeElement(dt: DataType, v: Any): Unit = (dt, v) match {
       case (_, null) | (NullType, _) => writer.writeCharacters(options.nullValue)
-      case (StringType, v: String) => writer.writeCharacters(v.toString)
+      case (StringType, v: String) => writer.writeCharacters(v)
       case (TimestampType, v: java.sql.Timestamp) => writer.writeCharacters(v.toString)
       case (IntegerType, v: Int) => writer.writeCharacters(v.toString)
       case (ShortType, v: Short) => writer.writeCharacters(v.toString)

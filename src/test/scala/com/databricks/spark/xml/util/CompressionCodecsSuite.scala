@@ -17,9 +17,9 @@ package com.databricks.spark.xml.util
 
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.util.VersionInfo
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
-final class CompressionCodecsSuite extends FunSuite {
+final class CompressionCodecsSuite extends AnyFunSuite {
 
   test("Get classes of compression codecs") {
     assert(CompressionCodecs.getCodecClass(classOf[GzipCodec].getName) == classOf[GzipCodec])

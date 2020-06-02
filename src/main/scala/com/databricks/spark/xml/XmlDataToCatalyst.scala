@@ -44,7 +44,7 @@ case class XmlDataToCatalyst(
       CatalystTypeConverters.convertToCatalyst(
         StaxXmlParser.parseColumn(string.toString, rowSchema, options))
     case string: String =>
-      StaxXmlParser.parseColumn(string.toString, rowSchema, options)
+      StaxXmlParser.parseColumn(string, rowSchema, options)
     case arr: GenericArrayData =>
       CatalystTypeConverters.convertToCatalyst(
         arr.array.map(s => StaxXmlParser.parseColumn(s.toString, rowSchema, options)))
