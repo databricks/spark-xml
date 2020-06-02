@@ -58,8 +58,13 @@ class XmlReader extends Serializable {
     this
   }
 
+  @deprecated("Use withParseMode(\"FAILFAST\") instead", "0.10.0")
   def withFailFast(failFast: Boolean): XmlReader = {
-    parameters += ("mode" -> FailFastMode.name)
+    if (failFast) {
+      parameters += ("mode" -> FailFastMode.name)
+    } else {
+      parameters -= "mode"
+    }
     this
   }
 
