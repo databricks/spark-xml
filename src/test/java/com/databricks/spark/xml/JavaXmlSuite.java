@@ -27,6 +27,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
 public final class JavaXmlSuite {
@@ -61,7 +62,7 @@ public final class JavaXmlSuite {
 
     @Test
     public void testXmlParser() {
-        Dataset df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(spark, booksFile);
+        Dataset<Row> df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(spark, booksFile);
         String prefix = XmlOptions.DEFAULT_ATTRIBUTE_PREFIX();
         long result = df.select(prefix + "id").count();
         Assert.assertEquals(result, numBooks);
@@ -71,7 +72,7 @@ public final class JavaXmlSuite {
     public void testLoad() {
         Map<String, String> options = new HashMap<>();
         options.put("rowTag", booksFileTag);
-        Dataset df = spark.read().options(options).format("xml").load(booksFile);
+        Dataset<Row> df = spark.read().options(options).format("xml").load(booksFile);
         long result = df.select("description").count();
         Assert.assertEquals(result, numBooks);
     }
@@ -80,10 +81,10 @@ public final class JavaXmlSuite {
     public void testSave() throws IOException {
         Path booksPath = getEmptyTempDir().resolve("booksFile");
 
-        Dataset df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(spark, booksFile);
+        Dataset<Row> df = (new XmlReader()).withRowTag(booksFileTag).xmlFile(spark, booksFile);
         df.select("price", "description").write().format("xml").save(booksPath.toString());
 
-        Dataset newDf = (new XmlReader()).xmlFile(spark, booksPath.toString());
+        Dataset<Row> newDf = (new XmlReader()).xmlFile(spark, booksPath.toString());
         long result = newDf.select("price").count();
         Assert.assertEquals(result, numBooks);
     }

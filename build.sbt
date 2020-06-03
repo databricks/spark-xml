@@ -72,7 +72,8 @@ credentials += Credentials(
   sys.env.getOrElse("USERNAME", ""),
   sys.env.getOrElse("PASSWORD", ""))
 
-resolvers += "GCS Maven Central mirror" at "https://maven-central.storage-download.googleapis.com/maven2/"
+resolvers +=
+  "GCS Maven Central mirror" at "https://maven-central.storage-download.googleapis.com/maven2/"
 
 parallelExecution in Test := false
 

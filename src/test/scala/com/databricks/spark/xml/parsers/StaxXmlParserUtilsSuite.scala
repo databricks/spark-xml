@@ -21,11 +21,12 @@ import javax.xml.stream.{XMLInputFactory, XMLStreamConstants}
 
 import scala.collection.JavaConverters._
 
-import org.scalatest.{BeforeAndAfterAll, FunSuite}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funsuite.AnyFunSuite
 
 import com.databricks.spark.xml.XmlOptions
 
-final class StaxXmlParserUtilsSuite extends FunSuite with BeforeAndAfterAll {
+final class StaxXmlParserUtilsSuite extends AnyFunSuite with BeforeAndAfterAll {
 
   private val factory = XMLInputFactory.newInstance()
   factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)

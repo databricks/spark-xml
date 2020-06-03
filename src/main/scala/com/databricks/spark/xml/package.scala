@@ -53,7 +53,7 @@ package object xml {
       val xmlRelation = XmlRelation(
         () => XmlFile.withCharset(sqlContext.sparkContext, filePath, charset, rowTag),
         location = Some(filePath),
-        parameters = parameters.toMap)(sqlContext)
+        parameters = parameters)(sqlContext)
       sqlContext.baseRelationToDataFrame(xmlRelation)
     }
   }
@@ -134,7 +134,7 @@ package object xml {
    */
   @Experimental
   def schema_of_xml_df(df: DataFrame, options: Map[String, String] = Map.empty): StructType =
-    schema_of_xml(df.as[String](Encoders.STRING), options);
+    schema_of_xml(df.as[String](Encoders.STRING), options)
 
   /**
    * Infers the schema of XML documents when inputs are arrays of strings, each an XML doc.
