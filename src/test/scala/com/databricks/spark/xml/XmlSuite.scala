@@ -1244,7 +1244,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(whitespaceDF.count() === 1)
     assert(whitespaceDF.take(1).head.getAs[String]("_corrupt_record") !== null)
   }
-  
+
   test("empty CDATA") {
     val subitem = StructType(
       StructField(
