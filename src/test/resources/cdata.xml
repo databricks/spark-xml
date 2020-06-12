@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<items>
+  <item>
+    <f1></f1>
+    <f2><![CDATA[]]></f2>
+    <subitems>
+      <subitem>
+        <subf1></subf1>
+        <subf2><![CDATA[]]></subf2>
+        <subf3><![CDATA[not empty]]></subf3>
+      </subitem>
+    </subitems>
+  </item>
+</items>

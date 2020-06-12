@@ -1244,5 +1244,34 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(whitespaceDF.count() === 1)
     assert(whitespaceDF.take(1).head.getAs[String]("_corrupt_record") !== null)
   }
+  
+  test("empty CDATA") {
+    val subitem = StructType(
+      StructField(
+        "subitem", ArrayType(StructType(
+          StructField("subf1", StringType) ::
+            StructField("subf2", StringType) ::
+            StructField("subf3", StringType) :: Nil
+        ))
+      ) :: Nil
+    )
+
+    val schema = StructType(
+      StructField("f1", StringType) ::
+        StructField("f2", StringType) ::
+        StructField("subitems", subitem) :: Nil
+    )
+
+    val df = spark.read.format("xml")
+      .option("rootTag", "items")
+      .option("rowTag", "item")
+      .schema(schema)
+      .load(resDir + "/cdata.xml")
+
+    assert(df.count() === 1)
+    val firstRow = df.collect().head
+    assert(firstRow.getString(0) === "")
+    assert(firstRow.getString(1) === "")
+  }
 
 }
