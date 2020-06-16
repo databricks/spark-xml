@@ -22,6 +22,7 @@ autoScalaLibrary := false
 libraryDependencies ++= Seq(
   "commons-io" % "commons-io" % "2.6",
   "org.glassfish.jaxb" % "txw2" % "2.3.2",
+  "org.apache.ws.xmlschema" % "xmlschema-core" % "2.2.5",
   "org.slf4j" % "slf4j-api" % "1.7.25" % Provided,
   "org.scalatest" %% "scalatest" % "3.1.1" % Test,
   "com.novocode" % "junit-interface" % "0.11" % Test,
