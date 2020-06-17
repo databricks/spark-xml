@@ -12,7 +12,7 @@ crossScalaVersions := Seq("2.11.12", "2.12.10")
 
 scalacOptions := Seq("-unchecked", "-deprecation")
 
-sparkVersion := sys.props.get("spark.testVersion").getOrElse("2.4.5")
+sparkVersion := sys.props.get("spark.testVersion").getOrElse("2.4.6")
 
 sparkComponents := Seq("core", "sql")
 
@@ -57,6 +57,10 @@ pomExtra :=
     <developer>
       <id>hyukjinkwon</id>
       <name>Hyukjin Kwon</name>
+    </developer>
+    <developer>
+      <id>srowen</id>
+      <name>Sean Owen</name>
     </developer>
   </developers>
 
