@@ -102,6 +102,8 @@ object XSDToSchema {
                    Constants.XSD_UNSIGNEDSHORT => IntegerType
               case Constants.XSD_LONG |
                    Constants.XSD_UNSIGNEDINT => LongType
+              case Constants.XSD_DATE => DateType
+              case Constants.XSD_DATETIME => TimestampType
               case _ => StringType
             }
           case _ => StringType
