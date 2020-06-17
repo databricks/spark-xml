@@ -1,5 +1,4 @@
 language: scala
-sudo: false
 jdk: openjdk8
 scala:
   - 2.12.10
