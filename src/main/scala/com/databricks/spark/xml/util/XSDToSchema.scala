@@ -70,8 +70,7 @@ object XSDToSchema {
     schemaType match {
       // xs:simpleType
       case simpleType: XmlSchemaSimpleType =>
-        val baseName = "baseName"
-        simpleType.getContent match {
+        val schemaType = simpleType.getContent match {
           case restriction: XmlSchemaSimpleTypeRestriction =>
             val matchType =
               if (restriction.getBaseTypeName == Constants.XSD_ANYSIMPLETYPE) {
@@ -80,41 +79,35 @@ object XSDToSchema {
                 restriction.getBaseTypeName
               }
             matchType match {
-              case Constants.XSD_BOOLEAN => StructField(baseName, BooleanType)
-              case Constants.XSD_BYTE => StructField(baseName, BinaryType)
-              case Constants.XSD_DATE |
-                   Constants.XSD_DATETIME |
-                   Constants.XSD_TIME =>
-                StructField(baseName, StringType)
+              case Constants.XSD_BOOLEAN => BooleanType
               case Constants.XSD_DECIMAL =>
                 val scale = restriction.getFacets.asScala.collectFirst {
                   case facet: XmlSchemaFractionDigitsFacet => facet
                 }
                 scale match {
-                  case Some(scale) => StructField(
-                    baseName, DecimalType(38, scale.getValue.toString.toInt))
-                  case None => StructField(baseName, DecimalType(38, 18))
+                  case Some(scale) => DecimalType(38, scale.getValue.toString.toInt)
+                  case None => DecimalType(38, 18)
                 }
-              case Constants.XSD_DOUBLE => StructField(baseName, DoubleType)
-              case Constants.XSD_FLOAT => StructField(baseName, FloatType)
+              case Constants.XSD_UNSIGNEDLONG => DecimalType(38, 0)
+              case Constants.XSD_DOUBLE => DoubleType
+              case Constants.XSD_FLOAT => FloatType
+              case Constants.XSD_BYTE => ByteType
+              case Constants.XSD_SHORT |
+                   Constants.XSD_UNSIGNEDBYTE => ShortType
               case Constants.XSD_INTEGER |
-                   Constants.XSD_SHORT |
                    Constants.XSD_NEGATIVEINTEGER |
                    Constants.XSD_NONNEGATIVEINTEGER |
                    Constants.XSD_NONPOSITIVEINTEGER |
                    Constants.XSD_POSITIVEINTEGER |
-                   Constants.XSD_UNSIGNEDINT |
-                   Constants.XSD_UNSIGNEDLONG |
-                   Constants.XSD_UNSIGNEDSHORT =>
-                StructField(baseName, IntegerType)
-              case Constants.XSD_LONG => StructField(baseName, LongType)
-              case Constants.XSD_STRING |
-                   Constants.XSD_BASE64 |
-                   Constants.XSD_ANYTYPE =>
-                StructField(baseName, StringType)
+                   Constants.XSD_UNSIGNEDSHORT => IntegerType
+              case Constants.XSD_LONG |
+                   Constants.XSD_UNSIGNEDINT => LongType
+              case _ => StringType
             }
-          case _ => StructField(baseName, StringType)
+          case _ => StringType
         }
+        StructField("baseName", schemaType)
+
       // xs:complexType
       case complexType: XmlSchemaComplexType =>
         complexType.getContentModel match {
@@ -165,7 +158,8 @@ object XSDToSchema {
                 // flatten xs:choice nodes
                 val fields = sequence.getItems.asScala.flatMap { member: XmlSchemaSequenceMember =>
                     member match {
-                      case choice: XmlSchemaChoice => choice.getItems.asScala.map((_, true))
+                      case choice: XmlSchemaChoice =>
+                        choice.getItems.asScala.map(e => (e.asInstanceOf[XmlSchemaElement], true))
                       case element: XmlSchemaElement => Seq((element, element.getMinOccurs == 0))
                     }
                   }.map { case (element: XmlSchemaElement, nullable) =>

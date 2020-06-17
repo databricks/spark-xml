@@ -298,7 +298,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   test("DSL test for failing fast") {
     val exceptionInParse = intercept[SparkException] {
       new XmlReader()
-        .withFailFast(true)
+        .withParseMode("FAILFAST")
         .xmlFile(spark, carsMalformedFile)
         .collect()
     }
