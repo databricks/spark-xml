@@ -18,6 +18,7 @@ package com.databricks.spark.xml
 import java.nio.charset.{StandardCharsets, UnsupportedCharsetException}
 import java.nio.file.{Files, Path}
 import java.sql.{Date, Timestamp}
+import java.util.TimeZone
 
 import scala.io.Source
 
@@ -298,7 +299,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   test("DSL test for failing fast") {
     val exceptionInParse = intercept[SparkException] {
       new XmlReader()
-        .withFailFast(true)
+        .withParseMode("FAILFAST")
         .xmlFile(spark, carsMalformedFile)
         .collect()
     }
@@ -535,26 +536,33 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     }
     val schema = StructType(fields)
 
-    // Create the data
-    val timestamp = "2015-01-01 00:00:00"
-    val date = "2015-01-01"
-    val row =
-      Row(
-        "aa", null, true,
-        1.toByte, 1.toShort, 1, 1.toLong,
-        1.toFloat, 1.toDouble, Decimal(1, 25, 3), Decimal(1, 6, 5),
-        Date.valueOf(date), Timestamp.valueOf(timestamp), Map("a" -> "b"))
-    val data = spark.sparkContext.parallelize(Seq(row))
+    val currentTZ = TimeZone.getDefault
+    try {
+      // Tests will depend on default timezone, so set it to UTC temporarily
+      TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+      // Create the data
+      val timestamp = "2015-01-01 00:00:00"
+      val date = "2015-01-01"
+      val row =
+        Row(
+          "aa", null, true,
+          1.toByte, 1.toShort, 1, 1.toLong,
+          1.toFloat, 1.toDouble, Decimal(1, 25, 3), Decimal(1, 6, 5),
+          Date.valueOf(date), Timestamp.valueOf(timestamp), Map("a" -> "b"))
+      val data = spark.sparkContext.parallelize(Seq(row))
 
-    val df = spark.createDataFrame(data, schema)
-    df.write.xml(copyFilePath.toString)
+      val df = spark.createDataFrame(data, schema)
+      df.write.xml(copyFilePath.toString)
 
-    val dfCopy = new XmlReader()
-      .withSchema(schema)
-      .xmlFile(spark, copyFilePath.toString)
+      val dfCopy = new XmlReader()
+        .withSchema(schema)
+        .xmlFile(spark, copyFilePath.toString)
 
-    assert(dfCopy.collect() === df.collect())
-    assert(dfCopy.schema === df.schema)
+      assert(dfCopy.collect() === df.collect())
+      assert(dfCopy.schema === df.schema)
+    } finally {
+      TimeZone.setDefault(currentTZ)
+    }
   }
 
   test("DSL test schema inferred correctly") {
