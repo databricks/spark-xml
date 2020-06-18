@@ -92,6 +92,22 @@ When writing files the API accepts several options:
 
 Currently it supports the shortened name usage. You can use just `xml` instead of `com.databricks.spark.xml`.
 
+### XSD Support
+
+Per above, the XML for individual rows can be validated against an XSD using `rowValidationXSDPath`.
+
+From 0.10 onwards, the utility `com.databricks.spark.xml.util.XSDToSchema` can be used to extract a Spark DataFrame
+schema from _some_ XSD files. It supports only simple, complex and sequence types, only basic XSD functionality,
+and is experimental.
+
+```scala
+import com.databricks.spark.xml.util.XSDToSchema
+import java.nio.file.Paths
+
+val schema = XSDToSchema.read(Paths.get("/path/to/your.xsd"))
+val df = spark.read.schema(schema)....xml(...)
+```
+
 ### Parsing Nested XML
 
 Although primarily used to convert (portions of) large XML documents into a `DataFrame`, from version 0.8.0 onwards,
@@ -116,7 +132,7 @@ val parsed = df.withColumn("parsed", from_xml($"payload", payloadSchema))
   instead default to `DROPMALFORMED`.
   If however you include a column in the schema for `from_xml` that matches the `columnNameOfCorruptRecord`, then
   `PERMISSIVE` mode will still output malformed records to that column in the resulting struct. 
-  
+
 #### Pyspark notes
 
 The functions above are exposed in the Scala API only, at the moment, as there is no separate Python package

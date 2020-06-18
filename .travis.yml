@@ -1,12 +1,13 @@
 language: scala
-sudo: false
 jdk: openjdk8
+os: linux
+dist: bionic
 scala:
   - 2.12.10
 cache:
   directories:
     - $HOME/.ivy2
-matrix:
+jobs:
   include:
     - scala:
         - 2.11.12
