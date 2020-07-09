@@ -16,13 +16,11 @@
 package com.databricks.spark
 
 import org.apache.hadoop.io.compress.CompressionCodec
-
 import org.apache.spark.annotation.Experimental
 import org.apache.spark.sql._
-import org.apache.spark.sql.types.{ArrayType, StructType}
-
+import org.apache.spark.sql.types.{ ArrayType, StructType }
 import com.databricks.spark.xml.parsers.StaxXmlParser
-import com.databricks.spark.xml.util.{InferSchema, XmlFile}
+import com.databricks.spark.xml.util.{ InferSchema, XmlFile }
 
 package object xml {
   /**

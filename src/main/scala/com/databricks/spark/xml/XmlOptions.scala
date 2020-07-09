@@ -52,6 +52,8 @@ private[xml] class XmlOptions(
     parameters.get("ignoreSurroundingSpaces").map(_.toBoolean).getOrElse(false)
   val parseMode = ParseMode.fromString(parameters.getOrElse("mode", PermissiveMode.name))
   val inferSchema = parameters.get("inferSchema").map(_.toBoolean).getOrElse(true)
+  val zeroPrefixedStringsAsNumber =
+    parameters.get("treatZeroPrefixedStringsAsNumbers").map(_.toBoolean).getOrElse(true)
   val rowValidationXSDPath = parameters.get("rowValidationXSDPath").orNull
 }
 

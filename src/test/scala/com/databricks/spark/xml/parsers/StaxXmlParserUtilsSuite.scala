@@ -72,19 +72,20 @@ final class StaxXmlParserUtilsSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("Skip XML children") {
-    val input = <ROW><info>
-      <name>Sam Mad Dog Smith</name><amount><small>1</small>
-        <large>9</large></amount></info><abc>2</abc><test>2</test></ROW>
+    val input = <ROW>
+      <info>
+        <name>Sam Mad Dog Smith</name> <amount>
+        <small>1</small>
+        <large>9</large>
+      </amount>
+      </info> <abc>2</abc> <test>2</test>
+    </ROW>
     val parser = factory.createXMLEventReader(new StringReader(input.toString))
     // We assume here it's reading the value within `id` field.
     StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.CHARACTERS)
-    StaxXmlParserUtils.skipChildren(parser)
-    assert(parser.nextEvent().asEndElement().getName.getLocalPart === "info")
-    parser.next()
-    StaxXmlParserUtils.skipChildren(parser)
-    assert(parser.nextEvent().asEndElement().getName.getLocalPart === "abc")
-    parser.next()
-    StaxXmlParserUtils.skipChildren(parser)
-    assert(parser.nextEvent().asEndElement().getName.getLocalPart === "test")
+    StaxXmlParserUtils.skipChildren("info", parser)
+    assert(parser.nextEvent().asStartElement().getName.getLocalPart === "abc")
+    StaxXmlParserUtils.skipChildren("abc", parser)
+    assert(parser.nextEvent().asStartElement().getName.getLocalPart === "test")
   }
 }

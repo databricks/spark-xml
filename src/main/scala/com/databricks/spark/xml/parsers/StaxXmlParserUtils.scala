@@ -73,13 +73,10 @@ private[xml] object StaxXmlParserUtils {
   def checkEndElement(parser: XMLEventReader): Boolean = {
     parser.peek match {
       case _: EndElement | _: EndDocument => true
-      case _: StartElement => false
-      case _ =>
-        // When other events are found here rather than `EndElement` or `StartElement`
-        // , we need to look further to decide if this is the end because this can be
-        // whitespace between `EndElement` and `StartElement`.
-        parser.nextEvent
+      case c: Characters if c.isWhiteSpace =>
+        parser.nextEvent()
         checkEndElement(parser)
+      case _ => false
     }
   }
 
@@ -157,11 +154,11 @@ private[xml] object StaxXmlParserUtils {
   /**
    * Skip the children of the current XML element.
    */
-  def skipChildren(parser: XMLEventReader): Unit = {
+  def skipChildren(field: String, parser: XMLEventReader): Unit = {
     var shouldStop = checkEndElement(parser)
     while (!shouldStop) {
       parser.nextEvent match {
-        case _: StartElement =>
+        case startElement: StartElement =>
           val e = parser.peek
           if (e.isCharacters && e.asCharacters.isWhiteSpace) {
             // There can be a `Characters` event between `StartElement`s.
@@ -170,10 +167,10 @@ private[xml] object StaxXmlParserUtils {
             parser.next
           }
           if (parser.peek.isStartElement) {
-            skipChildren(parser)
+            skipChildren(startElement.getName.getLocalPart, parser)
           }
-        case _: EndElement =>
-          shouldStop = checkEndElement(parser)
+        case endElement: EndElement =>
+          shouldStop = endElement.getName.getLocalPart == field
         case _: XMLEvent => // do nothing
       }
     }
