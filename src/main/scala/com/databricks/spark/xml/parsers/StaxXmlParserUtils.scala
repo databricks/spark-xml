@@ -17,13 +17,14 @@
 package com.databricks.spark.xml.parsers
 
 import java.io.StringReader
-import javax.xml.stream.{EventFilter, XMLEventReader, XMLInputFactory, XMLStreamConstants}
+
+import com.databricks.spark.xml.parsers.StaxXmlParser.TrackingXmlEventReader
+import com.databricks.spark.xml.{ XmlOptions, XmlPath }
 import javax.xml.stream.events._
+import javax.xml.stream.{ EventFilter, XMLEventReader, XMLInputFactory, XMLStreamConstants }
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
-
-import com.databricks.spark.xml.XmlOptions
 
 private[xml] object StaxXmlParserUtils {
 
@@ -37,7 +38,7 @@ private[xml] object StaxXmlParserUtils {
   def filteredReader(xml: String): XMLEventReader = {
     val filter = new EventFilter {
       override def accept(event: XMLEvent): Boolean =
-        // Ignore comments and processing instructions
+      // Ignore comments and processing instructions
         event.getEventType match {
           case XMLStreamConstants.COMMENT | XMLStreamConstants.PROCESSING_INSTRUCTION => false
           case _ => true
@@ -58,12 +59,14 @@ private[xml] object StaxXmlParserUtils {
   /**
    * Skips elements until this meets the given type of a element
    */
+  @tailrec
   def skipUntil(parser: XMLEventReader, eventType: Int): XMLEvent = {
-    var event = parser.peek
-    while(parser.hasNext && event.getEventType != eventType) {
-      event = parser.nextEvent
+    val nextEvent = parser.nextEvent()
+    if (nextEvent.getEventType == eventType) {
+      nextEvent
+    } else {
+      skipUntil(parser, eventType)
     }
-    event
   }
 
   /**
@@ -84,8 +87,8 @@ private[xml] object StaxXmlParserUtils {
    * Produces values map from given attributes.
    */
   def convertAttributesToValuesMap(
-      attributes: Array[Attribute],
-      options: XmlOptions): Map[String, String] = {
+                                    attributes: Array[Attribute],
+                                    options: XmlOptions): Map[String, String] = {
     if (options.excludeAttributeFlag) {
       Map.empty[String, String]
     } else {
@@ -93,7 +96,7 @@ private[xml] object StaxXmlParserUtils {
       val attrValues = attributes.map(_.getValue)
       val nullSafeValues = {
         if (options.treatEmptyValuesAsNulls) {
-          attrValues.map (v => if (v.trim.isEmpty) null else v)
+          attrValues.map(v => if (v.trim.isEmpty) null else v)
         } else {
           attrValues
         }
@@ -125,12 +128,12 @@ private[xml] object StaxXmlParserUtils {
             case _: StartElement =>
               childrenXmlString += currentStructureAsString(parser)
             case _: XMLEvent =>
-              // do nothing
+            // do nothing
           }
         case c: Characters =>
           childrenXmlString += c.getData
         case _: XMLEvent =>
-          // do nothing
+        // do nothing
       }
       childrenXmlString
     }
@@ -152,27 +155,15 @@ private[xml] object StaxXmlParserUtils {
   }
 
   /**
-   * Skip the children of the current XML element.
+   * Skip the children of XML element.
    */
-  def skipChildren(field: String, parser: XMLEventReader): Unit = {
-    var shouldStop = checkEndElement(parser)
-    while (!shouldStop) {
-      parser.nextEvent match {
-        case startElement: StartElement =>
-          val e = parser.peek
-          if (e.isCharacters && e.asCharacters.isWhiteSpace) {
-            // There can be a `Characters` event between `StartElement`s.
-            // So, we need to check further to decide if this is a data or just
-            // a whitespace between them.
-            parser.next
-          }
-          if (parser.peek.isStartElement) {
-            skipChildren(startElement.getName.getLocalPart, parser)
-          }
-        case endElement: EndElement =>
-          shouldStop = endElement.getName.getLocalPart == field
-        case _: XMLEvent => // do nothing
-      }
+  @tailrec
+  def skipChildren(path: XmlPath, parser: TrackingXmlEventReader): EndElement = {
+    val nextEvent = parser.nextEvent()
+    nextEvent match {
+      case endElement: EndElement if path.isChildOf(parser.currentPath)
+        && path.leafName == endElement.getName.getLocalPart => endElement
+      case _ => skipChildren(path, parser)
     }
   }
 }

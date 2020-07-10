@@ -16,15 +16,15 @@
 package com.databricks.spark.xml.parsers
 
 import java.io.StringReader
+
+import com.databricks.spark.xml.parsers.StaxXmlParser.TrackingXmlEventReader
 import javax.xml.stream.events.Attribute
-import javax.xml.stream.{XMLInputFactory, XMLStreamConstants}
+import javax.xml.stream.{ XMLInputFactory, XMLStreamConstants }
 
 import scala.collection.JavaConverters._
-
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
-
-import com.databricks.spark.xml.XmlOptions
+import com.databricks.spark.xml.{ XmlOptions, XmlPath }
 
 final class StaxXmlParserUtilsSuite extends AnyFunSuite with BeforeAndAfterAll {
 
@@ -80,12 +80,16 @@ final class StaxXmlParserUtilsSuite extends AnyFunSuite with BeforeAndAfterAll {
       </amount>
       </info> <abc>2</abc> <test>2</test>
     </ROW>
-    val parser = factory.createXMLEventReader(new StringReader(input.toString))
+    val parser = new TrackingXmlEventReader(
+      factory.createXMLEventReader(new StringReader(input.toString)))
     // We assume here it's reading the value within `id` field.
     StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.CHARACTERS)
-    StaxXmlParserUtils.skipChildren("info", parser)
-    assert(parser.nextEvent().asStartElement().getName.getLocalPart === "abc")
-    StaxXmlParserUtils.skipChildren("abc", parser)
-    assert(parser.nextEvent().asStartElement().getName.getLocalPart === "test")
+    StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.CHARACTERS)
+    StaxXmlParserUtils.skipChildren(XmlPath(Seq("ROW", "info")), parser)
+    val shouldBeAbc = StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
+    assert(shouldBeAbc.asStartElement().getName.getLocalPart === "abc")
+    StaxXmlParserUtils.skipChildren(XmlPath(Seq("ROW", "abc")), parser)
+    val shouldBeTest = StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT)
+    assert(shouldBeTest.asStartElement().getName.getLocalPart === "test")
   }
 }

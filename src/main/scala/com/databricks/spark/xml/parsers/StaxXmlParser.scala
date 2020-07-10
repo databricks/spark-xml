@@ -307,7 +307,7 @@ private[xml] object StaxXmlParser extends Serializable {
 
     var shouldStop = false
     while (!shouldStop) {
-      parser.nextEvent match {
+      parser.nextEvent() match {
         case e: StartElement => try {
           val attributes = e.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
           val field = e.asStartElement.getName.getLocalPart
@@ -333,8 +333,7 @@ private[xml] object StaxXmlParser extends Serializable {
             }
 
             case None =>
-              parser.nextEvent()
-              StaxXmlParserUtils.skipChildren(field, parser)
+              StaxXmlParserUtils.skipChildren(elementPath.child(field), parser)
           }
         } catch {
           case NonFatal(exception) if options.parseMode == PermissiveMode =>

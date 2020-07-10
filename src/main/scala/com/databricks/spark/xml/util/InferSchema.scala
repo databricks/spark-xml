@@ -19,9 +19,9 @@ import java.io.StringReader
 import java.util.Comparator
 
 import com.databricks.spark.xml.parsers.StaxXmlParserUtils
-import com.databricks.spark.xml.parsers.StaxXmlParserUtils.convertAttributesToValuesMap
+import com.databricks.spark.xml.parsers.StaxXmlParserUtils.{ convertAttributesToValuesMap, skipUntil }
 import com.databricks.spark.xml.util.TypeCast._
-import com.databricks.spark.xml.{ XmlPath, XmlOptions }
+import com.databricks.spark.xml.{ XmlOptions, XmlPath }
 import javax.xml.stream.events.{ Attribute, Characters, EndDocument, EndElement, StartElement, XMLEvent }
 import javax.xml.stream.{ XMLEventReader, XMLStreamConstants }
 import javax.xml.transform.stream.StreamSource
@@ -194,7 +194,7 @@ private[xml] object InferSchema {
       }
     }
 
-    val rootEvent = StaxXmlParserUtils.skipUntil(parser, XMLStreamConstants.START_ELEMENT).asStartElement()
+    val rootEvent = skipUntil(parser, XMLStreamConstants.START_ELEMENT).asStartElement()
     val detectedSchema = processEvent(
       currentPath = XmlPath.root,
       nextEvent = rootEvent,
