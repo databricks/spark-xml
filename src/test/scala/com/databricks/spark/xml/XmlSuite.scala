@@ -161,7 +161,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .select("year")
       .collect()
 
-    assert(results.length === numCars)
+    results should have size numCars
   }
 
   test("DSL test with xml having unbalanced datatypes") {
@@ -169,20 +169,16 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("treatEmptyValuesAsNulls", "true")
       .xml(gpsEmptyField)
 
-    assert(results.collect().length === numGPS)
+    results.collect() should have size numGPS
   }
 
   test("DSL test with mixed elements (attributes, no child)") {
     val frame = spark.read.xml(carsMixedAttrNoChildFile)
-    val results = frame
-      .select("date")
-      .collect()
-
-    val attrValOne = results(0).getStruct(0)(1)
-    val attrValTwo = results(1).getStruct(0)(1)
-    assert(attrValOne == "string")
-    assert(attrValTwo == "struct")
-    assert(results.length === numCars)
+    frame.count() shouldBe numCars
+    frame.select(col("date").getField("_type")).filter(col("make") === "Tesla")
+      .head().getAs[String]("date._type") shouldBe "string"
+    frame.select(col("date").getField("_type")).filter(col("make") === "Ford")
+      .head().getAs[String]("date._type") shouldBe "struct"
   }
 
   test("DSL test for inconsistent element attributes as fields") {
@@ -200,8 +196,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
     val results = spark.read
       .option("rowTag", agesTag)
       .xml(agesMixedTypes)
-      .collect()
-    assert(results.length === numAges)
+    results.count() shouldBe numAges
   }
 
   test("DSL test with elements in array having attributes") {
@@ -209,14 +204,12 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("rowTag", agesTag)
       .xml(agesFile)
 
-    val attrValOne = results.select(col("age")).where(col("name") === "Hyukjin")
-      .collect().map(_.getAs[Row]("age").getAs[String]("_born")).head
-    val attrValTwo = results.select(col("age")).where(col("name") === "Lars")
-      .collect().map(_.getAs[Row]("age").getAs[String]("_born")).head
+    results.count() shouldBe numAges
+    val attrValOne = results.select(col("age").getField("_born")).filter(col("name") === "Hyukjin")
+      .collect().map(_.getAs[String]("age._born")).head shouldBe "1990-02-24"
+    val attrValTwo = results.select(col("age").getField("_born")).filter(col("name") === "Lars")
+      .collect().map(_.getAs[String]("age._born")).head shouldBe "1985-01-01"
 
-    assert(attrValOne == "1990-02-24")
-    assert(attrValTwo == "1985-01-01")
-    assert(results.count() === numAges)
   }
 
   test("DSL test for iso-8859-1 encoded file") {
@@ -229,25 +222,21 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .select("comment", "year")
       .where(dataFrame("year") === 2012)
 
-    assert(results.head() === Row("No comment", 2012))
+    results.head() shouldBe Row("No comment", 2012)
   }
 
   test("DSL test compressed file") {
     val results = spark.read
       .xml(carsFileGzip)
       .select("year")
-      .collect()
-
-    assert(results.length === numCars)
+    results.count() shouldBe numCars
   }
 
   test("DSL test splittable compressed file") {
     val results = spark.read
       .xml(carsFileBzip2)
       .select("year")
-      .collect()
-
-    assert(results.length === numCars)
+    results.count() shouldBe numCars
   }
 
   test("DSL test bad charset name") {
@@ -269,7 +258,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
          |OPTIONS (path "$carsFile")
       """.stripMargin.replaceAll("\n", " "))
 
-    assert(spark.sql("SELECT year FROM carsTable1").collect().length === numCars)
+    spark.sql("SELECT year FROM carsTable1").count shouldBe numCars
   }
 
   test("DDL test with alias name") {
@@ -280,7 +269,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
          |OPTIONS (path "$carsFile")
       """.stripMargin.replaceAll("\n", " "))
 
-    assert(spark.sql("SELECT year FROM carsTable2").collect().length === numCars)
+    spark.sql("SELECT year FROM carsTable2").count shouldBe numCars
   }
 
   test("DSL test for parsing a malformed XML file") {
@@ -288,7 +277,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .withParseMode(DropMalformedMode.name)
       .xmlFile(spark, carsMalformedFile)
 
-    assert(results.count() === 1)
+    results.count() shouldBe 1
   }
 
   test("DSL test for dropping malformed rows") {
@@ -296,8 +285,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .withParseMode(DropMalformedMode.name)
       .xmlFile(spark, carsMalformedFile)
 
-    assert(cars.count() == 1)
-    assert(cars.head() === Row("Chevy", "Volt", 2015))
+    cars.count() shouldBe 1
+    cars.head() shouldBe Row("Chevy", "Volt", 2015)
   }
 
   test("DSL test for failing fast") {
@@ -307,7 +296,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
         .xmlFile(spark, carsMalformedFile)
         .collect()
     }
-    assert(exceptionInParse.getMessage.contains("Malformed line in FAILFAST mode"))
+    exceptionInParse.getMessage should include("Malformed line in FAILFAST mode")
   }
 
   test("test FAILFAST with unclosed tag") {
@@ -318,39 +307,40 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
         .xml(unclosedTag)
         .show()
     }
-    assert(exceptionInParse.getMessage.contains("Malformed line in FAILFAST mode"))
+    exceptionInParse.getMessage should include("Malformed line in FAILFAST mode")
   }
 
   test("DSL test for permissive mode for corrupt records") {
-    val carsDf = new XmlReader()
+    val cars = new XmlReader()
       .withParseMode(PermissiveMode.name)
       .withColumnNameOfCorruptRecord("_malformed_records")
       .xmlFile(spark, carsMalformedFile)
-    val cars = carsDf.collect()
-    assert(cars.length === 3)
 
-    val malformedRowOne = carsDf.select("_malformed_records").first().get(0).toString
-    val malformedRowTwo = carsDf.select("_malformed_records").take(2).last.get(0).toString
+    cars.count() shouldBe 3
+
     val expectedMalformedRowOne = "<ROW><year>2012</year><make>Tesla</make><model>>S" +
-      "<comment>No comment</comment></ROW>"
+      "<comment>No comment</comment></ROW>".replaceAll("\\s", "")
     val expectedMalformedRowTwo = "<ROW></year><make>Ford</make><model>E350</model>model></model>" +
-      "<comment>Go get one now they are going fast</comment></ROW>"
+      "<comment>Go get one now they are going fast</comment></ROW>".replaceAll("\\s", "")
+    cars.filter(col("_malformed_records").isNotNull).collect
+      .map(_.getAs[String]("_malformed_records").replaceAll("\\s", "")) should
+      contain theSameElementsAs Seq(expectedMalformedRowOne, expectedMalformedRowTwo)
 
-    assert(malformedRowOne.replaceAll("\\s", "") === expectedMalformedRowOne.replaceAll("\\s", ""))
-    assert(malformedRowTwo.replaceAll("\\s", "") === expectedMalformedRowTwo.replaceAll("\\s", ""))
-    assert(cars(2)(0) === null)
-    assert(cars(0).toSeq.takeRight(3) === Seq(null, null, null))
-    assert(cars(1).toSeq.takeRight(3) === Seq(null, null, null))
-    assert(cars(2).toSeq.takeRight(3) === Seq("Chevy", "Volt", 2015))
+    cars.filter(col("_malformed_records").isNull).count() shouldBe 1
+    cars.select("make", "model", "year").filter(col("_malformed_records").isNull).collect()
+      .map(row => (row.getAs[String]("make"), row.getAs[String]("model"), row.getAs[Int]("year")))
+      .head shouldBe("Chevy", "Volt", 2015)
+
+    cars.select("make", "model", "year").filter(col("_malformed_records").isNotNull).collect()
+      .map(row => (row.getAs[String]("make"), row.getAs[String]("model"), row.getAs[Int]("year")))
+      .foreach(_ shouldBe(null, null, null))
   }
 
   test("DSL test with empty file and known schema") {
     val results = new XmlReader()
       .withSchema(buildSchema(field("column", StringType, false)))
       .xmlFile(spark, emptyFile)
-      .count()
-
-    assert(results === 0)
+    results.count() shouldBe 0
   }
 
   test("DSL test with poorly formatted file and string schema") {
@@ -363,9 +353,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
     val results = new XmlReader()
       .withSchema(schema)
       .xmlFile(spark, carsUnbalancedFile)
-      .count()
-
-    assert(results === numCars)
+    results.count() shouldBe numCars
   }
 
   test("DDL test with empty file") {
@@ -377,7 +365,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
          |OPTIONS (path "$emptyFile")
       """.stripMargin.replaceAll("\n", " "))
 
-    assert(spark.sql("SELECT count(*) FROM carsTable3").collect().head(0) === 0)
+    spark.sql("SELECT count(*) FROM carsTable3").collect().head(0) shouldBe 0
   }
 
   test("SQL test insert overwrite") {
@@ -397,15 +385,15 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
          |OPTIONS (path "$tempPath")
       """.stripMargin.replaceAll("\n", " "))
 
-    assert(spark.sql("SELECT * FROM booksTableIO").collect().length === numBooks)
-    assert(spark.sql("SELECT * FROM booksTableEmpty").collect().isEmpty)
+    spark.sql("SELECT * FROM booksTableIO").count() shouldBe numBooks
+    spark.sql("SELECT * FROM booksTableEmpty") shouldBe 'empty
 
     spark.sql(
       s"""
          |INSERT OVERWRITE TABLE booksTableEmpty
          |SELECT * FROM booksTableIO
       """.stripMargin.replaceAll("\n", " "))
-    assert(spark.sql("SELECT * FROM booksTableEmpty").collect().length == numBooks)
+    spark.sql("SELECT * FROM booksTableEmpty").count() shouldBe numBooks
   }
 
   test("DSL save with gzip compression codec") {
@@ -421,8 +409,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
 
     val carsCopy = spark.read.xml(copyFilePath.toString)
 
-    assert(carsCopy.count === cars.count)
-    assert(carsCopy.collect.map(_.toString).toSet === cars.collect.map(_.toString).toSet)
+    carsCopy.count shouldBe cars.count
+    carsCopy.collect.map(_.toString).toSet should contain theSameElementsAs cars.collect.map(_.toString).toSet
   }
 
   test("DSL save with gzip compression codec by shorten name") {
@@ -439,8 +427,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
 
     val carsCopy = spark.read.xml(copyFilePath.toString)
 
-    assert(carsCopy.count === cars.count)
-    assert(carsCopy.collect.map(_.toString).toSet === cars.collect.map(_.toString).toSet)
+    carsCopy.count shouldBe cars.count
+    carsCopy.collect.map(_.toString).toSet should contain theSameElementsAs cars.collect.map(_.toString).toSet
   }
 
   test("DSL save") {
@@ -456,12 +444,14 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
     val booksCopy = spark.read
       .option("rowTag", booksTag)
       .xml(copyFilePath.toString)
-    assert(booksCopy.count === books.count)
-    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+
+    booksCopy.count shouldBe books.count
+    booksCopy.collect.map(_.toString).toSet should contain theSameElementsAs books.collect.map(_.toString).toSet
   }
 
   test("DSL save with nullValue and treatEmptyValuesAsNulls") {
     val copyFilePath = getEmptyTempDir().resolve("books-copy.xml")
+    println(s"copyFilePath=$copyFilePath")
 
     val books = spark.read
       .option("rowTag", booksTag)
@@ -475,8 +465,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("treatEmptyValuesAsNulls", "true")
       .xml(copyFilePath.toString)
 
-    assert(booksCopy.count === books.count)
-    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+    booksCopy.count shouldBe books.count
+    booksCopy.collect.map(_.toString) should contain theSameElementsAs books.collect.map(_.toString)
   }
 
   test("Write values properly as given to valueTag even if it starts with attributePrefix") {
@@ -502,8 +492,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("rowTag", booksTag)
       .xml(copyFilePath.toString)
 
-    assert(booksCopy.count === books.count)
-    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+    booksCopy.count shouldBe books.count
+    booksCopy.collect.map(_.toString).toSet should contain theSameElementsAs books.collect.map(_.toString).toSet
   }
 
   test("DSL save dataframe not read from a XML file") {
@@ -523,8 +513,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
         field("item", ArrayType(StringType))))
     val dfCopy = spark.read.xml(copyFilePath.toString)
 
-    assert(dfCopy.count === df.count)
-    assert(dfCopy.schema === schemaCopy)
+    dfCopy.count shouldBe df.count
+    dfCopy.schema shouldBe schemaCopy
   }
 
   test("DSL save dataframe with data types correctly") {
@@ -563,8 +553,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
         .withSchema(schema)
         .xmlFile(spark, copyFilePath.toString)
 
-      assert(dfCopy.collect() === df.collect())
-      assert(dfCopy.schema === df.schema)
+      dfCopy.collect() should contain theSameElementsAs df.collect()
+      dfCopy.schema shouldBe df.schema
     } finally {
       TimeZone.setDefault(currentTZ)
     }
@@ -582,7 +572,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       field("publish_date"),
       field("title")))
 
-    assert(results.collect().length === numBooks)
+    results.count() shouldBe numBooks
   }
 
   test("DSL test schema inferred correctly with sampling ratio") {
@@ -600,7 +590,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       field("publish_date"),
       field("title")))
 
-    assert(results.collect().length === numBooks)
+    results.count() shouldBe numBooks
   }
 
   test("DSL test schema (object) inferred correctly") {
@@ -618,7 +608,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
         field("publish_date")),
       field("title")))
 
-    assert(results.collect().length === numBooks)
+    results.count() shouldBe numBooks
   }
 
   test("DSL test schema (array) inferred correctly") {
@@ -635,7 +625,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       array("publish_date", StringType),
       field("title")))
 
-    assert(results.collect().length === numBooks)
+    results.count() shouldBe numBooks
   }
 
   test("DSL test schema (complicated) inferred correctly") {
@@ -659,7 +649,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
             field("year", LongType)))),
       field("title")))
 
-    assert(results.collect().length === numBooksComplicated)
+    results.count() shouldBe numBooksComplicated
   }
 
   test("DSL test parsing and inferring attribute in elements having no child element") {
@@ -677,8 +667,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       field("publish_date"),
       field("title"))
 
-    assert(resultsOne.schema === schemaOne)
-    assert(resultsOne.count === numBooks)
+    resultsOne.schema shouldBe schemaOne
+    resultsOne.count() shouldBe numBooks
 
     // Explicitly set
     val attributePrefix = "@#"
@@ -698,8 +688,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       field("publish_date"),
       field("title"))
 
-    assert(resultsTwo.schema === schemaTwo)
-    assert(resultsTwo.count === numBooks)
+    resultsTwo.schema shouldBe schemaTwo
+    resultsTwo.count shouldBe numBooks
   }
 
   test("DSL test schema (excluding tags) inferred correctly") {
@@ -716,7 +706,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       field("publish_date"),
       field("title"))
 
-    assert(results.schema === schema)
+    results.schema shouldBe schema
   }
 
   test("DSL test with custom schema") {
@@ -729,19 +719,17 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
     val results = new XmlReader()
       .withSchema(schema)
       .xmlFile(spark, carsUnbalancedFile)
-      .count()
 
-    assert(results === numCars)
+    results.count() shouldBe numCars
   }
 
   test("DSL test inferred schema passed through") {
-    val dataFrame = spark.read.xml(carsFile)
-
-    val results = dataFrame
+    val results = spark.read.xml(carsFile)
       .select("comment", "year")
-      .where(dataFrame("year") === 2012)
+      .where(col("year") === 2012)
 
-    assert(results.head() === Row("No comment", 2012))
+    results.count() shouldBe 1
+    results.head() shouldBe Row("No comment", 2012)
   }
 
   test("DSL test nullable fields") {
@@ -751,11 +739,12 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
     val results = new XmlReader()
       .withSchema(schema)
       .xmlFile(spark, nullNumbersFile)
-      .collect()
 
-    assert(results(0) === Row("alice", "35"))
-    assert(results(1) === Row("bob", "    "))
-    assert(results(2) === Row("coc", "24"))
+    results.collect() should contain theSameElementsAs Seq(
+      Row("alice", "35"),
+      Row("bob", "    "),
+      Row("coc", "24")
+    )
   }
 
   test("DSL test for treating empty string as null value") {
@@ -766,18 +755,15 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .withSchema(schema)
       .withTreatEmptyValuesAsNulls(true)
       .xmlFile(spark, nullNumbersFile)
-      .collect()
-
-    assert(results(1) === Row("bob", null))
+    results.filter(col("name") === "bob" && col("age").isNull).count() shouldBe 1
   }
 
   test("DSL test with namespaces ignored") {
     val results = spark.read
       .option("rowTag", topicsTag)
       .xml(topicsFile)
-      .collect()
 
-    assert(results.length === numTopics)
+    results.count() shouldBe numTopics
   }
 
   test("Missing nested struct represented as Row of nulls instead of null") {
@@ -785,10 +771,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("rowTag", "item")
       .xml(nullNestedStructFile)
       .select("b.es")
-      .collect()
 
-    assert(result(1).getStruct(0) !== null)
-    assert(result(1).getStruct(0)(0) === null)
+    result.filter(col("es").isNotNull && col("es").getField("e").isNull).count() shouldBe 1
   }
 
   test("Produces correct result for empty vs non-existent rows") {
@@ -801,13 +785,13 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("rowTag", "item")
       .schema(schema)
       .xml(nullNestedStructFile2)
-      .collect()
 
-    assert(result(0) === Row(Row(null)))
-    assert(result(1) === Row(Row(Row(null, null))))
-    assert(result(2) === Row(Row(Row("E", null))))
-    assert(result(3) === Row(Row(Row("E", " "))))
-    assert(result(4) === Row(Row(Row("E", ""))))
+    result.collect() should contain theSameElementsAs Seq(
+      Row(Row(null)),
+      Row(Row(Row(null, null))),
+      Row(Row(Row("E", null))),
+      Row(Row(Row("E", " "))),
+      Row(Row(Row("E", ""))))
   }
 
   test("Produces correct order of columns for nested rows when user specifies a schema") {
@@ -820,9 +804,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .withSchema(schema)
       .xmlFile(spark, simpleNestedObjects)
       .select("c.a", "c.b")
-      .collect()
 
-    assert(result(0) === Row(111, 222))
+    result.filter(col("a") === 111 && col("b") === 222).count() shouldBe 1
   }
 
   private[this] def testNextedElementFromFile(xmlFile: String) = {
@@ -838,12 +821,9 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       classOf[LongWritable],
       classOf[Text],
       config)
-    val list = records.values.map(_.toString).collect().toList
-    assert(list.length === 2)
-    val firstActual = list.head
-    val lastActual = list.last
-    assert(firstActual === firstExpected)
-    assert(lastActual === lastExpected)
+
+    records.count() shouldBe 2
+    records.values.map(_.toString).collect() should contain theSameElementsAs Seq(firstExpected, lastExpected)
   }
 
   test("Nested element with same name as parent delineation") {
@@ -863,14 +843,13 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       field("child"),
       struct("parent",
         field("child")))
-    assert(df.schema === schema)
+    df.schema shouldBe schema
   }
 
   test("Skip and project currently XML files without indentation") {
     val df = spark.read.xml(carsNoIndentationFile)
-    val results = df.select("model").collect()
-    val years = results.map(_ (0)).toSet
-    assert(years === Set("S", "E350", "Volt"))
+    val models = df.collect().map(_.getAs[String]("model"))
+    models should contain theSameElementsAs Set("S", "E350", "Volt")
   }
 
   test("Select correctly all child fields regardless of pushed down projection") {
@@ -889,18 +868,17 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
     val messageOne = intercept[IllegalArgumentException] {
       spark.read.option("rowTag", "").xml(carsFile)
     }.getMessage
-    assert(messageOne === "requirement failed: 'rowTag' option should not be empty string.")
+    messageOne shouldBe "requirement failed: 'rowTag' option should not be empty string."
 
     val messageTwo = intercept[IllegalArgumentException] {
       spark.read.option("attributePrefix", "").xml(carsFile)
     }.getMessage
-    assert(
-      messageTwo === "requirement failed: 'attributePrefix' option should not be empty string.")
+    messageTwo shouldBe "requirement failed: 'attributePrefix' option should not be empty string."
 
     val messageThree = intercept[IllegalArgumentException] {
       spark.read.option("valueTag", "").xml(carsFile)
     }.getMessage
-    assert(messageThree === "requirement failed: 'valueTag' option should not be empty string.")
+    messageThree shouldBe "requirement failed: 'valueTag' option should not be empty string."
   }
 
   test("valueTag and attributePrefix should not be the same.") {
@@ -910,26 +888,28 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
         .option("attributePrefix", "#abc")
         .xml(carsFile)
     }.getMessage
-    assert(messageOne ===
-      "requirement failed: 'valueTag' and 'attributePrefix' options should not be the same.")
+    messageOne shouldBe
+      "requirement failed: 'valueTag' and 'attributePrefix' options should not be the same."
   }
 
   test("nullValue and treatEmptyValuesAsNulls test") {
     val resultsOne = spark.read
       .option("treatEmptyValuesAsNulls", "true")
       .xml(gpsEmptyField)
-    assert(resultsOne.selectExpr("extensions.TrackPointExtension").head.getStruct(0) !== null)
-    assert(resultsOne.selectExpr("extensions.TrackPointExtension")
-      .head.getStruct(0)(0) === null)
+    val nullExtensions = resultsOne.select("extensions.TrackPointExtension").filter(col("_lat") === 59.915518)
+    nullExtensions.count() shouldBe 1
+    nullExtensions.head.getAs[Row]("TrackPointExtension") should not be null
+    nullExtensions.head.getAs[Row]("TrackPointExtension").getAs[Long]("hr") shouldBe null.asInstanceOf[Long]
     // Is the behavior below consistent? see line above.
-    assert(resultsOne.selectExpr("extensions.TrackPointExtension.hr").head.getStruct(0) === null)
-    assert(resultsOne.collect().length === numGPS)
+    resultsOne.selectExpr("extensions.TrackPointExtension.hr").head.getStruct(0) shouldBe null
+    resultsOne.count() shouldBe numGPS
 
     val resultsTwo = spark.read
       .option("nullValue", "2013-01-24T06:18:43Z")
       .xml(gpsEmptyField)
-    assert(resultsTwo.selectExpr("time").head.getStruct(0) === null)
-    assert(resultsTwo.collect().length === numGPS)
+    
+    resultsTwo.filter(col("time").isNull).count() shouldBe 1
+    resultsTwo.count() shouldBe numGPS
   }
 
   test("ignoreSurroundingSpaces test") {
@@ -942,9 +922,9 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .collect().map(_.getAs[Row]("age").getAs[String]("_born")).head
     val attrValTwo = df.select(col("age")).where(col("name") === "Lars")
       .collect().map(_.getAs[Row]("age").getAs[Long]("_VALUE")).head
-    assert(attrValOne === "1990-02-24")
-    assert(attrValTwo === 30)
-    assert(df.count() === numAges)
+    attrValOne shouldBe "1990-02-24"
+    attrValTwo shouldBe 30
+    df.count() shouldBe numAges
   }
 
   test("DSL test with malformed attributes") {
@@ -952,11 +932,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .withParseMode(DropMalformedMode.name)
       .withRowTag(booksTag)
       .xmlFile(spark, booksMalformedAttributes)
-      .collect()
 
-    assert(results.length === 2)
-    assert(results(0)(0) === "bk111")
-    assert(results(1)(0) === "bk112")
+    results.collect().map(_.getAs[String]("_id")) should contain theSameElementsAs Seq("bk111", "bk112")
   }
 
   test("read utf-8 encoded file with empty tag") {
@@ -965,8 +942,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("rowTag", fiasRowTag)
       .xml(fiasHouse)
 
-    assert(df.collect().length === numFiasHouses)
-    assert(df.select().where("_HOUSEID is null").count() == 0)
+    df.count() shouldBe numFiasHouses
+    df.select().where("_HOUSEID is null").count() shouldBe 0
   }
 
   test("attributes start with new line") {
@@ -988,8 +965,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
         .option("excludeAttribute", "false")
         .option("rowTag", "note")
         .xml(file)
-      assert(df.schema === schema)
-      assert(df.count() === rowsCount)
+      df.schema shouldBe schema
+      df.count() shouldBe rowsCount
     }
   }
 
@@ -1001,9 +978,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
     val result = new XmlReader()
       .withSchema(schema)
       .xmlFile(spark, selfClosingTag)
-      .collect()
 
-    assert(result(0) === Row(1, null))
+    result.head shouldBe Row(1, null)
   }
 
   test("DSL save with null attributes") {
@@ -1019,8 +995,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
     val booksCopy = spark.read
       .option("rowTag", booksTag)
       .xml(copyFilePath.toString)
-    assert(booksCopy.count === books.count)
-    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+    booksCopy.count shouldBe books.count
+    booksCopy.collect.map(_.toString) should contain theSameElementsAs books.collect.map(_.toString)
   }
 
   test("DSL test nulls out invalid values when set to permissive and given explicit schema") {
@@ -1042,21 +1018,21 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("columnNameOfCorruptRecord", "_malformed_records")
       .schema(schema)
       .xml(dataTypesValidAndInvalid)
+      .cache()
 
-    assert(results.schema === schema)
+    results.schema shouldBe schema
 
-    val Array(valid, invalid) = results.take(2)
+    val valid = results.filter(col("_malformed_records").isNull)
+    valid.count() shouldBe 1
+    valid.drop("_malformed_records").head.toSeq shouldBe
+      Array(Row(10, 10), Row(10, "Ten"), 10.0, 10.0, true, "Ten", Array(1, 2), Map("a" -> 123, "b" -> 345))
 
-    assert(valid.toSeq.toArray.take(schema.length - 1) ===
-      Array(Row(10, 10), Row(10, "Ten"), 10.0, 10.0, true,
-        "Ten", Array(1, 2), Map("a" -> 123, "b" -> 345)))
-    assert(invalid.toSeq.toArray.take(schema.length - 1) ===
-      Array(null, null, null, null, null,
-        "Ten", Array(2), null))
+    val invalid = results.filter(col("_malformed_records").isNotNull)
+    invalid.count() shouldBe 1
+    invalid.drop("_malformed_records").head.toSeq shouldBe
+      Array(null, null, null, null, null, "Ten", Array(2), null)
 
-    assert(valid.toSeq.toArray.last === null)
-    assert(invalid.toSeq.toArray.last.toString.contains(
-      <integer_value int="Ten">Ten</integer_value>.toString))
+    invalid.head.toSeq.toArray.last.toString should include(<integer_value int="Ten">Ten</integer_value>.toString)
   }
 
   test("empty string to null and back") {
@@ -1064,7 +1040,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("rowTag", "row")
       .option("nullValue", "")
       .xml(nullEmptyStringFile)
-    assert(fruit.head().getAs[String]("color") === null)
+    fruit.count() shouldBe 1
+    fruit.filter(col("color").isNull).count() shouldBe 1
   }
 
   test("test all string data type infer strategy") {
@@ -1072,7 +1049,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("rowTag", "ROW")
       .option("inferSchema", "false")
       .xml(textColumn)
-    assert(text.head().getAs[String]("col1") === "00010")
+    text.select("col1").collect().map(_.getString(0)) should
+      contain theSameElementsAs Seq("00010", "00023", "00025")
   }
 
   test("test default data type infer strategy") {
@@ -1080,7 +1058,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("rowTag", "ROW")
       .option("inferSchema", "true")
       .xml(textColumn)
-    assert(default.head().getAs[Int]("col1") === 10)
+    default.select("col1").collect().map(_.getLong(0)) should
+      contain theSameElementsAs Seq(10, 23, 25)
   }
 
   test("test XML with processing instruction") {
@@ -1088,7 +1067,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("rowTag", "foo")
       .option("inferSchema", "true")
       .xml(processing)
-    assert(processingDF.count() === 1)
+    processingDF.count() shouldBe 1
   }
 
   test("test mixed text and element children") {
@@ -1096,10 +1075,12 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("rowTag", "root")
       .option("inferSchema", true)
       .xml(mixedChildren)
+    mixedDF.count() shouldBe 1
     val mixedRow = mixedDF.head()
-    assert(mixedRow.getAs[Row](0).getAs[String]("bar") === " lorem ")
-    assert(mixedRow.getAs[Row](0).getAs[Array[String]]("_VALUE") === Seq(" issue ", " text ignored "))
-    assert(mixedRow.getString(1) === " ipsum ")
+    mixedRow.getAs[Row]("foo").getAs[String]("bar") shouldBe " lorem "
+    mixedRow.getAs[Row]("foo").getAs[Seq[String]]("_VALUE") should
+      contain theSameElementsAs Seq(" issue ", " text ignored ")
+    mixedRow.getAs[String]("missing") shouldBe " ipsum "
   }
 
   test("test mixed text and complex element children") {
@@ -1108,9 +1089,10 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("inferSchema", true)
       .xml(mixedChildren2)
 
-    assert(mixedDF.select("foo.bar").head().getString(0) === " lorem ")
-    assert(mixedDF.select("foo.baz.bing").head().getLong(0) === 2)
-    assert(mixedDF.select("missing").head().getString(0) === " ipsum ")
+    mixedDF.count() shouldBe 1
+    mixedDF.select("foo.bar").head().getString(0) shouldBe " lorem "
+    mixedDF.select("foo.baz.bing").head().getLong(0) shouldBe 2
+    mixedDF.select("missing").head().getString(0) shouldBe " ipsum "
   }
 
   test("test XSD validation") {
@@ -1120,7 +1102,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("rowValidationXSDPath", basketXSD)
       .xml(basket)
     // Mostly checking it doesn't fail
-    assert(basketDF.selectExpr("entry[0].key").head().getLong(0) === 9027)
+    basketDF.selectExpr("entry[0].key").head().getLong(0) shouldBe 9027
   }
 
   test("test XSD validation with validation error") {
@@ -1131,7 +1113,9 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("mode", "PERMISSIVE")
       .option("columnNameOfCorruptRecord", "_malformed_records")
       .xml(basketInvalid)
-    assert(basketDF.select("_malformed_records").head().getString(0).startsWith("<basket>"))
+
+    basketDF.count() shouldBe 1
+    basketDF.select("_malformed_records").head().getString(0) should startWith("<basket>")
   }
 
   test("test XSD validation with addFile() with validation error") {
@@ -1143,7 +1127,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .option("mode", "PERMISSIVE")
       .option("columnNameOfCorruptRecord", "_malformed_records")
       .xml(basketInvalid)
-    assert(basketDF.select("_malformed_records").head().getString(0).startsWith("<basket>"))
+    basketDF.count() shouldBe 1
+    basketDF.select("_malformed_records").head().getString(0) should startWith("<basket>")
   }
 
   test("test xmlRdd") {
@@ -1152,7 +1137,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       "<ROW><year>1997</year><make>Ford</make><model>E350</model><comment>Get one</comment></ROW>",
       "<ROW><year>2015</year><make>Chevy</make><model>Volt</model><comment>No</comment></ROW>")
     val rdd = spark.sparkContext.parallelize(data)
-    assert(new XmlReader().xmlRdd(spark, rdd).collect().length === 3)
+    new XmlReader().xmlRdd(spark, rdd).count() shouldBe 3
   }
 
   test("test xml including nested element with the same name") {
@@ -1207,6 +1192,58 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
     frame.collect().map(_.getAs[String]("@ID")) should contain theSameElementsAs Seq("2.1.1", "2.1.2")
   }
 
+  test("Correctly parses Element content of StringType even if it contains nested XML/HTML") {
+    val data = Seq(
+      """<entries>
+        |  <entry>
+        |    <text>
+        |      content <br>is treated</br>as <p/>plain <br>text</br>
+        |    </text>
+        |  </entry>
+        |</entries>""".stripMargin)
+    val xmlFile = File.createTempFile(this.getClass.getSimpleName, ".xml")
+    new PrintWriter(xmlFile) {
+      write(data.head);
+      close()
+    }
+
+    val frame = spark.read
+      .option("rowTag", "entry")
+      .option("inferSchema", false)
+      .option("attributePrefix", "@")
+      .option("ignoreSurroundingSpaces", "true")
+      .option("mode", "FAILFAST")
+      .schema(StructType(Seq(StructField("text", StringType))))
+      .xml(xmlFile.getAbsolutePath)
+    
+    frame.collect().head.getAs[String]("text").trim shouldBe "content <br>is treated</br>as <p/>plain <br>text</br>"
+  }
+  
+  test ("Ignoring surrounding spaces in element with text and sub element correctly reads element text") {
+    val data = Seq(
+      """<entries>
+        |  <entry entity="209bee0a">calculation
+        |    <highlight>problems</highlight>
+        |  </entry>
+        |</entries>""".stripMargin)
+    val xmlFile = File.createTempFile(this.getClass.getSimpleName, ".xml")
+    new PrintWriter(xmlFile) {
+      write(data.head);
+      close()
+    }
+
+    val frame = spark.read
+      .option("rowTag", "entry")
+      .option("inferSchema", true)
+      .option("attributePrefix", "@")
+      .option("ignoreSurroundingSpaces", "true")
+      .option("mode", "FAILFAST")
+      .xml(xmlFile.getAbsolutePath)
+
+    frame.count() shouldBe 1
+    frame.head().getAs[String]("_VALUE") shouldBe "calculation"
+  }
+
   test("test xmlDataset and spark.read.xml(dataset)") {
     import spark.implicits._
 
@@ -1216,8 +1253,8 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       "<ROW><year>2015</year><make>Chevy</make><model>Volt</model><comment>No</comment></ROW>")
     val df = spark.createDataFrame(data.map(Tuple1(_)))
 
-    assert(new XmlReader().xmlDataset(spark, df.as[String]).collect().length === 3)
-    assert(spark.read.xml(df.as[String]).collect().length === 3)
+    new XmlReader().xmlDataset(spark, df.as[String]).count() shouldBe 3
+    spark.read.xml(df.as[String]).count() shouldBe 3
   }
 
   test("from_xml basic test") {
@@ -1230,11 +1267,12 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
     val xmlSchema = schema_of_xml_df(df.select("payload"))
     val expectedSchema = df.schema.add("decoded", xmlSchema)
-    val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
+    val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema, Map("rowTag" -> "parent")))
 
-    assert(expectedSchema === result.schema)
-    assert(result.select("decoded.pid").head().getString(0) === "14ft3")
-    assert(result.select("decoded._foo").head().getString(0) === "bar")
+    expectedSchema shouldBe result.schema
+    result.count() shouldBe 1
+    result.select("decoded.pid").head().getString(0) shouldBe "14ft3"
+    result.select("decoded._foo").head().getString(0) shouldBe "bar"
   }
 
   test("from_xml array basic test") {
@@ -1245,11 +1283,12 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
     val xmlSchema = schema_of_xml_array(df.select("payload").as[Array[String]])
     val expectedSchema = df.schema.add("decoded", xmlSchema)
-    val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
+    val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema, Map("rowTag" -> "parent")))
 
-    assert(expectedSchema === result.schema)
-    assert(result.selectExpr("decoded[0].pid").head().getString(0) === "14ft3")
-    assert(result.selectExpr("decoded[1].pid").head().getString(0) === "12345")
+    expectedSchema shouldBe result.schema
+    result.count() shouldBe 1
+    result.selectExpr("decoded[0].pid").head().getString(0) shouldBe "14ft3"
+    result.selectExpr("decoded[1].pid").head().getString(0) shouldBe "12345"
   }
 
   test("from_xml error test") {
@@ -1263,7 +1302,9 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
     val xmlSchema = schema_of_xml_df(df.select("payload"))
     val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
-    assert(result.select("decoded._corrupt_record").head().getString(0).nonEmpty)
+
+    result.count() shouldBe 1
+    result.select("decoded._corrupt_record").head().getString(0) should not be 'empty
   }
 
   test("from_xml_string basic test") {
@@ -1272,14 +1313,14 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
         |  <name>dave guy</name>
         |</parent>
        """.stripMargin
-    
+
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
     val xmlSchema = schema_of_xml_df(df.select("payload"))
-    val result = from_xml_string(xmlData, xmlSchema)
+    val result = from_xml_string(xmlData, xmlSchema, Map("rowTag" -> "parent"))
 
-    assert(result.getString(0) === "bar")
-    assert(result.getString(1) === "dave guy")
-    assert(result.getString(2) === "14ft3")
+    result.getString(0) shouldBe "bar"
+    result.getString(1) shouldBe "dave guy"
+    result.getString(2) shouldBe "14ft3"
   }
 
   test("from_xml with PERMISSIVE parse mode with no corrupt col schema") {
@@ -1298,7 +1339,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
     val xmlSchema = schema_of_xml_df(dfNoError.select("payload"))
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
     val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
-    assert(result.select("decoded").head().get(0) === null)
+    result.select("decoded").head().getStruct(0) shouldBe null
   }
 
   test("double field encounters whitespace-only value") {
@@ -1308,7 +1349,7 @@ final class XmlSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
       .schema(schema)
       .xml(whitespaceError)
 
-    assert(whitespaceDF.count() === 1)
-    assert(whitespaceDF.take(1).head.getAs[String]("_corrupt_record") !== null)
+    whitespaceDF.count() shouldBe 1
+    whitespaceDF.take(1).head.getAs[String]("_corrupt_record") should not be null
   }
 }

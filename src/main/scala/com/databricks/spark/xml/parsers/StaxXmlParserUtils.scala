@@ -105,53 +105,40 @@ private[xml] object StaxXmlParserUtils {
     }
   }
 
+  @scala.annotation.tailrec
+  def structureAsString(path: XmlPath, parser: TrackingXmlEventReader, accumulatedStrings: Seq[String] = Seq.empty)(implicit options: XmlOptions): String = {
+    def makeFinalString() = if (options.ignoreSurroundingSpaces) {
+      accumulatedStrings.mkString("").trim()
+    } else {
+      accumulatedStrings.mkString("")
+    }
 
-  /**
-   * Convert the current structure of XML document to a XML string.
-   */
-  def currentStructureAsString(parser: XMLEventReader): String = {
-    // (Hyukjin) I could not find a proper method to produce the current document
-    // as a string. For Jackson, there is a method `copyCurrentStructure()`.
-    // So, it ended up with manually converting event by event to string.
-    def convertChildren(): String = {
-      var childrenXmlString = ""
-      parser.peek match {
-        case _: StartElement =>
-          childrenXmlString += currentStructureAsString(parser)
-        case c: Characters if c.isWhiteSpace =>
-          // There can be a `Characters` event between `StartElement`s.
-          // So, we need to check further to decide if this is a data or just
-          // a whitespace between them.
-          childrenXmlString += c.getData
-          parser.next
-          parser.peek match {
-            case _: StartElement =>
-              childrenXmlString += currentStructureAsString(parser)
-            case _: XMLEvent =>
-            // do nothing
+    parser.nextEvent() match {
+      case startElement: StartElement =>
+        val attributes = convertAttributesToValuesMap(startElement.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray, options)
+        structureAsString(path, parser,
+          accumulatedStrings :+ s"<${startElement.getName.getLocalPart}${attributes.map { case (key, value) => s""" "$key"="$value"""" }.mkString("")}>")
+      case endElement: EndElement =>
+        val endElementName = endElement.getName.getLocalPart
+        val endElementXml = s"</$endElementName>"
+        val startElementXmlPrefix = s"<$endElementName"
+        if (parser.currentPath.child(endElementName) == path) {
+          makeFinalString()
+        } else {
+          // Check if this should be a self closing element
+          val updatedAccumulatedStrings = accumulatedStrings.lastOption match {
+            case Some(lastElementString) if lastElementString.takeWhile(string => string != ' ' && string != '>') == startElementXmlPrefix =>
+              accumulatedStrings.dropRight(1) :+ lastElementString.dropRight(1) + "/>"
+            case _ =>
+              accumulatedStrings :+ endElementXml
           }
-        case c: Characters =>
-          childrenXmlString += c.getData
-        case _: XMLEvent =>
-        // do nothing
-      }
-      childrenXmlString
-    }
 
-    var xmlString = ""
-    var shouldStop = false
-    while (!shouldStop) {
-      parser.nextEvent match {
-        case e: StartElement =>
-          xmlString += "<" + e.getName + ">"
-          xmlString += convertChildren()
-        case e: EndElement =>
-          xmlString += "</" + e.getName + ">"
-          shouldStop = checkEndElement(parser)
-        case _: XMLEvent => // do nothing
-      }
+          structureAsString(path, parser, updatedAccumulatedStrings)
+        }
+      case _: EndDocument => makeFinalString()
+      case other: XMLEvent =>
+        structureAsString(path, parser, accumulatedStrings :+ other.toString)
     }
-    xmlString
   }
 
   /**
