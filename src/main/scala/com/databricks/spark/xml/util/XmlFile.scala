@@ -93,7 +93,12 @@ private[xml] object XmlFile {
         override def next: String = {
           if (iter.nonEmpty) {
             if (firstRow) {
-              indentingXmlWriter.writeStartElement(options.rootTag)
+              if (!options.header.isEmpty) {
+                writer.append(options.header)
+              }
+              if (!options.rootTag.isEmpty) {
+                indentingXmlWriter.writeStartElement(options.rootTag)
+              }
               firstRow = false
             }
             val xml = {
@@ -109,7 +114,9 @@ private[xml] object XmlFile {
           } else {
             if (!firstRow) {
               lastRow = false
-              indentingXmlWriter.writeEndElement()
+              if (!options.rootTag.isEmpty) {
+                indentingXmlWriter.writeEndElement()
+              }
               indentingXmlWriter.close()
               writer.toString
             } else {
