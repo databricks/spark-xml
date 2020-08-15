@@ -38,4 +38,19 @@ class XSDToSchemaSuite extends AnyFunSuite {
     assert(expectedSchema === parsedSchema)
   }
 
+  test("Relative path parsing") {
+    val parsedSchema = XSDToSchema.read(
+      Paths.get("src/test/resources/include-example/first.xsd"))
+    val expectedSchema = StructType(Array(
+      StructField("basket", StructType(Array(
+        StructField("entry", ArrayType(
+          StructType(Array(
+            StructField("key", StringType),
+            StructField("value", StringType)
+          )))
+        ))
+      )))
+    )
+    assert(expectedSchema === parsedSchema)
+  }
 }
