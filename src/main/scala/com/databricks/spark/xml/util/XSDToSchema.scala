@@ -39,8 +39,11 @@ object XSDToSchema {
    */
   @Experimental
   def read(xsdFile: File): StructType = {
-    val xmlSchema = new XmlSchemaCollection().read(
+    val xmlSchemaCollection = new XmlSchemaCollection()
+    xmlSchemaCollection.setBaseUri(xsdFile.getParent)
+    val xmlSchema = xmlSchemaCollection.read(
       new InputStreamReader(new FileInputStream(xsdFile), StandardCharsets.UTF_8))
+
     getStructType(xmlSchema)
   }
 
