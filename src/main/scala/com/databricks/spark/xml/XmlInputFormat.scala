@@ -68,6 +68,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private var readerByteBuffer: ByteBuffer = _
   private var decompressor: Decompressor = _
   private var buffer = new StringBuilder()
+  private var unsplittableCodec = false
 
   override def initialize(split: InputSplit, context: TaskAttemptContext): Unit = {
     val fileSplit = split.asInstanceOf[FileSplit]
@@ -110,6 +111,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
           val cIn = c.createInputStream(fsin, decompressor)
           in = cIn
           filePosition = fsin
+          unsplittableCodec = true
       }
     } else {
       fsin.seek(start)
@@ -183,13 +185,24 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     }
     false
   }
+  
+  private def consumedWholeSplit(): Boolean = {
+    if (unsplittableCodec) {
+      // Basically, ignore 'end' when dealing with an unsplittable codec.
+      // A partition is a file. Read until it's exhausted, safely. Reasoning about the
+      // read position of the underlying compressed file doesn't work because it buffers.
+      false
+    } else {
+      getFilePosition() > end
+    }
+  }
 
   private def readUntilStartElement(): Boolean = {
     currentStartTag = startTag
     var i = 0
     while (true) {
       val cOrEOF = reader.read()
-      if (cOrEOF == -1 || (i == 0 && getFilePosition() > end)) {
+      if (cOrEOF == -1 || (i == 0 && consumedWholeSplit())) {
         // End of file or end of split.
         return false
       }
