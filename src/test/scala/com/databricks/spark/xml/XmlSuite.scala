@@ -53,6 +53,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   private val carsFileBzip2 = resDir + "cars.xml.bz2"
   private val carsNoIndentationFile = resDir + "cars-no-indentation.xml"
   private val carsMixedAttrNoChildFile = resDir + "cars-mixed-attr-no-child.xml"
+  private val carsAttributes = resDir + "cars-attribute.xml"
   private val booksAttributesInNoChild = resDir + "books-attributes-in-no-child.xml"
   private val carsUnbalancedFile = resDir + "cars-unbalanced-elements.xml"
   private val carsMalformedFile = resDir + "cars-malformed.xml"
@@ -1251,6 +1252,17 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     assert(whitespaceDF.count() === 1)
     assert(whitespaceDF.take(1).head.getAs[String]("_corrupt_record") !== null)
+  }
+  
+  test("XML in String field preserves attributes") {
+    val schema = buildSchema(field("ROW"))
+    val result = spark.read
+      .option("rowTag", "ROWSET")
+      .schema(schema)
+      .xml(carsAttributes)
+      .collect()
+    assert(result.head.get(0) ===
+      "<year>2015</year><make>Chevy</make><model>Volt</model><comment foo=\"bar\">No</comment>")
   }
 
 }

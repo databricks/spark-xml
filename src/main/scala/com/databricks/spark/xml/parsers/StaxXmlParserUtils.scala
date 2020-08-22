@@ -143,7 +143,11 @@ private[xml] object StaxXmlParserUtils {
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
-          xmlString += "<" + e.getName + ">"
+          val attributes = e.getAttributes.asScala.map { a =>
+            val att = a.asInstanceOf[Attribute]
+            " " + att.getName + "=\"" + att.getValue + "\""
+          }.mkString("")
+          xmlString += "<" + e.getName + attributes + ">"
           xmlString += convertChildren()
         case e: EndElement =>
           xmlString += "</" + e.getName + ">"
