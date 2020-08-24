@@ -1253,7 +1253,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(whitespaceDF.count() === 1)
     assert(whitespaceDF.take(1).head.getAs[String]("_corrupt_record") !== null)
   }
-  
+
   test("XML in String field preserves attributes") {
     val schema = buildSchema(field("ROW"))
     val result = spark.read
