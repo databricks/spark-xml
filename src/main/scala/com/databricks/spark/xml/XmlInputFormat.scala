@@ -65,6 +65,7 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
   private var reader: Reader = _
   private var filePosition: Seekable = _
   private var countingIn: CountingInputStream = _
+  private var readerLeftoverCharFn: () => Boolean = _
   private var readerByteBuffer: ByteBuffer = _
   private var decompressor: Decompressor = _
   private var buffer = new StringBuilder()
@@ -127,6 +128,9 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
       val sdField = reader.getClass.getDeclaredField("sd")
       sdField.setAccessible(true)
       val sd = sdField.get(reader)
+      val readerLeftoverCharField = sd.getClass.getDeclaredField("haveLeftoverChar")
+      readerLeftoverCharField.setAccessible(true)
+      readerLeftoverCharFn = () => { readerLeftoverCharField.get(sd).asInstanceOf[Boolean] }
       val bbField = sd.getClass.getDeclaredField("bb")
       bbField.setAccessible(true)
       readerByteBuffer = bbField.get(sd).asInstanceOf[ByteBuffer]
@@ -149,7 +153,9 @@ private[xml] class XmlRecordReader extends RecordReader[LongWritable, Text] {
     if (filePosition != null) {
       filePosition.getPos
     } else {
-      start + countingIn.getByteCount - readerByteBuffer.remaining()
+      start + countingIn.getByteCount -
+        readerByteBuffer.remaining() -
+        (if (readerLeftoverCharFn()) 1 else 0)
     }
   }
 
