@@ -77,6 +77,21 @@ private[xml] object XmlFile {
     val rowSchema = dataFrame.schema
     val indent = XmlFile.DEFAULT_INDENT
 
+    // Allow a root tag to be like "rootTag foo='bar'"
+    // This is hacky; won't deal correctly with spaces in attributes, but want
+    // to make this at least work for simple cases without much complication
+    val rootTagTokens = options.rootTag.split(" ")
+    val rootElementName = rootTagTokens.head
+    val rootAttributes: Map[String, String] =
+      if (rootTagTokens.length > 1) {
+        rootTagTokens.tail.map { kv =>
+          val Array(k, v) = kv.split("=")
+          k -> v.replaceAll("['\"]", "")
+        }.toMap
+      } else {
+        Map.empty
+      }
+
     val xmlRDD = dataFrame.rdd.mapPartitions { iter =>
       val factory = XMLOutputFactory.newInstance()
       val writer = new CharArrayWriter()
@@ -93,7 +108,10 @@ private[xml] object XmlFile {
         override def next: String = {
           if (iter.nonEmpty) {
             if (firstRow) {
-              indentingXmlWriter.writeStartElement(options.rootTag)
+              indentingXmlWriter.writeStartElement(rootElementName)
+              rootAttributes.foreach { case (k, v) =>
+                indentingXmlWriter.writeAttribute(k, v)
+              }
               firstRow = false
             }
             val xml = {
