@@ -57,7 +57,7 @@ This package allows reading XML files in local or distributed filesystem as [Spa
 When reading files the API accepts several options:
 
 * `path`: Location of files. Similar to Spark can accept standard Hadoop globbing expressions.
-* `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`. An empty rootTag will omit a root tag entirely
+* `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
 * `header`: A raw header to add at the top of the output file. Can be used to add document encoding declaration
 * `samplingRatio`: Sampling ratio for inferring schema (0.0 ~ 1). Default is 1. Possible types are `StructType`, `ArrayType`, `StringType`, `LongType`, `DoubleType`, `BooleanType`, `TimestampType` and `NullType`, unless user provides a schema for this.
 * `excludeAttribute` : Whether you want to exclude attributes in elements or not. Default is false.
@@ -85,7 +85,8 @@ When writing files the API accepts several options:
 
 * `path`: Location to write files.
 * `rowTag`: The row tag of your xml files to treat as a row. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `book`. Default is `ROW`.
-* `rootTag`: The root tag of your xml files to treat as the root. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `books`. Default is `ROWS`.
+* `rootTag`: The root tag of your xml files to treat as the root. For example, in this xml `<books> <book><book> ...</books>`, the appropriate value would be `books`. Default is `ROWS`. An empty rootTag will omit a root tag entirely.
+* `header`: A raw header to add at the top of the output file. Can be used to add document encoding declaration. Can be used to hold an XML declaration eg: `<?xml version="1.0" encoding="UTF-8"?>`
 * `nullValue`: The value to write `null` value. Default is string `null`. When this is `null`, it does not write attributes and elements for fields.
 * `attributePrefix`: The prefix for attributes so that we can differentiating attributes and elements. This will be the prefix for field names. Default is `_`.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.

@@ -93,7 +93,7 @@ private[xml] object XmlFile {
         override def next: String = {
           if (iter.nonEmpty) {
             if (firstRow) {
-              if (!options.header.isEmpty) {
+              if (options.header != null) {
                 writer.append(options.header)
               }
               if (!options.rootTag.isEmpty) {

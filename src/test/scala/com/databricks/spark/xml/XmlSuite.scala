@@ -91,6 +91,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   private val topicsTag = "Topic"
   private val agesTag = "person"
   private val fiasRowTag = "House"
+  private val header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 
   private val numAges = 3
   private val numCars = 3
@@ -463,6 +464,26 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .xml(booksComplicatedFile)
     books.write
       .options(Map("rootTag" -> booksRootTag, "rowTag" -> booksTag, "nullValue" -> ""))
+      .xml(copyFilePath.toString)
+
+    val booksCopy = spark.read
+      .option("rowTag", booksTag)
+      .option("treatEmptyValuesAsNulls", "true")
+      .xml(copyFilePath.toString)
+
+    assert(booksCopy.count === books.count)
+    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+  }
+
+  test("DSL save with header defined") {
+    val copyFilePath = getEmptyTempDir().resolve("books-copy.xml")
+
+    val books = spark.read
+      .option("rowTag", booksTag)
+      .xml(booksComplicatedFile)
+    books.write
+      .options(Map("rootTag" -> booksRootTag, "rowTag" -> booksTag, "nullValue" -> "",
+                   "header" -> header))
       .xml(copyFilePath.toString)
 
     val booksCopy = spark.read
