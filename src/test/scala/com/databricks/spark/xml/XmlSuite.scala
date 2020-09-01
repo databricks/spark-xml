@@ -21,6 +21,7 @@ import java.sql.{Date, Timestamp}
 import java.util.TimeZone
 
 import scala.io.Source
+import scala.collection.JavaConverters._
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.{LongWritable, Text}
@@ -1263,6 +1264,17 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .collect()
     assert(result.head.get(0) ===
       "<year>2015</year><make>Chevy</make><model>Volt</model><comment foo=\"bar\">No</comment>")
+  }
+
+  test("rootTag with simple attributes") {
+    val xmlPath = getEmptyTempDir().resolve("simple_attributes")
+    val df = spark.createDataFrame(Seq((42, "foo"))).toDF("number", "value").repartition(1)
+    df.write.option("rootTag", "root foo='bar' bing=\"baz\"").xml(xmlPath.toString)
+
+    val xmlFile =
+      Files.list(xmlPath).iterator.asScala.filter(_.getFileName.toString.startsWith("part-")).next
+    val firstLine = Source.fromFile(xmlFile.toFile).getLines.next
+    assert(firstLine === "<root foo=\"bar\" bing=\"baz\">")
   }
 
 }
