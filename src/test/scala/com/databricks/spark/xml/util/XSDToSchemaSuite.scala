@@ -28,10 +28,11 @@ class XSDToSchemaSuite extends AnyFunSuite {
   test("Basic parsing") {
     val parsedSchema = XSDToSchema.read(Paths.get("src/test/resources/basket.xsd"))
     val expectedSchema = buildSchema(
-      struct("basket",
-        structArray("entry",
-          field("key"),
-          field("value"))))
+      field("basket",
+        struct(
+          structArray("entry",
+            field("key"),
+            field("value"))), nullable = false))
     assert(expectedSchema === parsedSchema)
   }
 
@@ -39,10 +40,11 @@ class XSDToSchemaSuite extends AnyFunSuite {
     val parsedSchema = XSDToSchema.read(
       Paths.get("src/test/resources/include-example/first.xsd"))
     val expectedSchema = buildSchema(
-      struct("basket",
-        structArray("entry",
-          field("key"),
-          field("value"))))
+      field("basket",
+        struct(
+          structArray("entry",
+            field("key"),
+            field("value"))), nullable = false))
     assert(expectedSchema === parsedSchema)
   }
 
