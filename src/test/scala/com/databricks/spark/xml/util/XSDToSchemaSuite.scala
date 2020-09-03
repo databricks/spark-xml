@@ -45,7 +45,7 @@ class XSDToSchemaSuite extends AnyFunSuite {
           field("value"))))
     assert(expectedSchema === parsedSchema)
   }
-  
+
   test("Test schema types and attributes") {
     val parsedSchema = XSDToSchema.read(
       Paths.get("src/test/resources/catalog.xsd"))
