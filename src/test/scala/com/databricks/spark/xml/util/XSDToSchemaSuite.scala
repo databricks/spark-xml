@@ -18,39 +18,58 @@ package com.databricks.spark.xml.util
 
 import java.nio.file.Paths
 
-import org.apache.spark.sql.types.{ArrayType, StructField, StructType, StringType}
+import org.apache.spark.sql.types.FloatType
 import org.scalatest.funsuite.AnyFunSuite
+
+import com.databricks.spark.xml.TestUtils._
 
 class XSDToSchemaSuite extends AnyFunSuite {
 
   test("Basic parsing") {
     val parsedSchema = XSDToSchema.read(Paths.get("src/test/resources/basket.xsd"))
-    val expectedSchema = StructType(Array(
-      StructField("basket", StructType(Array(
-        StructField("entry", ArrayType(
-          StructType(Array(
-            StructField("key", StringType),
-            StructField("value", StringType)
-          )))
-        ))
-      )))
-    )
+    val expectedSchema = buildSchema(
+      field("basket",
+        struct(
+          structArray("entry",
+            field("key"),
+            field("value"))), nullable = false))
     assert(expectedSchema === parsedSchema)
   }
 
   test("Relative path parsing") {
     val parsedSchema = XSDToSchema.read(
       Paths.get("src/test/resources/include-example/first.xsd"))
-    val expectedSchema = StructType(Array(
-      StructField("basket", StructType(Array(
-        StructField("entry", ArrayType(
-          StructType(Array(
-            StructField("key", StringType),
-            StructField("value", StringType)
-          )))
-        ))
-      )))
-    )
+    val expectedSchema = buildSchema(
+      field("basket",
+        struct(
+          structArray("entry",
+            field("key"),
+            field("value"))), nullable = false))
     assert(expectedSchema === parsedSchema)
   }
+
+  test("Test schema types and attributes") {
+    val parsedSchema = XSDToSchema.read(
+      Paths.get("src/test/resources/catalog.xsd"))
+    val expectedSchema = buildSchema(
+      field("catalog",
+        struct(
+          field("product",
+            struct(
+              structArray("catalog_item",
+                field("item_number", nullable = false),
+                field("price", FloatType, nullable = false),
+                structArray("size",
+                  structArray("color_swatch",
+                    field("_VALUE"),
+                    field("_image")),
+                  field("_description")),
+                field("_gender")),
+              field("_description"),
+              field("_product_image")),
+            nullable = false)),
+        nullable = false))
+    assert(expectedSchema === parsedSchema)
+  }
+
 }

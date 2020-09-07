@@ -29,6 +29,7 @@ import org.apache.hadoop.io.compress.GzipCodec
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
 
+import com.databricks.spark.xml.TestUtils._
 import com.databricks.spark.xml.XmlOptions._
 import com.databricks.spark.xml.functions._
 import com.databricks.spark.xml.util._
@@ -130,29 +131,6 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   private def getEmptyTempDir(): Path = {
     Files.createTempDirectory(tempDir, "test")
   }
-
-  // Utilities to simplify schema specification:
-
-  private def buildSchema(fields: StructField*): StructType =
-    StructType(fields)
-
-  private def field(
-      name: String,
-      dataType: DataType = StringType,
-      nullable: Boolean = true): StructField =
-    StructField(name, dataType, nullable)
-
-  private def struct(fields: StructField*): StructType =
-    buildSchema(fields: _*)
-
-  private def struct(name: String, fields: StructField*): StructField =
-    field(name, struct(fields: _*))
-
-  private def structArray(name: String, fields: StructField*): StructField =
-    field(name, ArrayType(struct(fields: _*)))
-
-  private def array(name: String, dataType: DataType): StructField =
-    field(name, ArrayType(dataType))
 
   // Tests
 
