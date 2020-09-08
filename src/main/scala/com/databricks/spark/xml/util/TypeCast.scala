@@ -96,8 +96,7 @@ object TypeCast {
         try {
           java.sql.Date.valueOf(LocalDate.parse(value, head))
         } catch {
-          case e: Exception =>
-            parseXmlDate(tail, value)
+          case _: Exception => parseXmlDate(tail, value)
         }
     }
   }
@@ -127,8 +126,7 @@ object TypeCast {
         try {
           Timestamp.from(ZonedDateTime.parse(value, head).toInstant)
         } catch {
-          case e: Exception =>
-            parseXmlTimestamp(tail, value)
+          case _: Exception => parseXmlTimestamp(tail, value)
         }
     }
   }

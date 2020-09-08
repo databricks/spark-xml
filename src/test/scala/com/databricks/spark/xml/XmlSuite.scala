@@ -1146,7 +1146,6 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
         |  <name>dave guy</name>
         |</parent>
        """.stripMargin
-    import spark.implicits._
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
     val xmlSchema = schema_of_xml_df(df.select("payload"))
     val expectedSchema = df.schema.add("decoded", xmlSchema)
@@ -1179,7 +1178,6 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
         |  <name>dave guy</name>
         |</parent>
        """.stripMargin
-    import spark.implicits._
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
     val xmlSchema = schema_of_xml_df(df.select("payload"))
     val result = df.withColumn("decoded", from_xml(df.col("payload"), xmlSchema))
@@ -1192,7 +1190,6 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
         |  <name>dave guy</name>
         |</parent>
        """.stripMargin
-    import spark.implicits._
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
     val xmlSchema = schema_of_xml_df(df.select("payload"))
     val result = from_xml_string(xmlData, xmlSchema)
@@ -1214,7 +1211,6 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
         |  <name>dave guy</name>
         |</parent>
        """.stripMargin
-    import spark.implicits._
     val dfNoError = spark.createDataFrame(Seq((8, xmlDataNoError))).toDF("number", "payload")
     val xmlSchema = schema_of_xml_df(dfNoError.select("payload"))
     val df = spark.createDataFrame(Seq((8, xmlData))).toDF("number", "payload")
