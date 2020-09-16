@@ -25,18 +25,19 @@ import org.apache.ws.commons.schema._
 import org.apache.ws.commons.schema.constants.Constants
 
 /**
- * Utility to generate a Spark schema from an XSD. Not all XSD schemas are simple tabular schemas,
- * so not all elements or XSDs are supported.
- */
+  * Utility to generate a Spark schema from an XSD. Not all XSD schemas are simple tabular schemas,
+  * so not all elements or XSDs are supported.
+  */
 @Experimental
 object XSDToSchema {
+  val schemaNameToStructFieldMap = collection.mutable.Map[String, StructField]()
 
   /**
-   * Reads a schema from an XSD file.
-   *
-   * @param xsdFile XSD file
-   * @return Spark-compatible schema
-   */
+    * Reads a schema from an XSD file.
+    *
+    * @param xsdFile XSD file
+    * @return Spark-compatible schema
+    */
   @Experimental
   def read(xsdFile: File): StructType = {
     val xmlSchemaCollection = new XmlSchemaCollection()
@@ -48,32 +49,31 @@ object XSDToSchema {
   }
 
   /**
-   * Reads a schema from an XSD file.
-   *
-   * @param xsdFile XSD file
-   * @return Spark-compatible schema
-   */
+    * Reads a schema from an XSD file.
+    *
+    * @param xsdFile XSD file
+    * @return Spark-compatible schema
+    */
   @Experimental
   def read(xsdFile: Path): StructType = read(xsdFile.toFile)
 
   /**
-   * Reads a schema from an XSD as a string.
-   *
-   * @param xsdString XSD as a string
-   * @return Spark-compatible schema
-   */
+    * Reads a schema from an XSD as a string.
+    *
+    * @param xsdString XSD as a string
+    * @return Spark-compatible schema
+    */
   @Experimental
   def read(xsdString: String): StructType = {
     val xmlSchema = new XmlSchemaCollection().read(new StringReader(xsdString))
     getStructType(xmlSchema)
   }
 
-
   private def getStructField(xmlSchema: XmlSchema, schemaType: XmlSchemaType): StructField = {
     schemaType match {
       // xs:simpleType
       case simpleType: XmlSchemaSimpleType =>
-        val schemaType = simpleType.getContent match {
+        val schemaType1 = simpleType.getContent match {
           case restriction: XmlSchemaSimpleTypeRestriction =>
             val matchType =
               if (restriction.getBaseTypeName == Constants.XSD_ANYSIMPLETYPE) {
@@ -111,7 +111,9 @@ object XSDToSchema {
             }
           case _ => StringType
         }
-        StructField("baseName", schemaType)
+        schemaNameToStructFieldMap += (schemaType.getName ->
+          StructField(schemaType.getName, schemaType1))
+        StructField(schemaType.getName, schemaType1)
 
       // xs:complexType
       case complexType: XmlSchemaComplexType =>
@@ -120,17 +122,99 @@ object XSDToSchema {
             // xs:simpleContent
             content.getContent match {
               case extension: XmlSchemaSimpleContentExtension =>
-                val baseStructField = getStructField(xmlSchema,
+                val baseStructField = getBaseStructField(xmlSchema,
                   xmlSchema.getParent.getTypeByQName(extension.getBaseTypeName))
-                val value = StructField("_VALUE", baseStructField.dataType)
                 val attributes = extension.getAttributes.asScala.map {
                   case attribute: XmlSchemaAttribute =>
-                    val baseStructField = getStructField(xmlSchema,
+                    val baseStructField = getBaseStructField(xmlSchema,
                       xmlSchema.getParent.getTypeByQName(attribute.getSchemaTypeName))
                     StructField(s"_${attribute.getName}", baseStructField.dataType,
                       attribute.getUse != XmlSchemaUse.REQUIRED)
                 }
-                StructField(complexType.getName, StructType(value +: attributes))
+                schemaNameToStructFieldMap += (schemaType.getName ->
+                  StructField(complexType.getName, StructType(baseStructField +: attributes)))
+                StructField(complexType.getName, StructType(baseStructField +: attributes))
+            }
+          case content: XmlSchemaComplexContent =>
+            content.getContent match {
+              case extension: XmlSchemaSimpleContentExtension =>
+                val baseStructField = getBaseStructField(xmlSchema,
+                  xmlSchema.getParent.getTypeByQName(extension.getBaseTypeName))
+                val attributes = extension.getAttributes.asScala.map {
+                  case attribute: XmlSchemaAttribute =>
+                    val baseStructField = getBaseStructField(xmlSchema,
+                      xmlSchema.getParent.getTypeByQName(attribute.getSchemaTypeName))
+                    StructField(s"_${attribute.getName}", baseStructField.dataType,
+                      attribute.getUse != XmlSchemaUse.REQUIRED)
+                }
+                schemaNameToStructFieldMap += (schemaType.getName ->
+                  StructField(complexType.getName, StructType(baseStructField +: attributes)))
+                StructField(complexType.getName, StructType(baseStructField +: attributes))
+              
+              case extension: XmlSchemaComplexContentExtension =>
+                val baseStructField = getBaseStructField(xmlSchema,
+                  xmlSchema.getParent.getTypeByQName(extension.getBaseTypeName))
+                val childFields =
+                  extension.getParticle match {
+                    // xs:all
+                    case all: XmlSchemaAll =>
+                      all.getItems.asScala.map {
+                        case element: XmlSchemaElement =>
+                          val baseStructField = getBaseStructField(xmlSchema,
+                            element.getSchemaType)
+                          val nullable = element.getMinOccurs == 0
+                          if (element.getMaxOccurs == 1) {
+                            StructField(element.getName, baseStructField.dataType, nullable)
+                          } else {
+                            StructField(element.getName,
+                              ArrayType(baseStructField.dataType), nullable)
+                          }
+                      }
+                    // xs:choice
+                    case choice: XmlSchemaChoice =>
+                      choice.getItems.asScala.map { case element: XmlSchemaElement =>
+                        val baseStructField = getBaseStructField(xmlSchema, element.getSchemaType)
+                        val nullable = element.getMinOccurs == 0
+                        if (element.getMaxOccurs == 1) {
+                          StructField(element.getName, baseStructField.dataType, nullable)
+                        } else {
+                          StructField(element.getName,
+                            ArrayType(baseStructField.dataType), nullable)
+                        }
+                      }
+                    // xs:sequence
+                    case sequence: XmlSchemaSequence =>
+                      // flatten xs:choice nodes
+                      sequence.getItems.asScala.flatMap { member: XmlSchemaSequenceMember =>
+                        member match {
+                          case choice: XmlSchemaChoice =>
+                            choice.getItems.asScala.map(e =>
+                              (e.asInstanceOf[XmlSchemaElement], true))
+                          case element: XmlSchemaElement =>
+                            Seq((element, element.getMinOccurs == 0))
+                        }
+                      }.map { case (element: XmlSchemaElement, nullable) =>
+                        val baseStructField = getBaseStructField(xmlSchema, element.getSchemaType)
+                        if (element.getMaxOccurs == 1) {
+                          StructField(element.getName, baseStructField.dataType, nullable)
+                        } else {
+                          StructField(element.getName,
+                            ArrayType(baseStructField.dataType), nullable)
+                        }
+                      }
+                  }
+                val attributes = extension.getAttributes.asScala.map {
+                  case attribute: XmlSchemaAttribute =>
+                    val baseStructField = getBaseStructField(xmlSchema,
+                      xmlSchema.getParent.getTypeByQName(attribute.getSchemaTypeName))
+                    StructField(s"_${attribute.getName}", baseStructField.dataType,
+                      attribute.getUse != XmlSchemaUse.REQUIRED)
+                }
+                schemaNameToStructFieldMap += (schemaType.getName ->
+                  StructField(schemaType.getName,
+                    StructType(baseStructField +: (childFields ++ attributes))))
+                StructField(schemaType.getName,
+                  StructType(baseStructField +: (childFields ++ attributes)))
             }
           case null => {
             val childFields =
@@ -139,18 +223,19 @@ object XSDToSchema {
                 case all: XmlSchemaAll =>
                   all.getItems.asScala.map {
                     case element: XmlSchemaElement =>
-                      val baseStructField = getStructField(xmlSchema, element.getSchemaType)
+                      val baseStructField = getBaseStructField(xmlSchema, element.getSchemaType)
                       val nullable = element.getMinOccurs == 0
                       if (element.getMaxOccurs == 1) {
                         StructField(element.getName, baseStructField.dataType, nullable)
                       } else {
-                        StructField(element.getName, ArrayType(baseStructField.dataType), nullable)
+                        StructField(element.getName,
+                          ArrayType(baseStructField.dataType), nullable)
                       }
                   }
                 // xs:choice
                 case choice: XmlSchemaChoice =>
                   choice.getItems.asScala.map { case element: XmlSchemaElement =>
-                    val baseStructField = getStructField(xmlSchema, element.getSchemaType)
+                    val baseStructField = getBaseStructField(xmlSchema, element.getSchemaType)
                     val nullable = element.getMinOccurs == 0
                     if (element.getMaxOccurs == 1) {
                       StructField(element.getName, baseStructField.dataType, nullable)
@@ -168,8 +253,9 @@ object XSDToSchema {
                       case element: XmlSchemaElement => Seq((element, element.getMinOccurs == 0))
                     }
                   }.map { case (element: XmlSchemaElement, nullable) =>
-                    val baseStructField = getStructField(xmlSchema, element.getSchemaType)
+                    val baseStructField = getBaseStructField(xmlSchema, element.getSchemaType)
                     if (element.getMaxOccurs == 1) {
+
                       StructField(element.getName, baseStructField.dataType, nullable)
                     } else {
                       StructField(element.getName, ArrayType(baseStructField.dataType), nullable)
@@ -178,11 +264,13 @@ object XSDToSchema {
               }
             val attributes = complexType.getAttributes.asScala.map {
               case attribute: XmlSchemaAttribute =>
-                val baseStructField = getStructField(xmlSchema,
+                val baseStructField = getBaseStructField(xmlSchema,
                   xmlSchema.getParent.getTypeByQName(attribute.getSchemaTypeName))
                 StructField(s"_${attribute.getName}", baseStructField.dataType,
                   attribute.getUse != XmlSchemaUse.REQUIRED)
             }
+            schemaNameToStructFieldMap += (schemaType.getName ->
+              StructField(complexType.getName, StructType(childFields ++ attributes)))
             StructField(complexType.getName, StructType(childFields ++ attributes))
           }
         }
@@ -191,6 +279,14 @@ object XSDToSchema {
     }
   }
 
+  private def getBaseStructField(xmlSchema: XmlSchema, schemaType: XmlSchemaType): StructField = {
+    if (schemaNameToStructFieldMap.contains(schemaType.getName)){
+      return schemaNameToStructFieldMap.getOrElse(schemaType.getName, null);
+    } else {
+      val schemaType1 = getStructField(xmlSchema, schemaType)
+      return schemaType1
+    }
+  }
   private def getStructType(xmlSchema: XmlSchema): StructType = {
     val (qName, schemaElement) = xmlSchema.getElements.asScala.head
     val schemaType = schemaElement.getSchemaType
@@ -200,5 +296,4 @@ object XSDToSchema {
     val rootType = getStructField(xmlSchema, schemaType)
     StructType(Seq(StructField(rootType.name, rootType.dataType, schemaElement.getMinOccurs == 0)))
   }
-
 }
