@@ -70,7 +70,6 @@ object XSDToSchema {
     getStructType(xmlSchema)
   }
 
-
   private def getStructField(xmlSchema: XmlSchema, schemaType: XmlSchemaType): StructField = {
     schemaType match {
       // xs:simpleType
@@ -130,20 +129,16 @@ object XSDToSchema {
                   case attribute: XmlSchemaAttribute =>
                     val baseStructField = getBaseStructField(xmlSchema,
                       xmlSchema.getParent.getTypeByQName(attribute.getSchemaTypeName))
-                    val metaData = new MetadataBuilder()
-                      .putString("baseUri", attribute.getQName.getNamespaceURI)
-                      .build()
                     StructField(s"_${attribute.getName}", baseStructField.dataType,
-                      attribute.getUse != XmlSchemaUse.REQUIRED,
-                      metaData)
+                      attribute.getUse != XmlSchemaUse.REQUIRED)
                 }
-                val metaData = new MetadataBuilder()
-                  .putString("baseUri", complexType.getQName.getNamespaceURI)
-                  .build()
-                val structField = StructField(complexType.getName,
-                  StructType(baseStructField.dataType.asInstanceOf[StructType].fields ++
-                    attributes),
-                  metadata = metaData)
+                val structField = if (baseStructField.dataType.isInstanceOf[StructType]) {
+                  StructField(complexType.getName,
+                    StructType(baseStructField.dataType.asInstanceOf[StructType].fields ++
+                      attributes))
+                } else {
+                  StructField(complexType.getName, StructType(baseStructField +: attributes))
+                }
                 schemaNameToStructFieldMap += (schemaType.getName -> structField)
                 structField
             }
@@ -156,20 +151,16 @@ object XSDToSchema {
                   case attribute: XmlSchemaAttribute =>
                     val baseStructField = getBaseStructField(xmlSchema,
                       xmlSchema.getParent.getTypeByQName(attribute.getSchemaTypeName))
-                    val metaData = new MetadataBuilder()
-                      .putString("baseUri", attribute.getQName.getNamespaceURI)
-                      .build()
                     StructField(s"_${attribute.getName}", baseStructField.dataType,
-                      attribute.getUse != XmlSchemaUse.REQUIRED,
-                      metaData)
+                      attribute.getUse != XmlSchemaUse.REQUIRED)
                 }
-                val metaData = new MetadataBuilder()
-                  .putString("baseUri", complexType.getQName.getNamespaceURI)
-                  .build()
-                val structField = StructField(complexType.getName,
-                  StructType(baseStructField.dataType.asInstanceOf[StructType].fields ++
-                    attributes),
-                  metadata = metaData)
+                val structField = if (baseStructField.dataType.isInstanceOf[StructType]) {
+                  StructField(complexType.getName,
+                    StructType(baseStructField.dataType.asInstanceOf[StructType].fields
+                      ++ attributes))
+                } else {
+                  StructField(complexType.getName, StructType(baseStructField +: attributes))
+                }
                 schemaNameToStructFieldMap += (schemaType.getName -> structField)
                 structField
 
@@ -181,20 +172,17 @@ object XSDToSchema {
                   case attribute: XmlSchemaAttribute =>
                     val baseStructField = getBaseStructField(xmlSchema,
                       xmlSchema.getParent.getTypeByQName(attribute.getSchemaTypeName))
-                    val metaData = new MetadataBuilder()
-                      .putString("baseUri", attribute.getQName.getNamespaceURI)
-                      .build()
                     StructField(s"_${attribute.getName}", baseStructField.dataType,
-                      attribute.getUse != XmlSchemaUse.REQUIRED,
-                      metaData)
+                      attribute.getUse != XmlSchemaUse.REQUIRED)
                 }
-                val metaData = new MetadataBuilder()
-                  .putString("baseUri", schemaType.getQName.getNamespaceURI)
-                  .build()
-                val structField = StructField(schemaType.getName,
-                  StructType(baseStructField.dataType.asInstanceOf[StructType].fields ++
-                    (childFields ++ attributes)),
-                  metadata = metaData)
+                val structField = if (baseStructField.dataType.isInstanceOf[StructType]) {
+                  StructField(schemaType.getName,
+                    StructType(baseStructField.dataType.asInstanceOf[StructType].fields ++
+                      (childFields ++ attributes)))
+                } else {
+                  StructField(schemaType.getName,
+                    StructType(baseStructField +: (childFields ++ attributes)))
+                }
                 schemaNameToStructFieldMap += (schemaType.getName -> structField)
                 structField
             }
@@ -204,19 +192,11 @@ object XSDToSchema {
               case attribute: XmlSchemaAttribute =>
                 val baseStructField = getBaseStructField(xmlSchema,
                   xmlSchema.getParent.getTypeByQName(attribute.getSchemaTypeName))
-                val metaData = new MetadataBuilder()
-                  .putString("baseUri", attribute.getQName.getNamespaceURI)
-                  .build()
                 StructField(s"_${attribute.getName}", baseStructField.dataType,
-                  attribute.getUse != XmlSchemaUse.REQUIRED,
-                  metaData)
+                  attribute.getUse != XmlSchemaUse.REQUIRED)
             }
-            val metaData = new MetadataBuilder()
-              .putString("baseUri", complexType.getQName.getNamespaceURI)
-              .build()
             val structField = StructField(complexType.getName,
-              StructType(childFields ++ attributes),
-              metadata = metaData)
+              StructType(childFields ++ attributes))
             schemaNameToStructFieldMap += (schemaType.getName -> structField)
             structField
           }
@@ -241,16 +221,10 @@ object XSDToSchema {
             val baseStructField = getBaseStructField(xmlSchema,
               element.getSchemaType)
             val nullable = element.getMinOccurs == 0
-            val metaData = new MetadataBuilder()
-              .putString("baseUri", element.getQName.getNamespaceURI)
-              .build()
             if (element.getMaxOccurs == 1) {
-              StructField(element.getName, baseStructField.dataType, nullable,
-                metaData)
+              StructField(element.getName, baseStructField.dataType, nullable)
             } else {
-              StructField(element.getName,
-                ArrayType(baseStructField.dataType), nullable,
-                metaData)
+              StructField(element.getName, ArrayType(baseStructField.dataType), nullable)
             }
         }
       // xs:choice
@@ -258,15 +232,10 @@ object XSDToSchema {
         choice.getItems.asScala.map { case element: XmlSchemaElement =>
           val baseStructField = getBaseStructField(xmlSchema, element.getSchemaType)
           val nullable = element.getMinOccurs == 0
-          val metaData = new MetadataBuilder()
-            .putString("baseUri", element.getQName.getNamespaceURI)
-            .build()
           if (element.getMaxOccurs == 1) {
-            StructField(element.getName, baseStructField.dataType, nullable,
-              metaData)
+            StructField(element.getName, baseStructField.dataType, nullable)
           } else {
-            StructField(element.getName,
-              ArrayType(baseStructField.dataType), nullable, metaData)
+            StructField(element.getName, ArrayType(baseStructField.dataType), nullable)
           }
         }
       // xs:sequence
@@ -282,15 +251,10 @@ object XSDToSchema {
           }
         }.map { case (element: XmlSchemaElement, nullable) =>
           val baseStructField = getBaseStructField(xmlSchema, element.getSchemaType)
-          val metaData = new MetadataBuilder()
-            .putString("baseUri", element.getQName.getNamespaceURI)
-            .build()
           if (element.getMaxOccurs == 1) {
-            StructField(element.getName, baseStructField.dataType, nullable,
-              metaData)
+            StructField(element.getName, baseStructField.dataType, nullable)
           } else {
-            StructField(element.getName,
-              ArrayType(baseStructField.dataType), nullable, metaData)
+            StructField(element.getName, ArrayType(baseStructField.dataType), nullable)
           }
         }
     }
