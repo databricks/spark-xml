@@ -33,6 +33,9 @@ object XSDToSchema {
 
   /**
    * Reads a schema from an XSD file.
+   * Note that if the schema consists of one complex parent type which you want to use as
+   * the row tag schema, then you will need to extract the schema of the single resulting
+   * struct in the resulting StructType, and use its StructType as your schema.
    *
    * @param xsdFile XSD file
    * @return Spark-compatible schema
@@ -49,6 +52,9 @@ object XSDToSchema {
 
   /**
    * Reads a schema from an XSD file.
+   * Note that if the schema consists of one complex parent type which you want to use as
+   * the row tag schema, then you will need to extract the schema of the single resulting
+   * struct in the resulting StructType, and use its StructType as your schema.
    *
    * @param xsdFile XSD file
    * @return Spark-compatible schema
@@ -58,6 +64,9 @@ object XSDToSchema {
 
   /**
    * Reads a schema from an XSD as a string.
+   * Note that if the schema consists of one complex parent type which you want to use as
+   * the row tag schema, then you will need to extract the schema of the single resulting
+   * struct in the resulting StructType, and use its StructType as your schema.
    *
    * @param xsdString XSD as a string
    * @return Spark-compatible schema
@@ -192,13 +201,14 @@ object XSDToSchema {
   }
 
   private def getStructType(xmlSchema: XmlSchema): StructType = {
-    val (qName, schemaElement) = xmlSchema.getElements.asScala.head
-    val schemaType = schemaElement.getSchemaType
-    if (schemaType.isAnonymous) {
-      schemaType.setName(qName.getLocalPart)
-    }
-    val rootType = getStructField(xmlSchema, schemaType)
-    StructType(Seq(StructField(rootType.name, rootType.dataType, schemaElement.getMinOccurs == 0)))
+    StructType(xmlSchema.getElements.asScala.toSeq.map { case (qName, schemaElement) =>
+      val schemaType = schemaElement.getSchemaType
+      // if (schemaType.isAnonymous) {
+      //   schemaType.setName(qName.getLocalPart)
+      // }
+      val rootType = getStructField(xmlSchema, schemaType)
+      StructField(qName.getLocalPart, rootType.dataType, schemaElement.getMinOccurs == 0)
+    })
   }
 
 }

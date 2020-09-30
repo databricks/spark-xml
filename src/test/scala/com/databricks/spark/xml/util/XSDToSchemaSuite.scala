@@ -72,4 +72,10 @@ class XSDToSchemaSuite extends AnyFunSuite {
     assert(expectedSchema === parsedSchema)
   }
 
+  test("Two root elements") {
+    val parsedSchema = XSDToSchema.read(Paths.get("src/test/resources/twoelements.xsd"))
+    val expectedSchema = buildSchema(field("bar", nullable = false), field("foo", nullable = false))
+    assert(expectedSchema === parsedSchema)
+  }
+
 }
