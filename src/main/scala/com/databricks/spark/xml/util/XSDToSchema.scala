@@ -207,7 +207,7 @@ object XSDToSchema {
       //   schemaType.setName(qName.getLocalPart)
       // }
       val rootType = getStructField(xmlSchema, schemaType)
-      StructField(qName.getLocalPart, rootType.dataType, schemaElement.getMinOccurs == 0)
+      StructField(schemaElement.getName, rootType.dataType, schemaElement.getMinOccurs == 0)
     })
   }
 
