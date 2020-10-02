@@ -7,12 +7,13 @@ The structure and test tools are mostly copied from [CSV Data Source for Spark](
 
 - This package supports to process format-free XML files in a distributed way, unlike JSON datasource in Spark restricts in-line JSON format.
 
+- As of 0.6.x+ Spark 3.x is also supported (requires Scala 2.12)
 
 ## Requirements
 
 | spark-xml | Spark         |
 | --------- | ------------- |
-| 0.6.x+    | 2.3.x+        |
+| 0.6.x+    | 2.3.x+, 3.x   |
 | 0.5.x     | 2.2.x - 2.4.x |
 | 0.4.x     | 2.0.x - 2.1.x |
 | 0.3.x     | 1.x           |
