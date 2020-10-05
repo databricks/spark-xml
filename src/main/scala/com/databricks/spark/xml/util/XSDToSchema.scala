@@ -160,11 +160,10 @@ object XSDToSchema {
                 case choice: XmlSchemaChoice =>
                   choice.getItems.asScala.map { case element: XmlSchemaElement =>
                     val baseStructField = getStructField(xmlSchema, element.getSchemaType)
-                    val nullable = element.getMinOccurs == 0
                     if (element.getMaxOccurs == 1) {
-                      StructField(element.getName, baseStructField.dataType, nullable)
+                      StructField(element.getName, baseStructField.dataType, true)
                     } else {
-                      StructField(element.getName, ArrayType(baseStructField.dataType), nullable)
+                      StructField(element.getName, ArrayType(baseStructField.dataType), true)
                     }
                   }
                 // xs:sequence
