@@ -24,9 +24,11 @@ import org.scalatest.funsuite.AnyFunSuite
 import com.databricks.spark.xml.TestUtils._
 
 class XSDToSchemaSuite extends AnyFunSuite {
+  
+  private val resDir = "src/test/resources"
 
   test("Basic parsing") {
-    val parsedSchema = XSDToSchema.read(Paths.get("src/test/resources/basket.xsd"))
+    val parsedSchema = XSDToSchema.read(Paths.get(s"${resDir}/basket.xsd"))
     val expectedSchema = buildSchema(
       field("basket",
         struct(
@@ -37,8 +39,7 @@ class XSDToSchemaSuite extends AnyFunSuite {
   }
 
   test("Relative path parsing") {
-    val parsedSchema = XSDToSchema.read(
-      Paths.get("src/test/resources/include-example/first.xsd"))
+    val parsedSchema = XSDToSchema.read(Paths.get(s"${resDir}/include-example/first.xsd"))
     val expectedSchema = buildSchema(
       field("basket",
         struct(
@@ -49,8 +50,7 @@ class XSDToSchemaSuite extends AnyFunSuite {
   }
 
   test("Test schema types and attributes") {
-    val parsedSchema = XSDToSchema.read(
-      Paths.get("src/test/resources/catalog.xsd"))
+    val parsedSchema = XSDToSchema.read(Paths.get(s"${resDir}/catalog.xsd"))
     val expectedSchema = buildSchema(
       field("catalog",
         struct(
@@ -72,8 +72,15 @@ class XSDToSchemaSuite extends AnyFunSuite {
     assert(expectedSchema === parsedSchema)
   }
 
+  test("Test xs:choice nullability") {
+    val parsedSchema = XSDToSchema.read(Paths.get(s"${resDir}/choice.xsd"))
+    val expectedSchema = buildSchema(
+      field("el", struct(field("foo"), field("bar"), field("baz")), nullable = false))
+    assert(expectedSchema === parsedSchema)
+  }
+
   test("Two root elements") {
-    val parsedSchema = XSDToSchema.read(Paths.get("src/test/resources/twoelements.xsd"))
+    val parsedSchema = XSDToSchema.read(Paths.get(s"${resDir}/twoelements.xsd"))
     val expectedSchema = buildSchema(field("bar", nullable = false), field("foo", nullable = false))
     assert(expectedSchema === parsedSchema)
   }
