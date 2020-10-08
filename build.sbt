@@ -73,6 +73,8 @@ parallelExecution in Test := false
 // Skip tests during assembly
 test in assembly := {}
 
+fork := true
+
 // Prints JUnit tests in output
 testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
 
