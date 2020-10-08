@@ -16,12 +16,11 @@
 
 package com.databricks.spark.xml.parsers
 
+import java.nio.file.Files
 import java.sql.Date
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
-
-import org.apache.commons.io.FileUtils
 
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
@@ -86,7 +85,7 @@ final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
   test("write/read roundtrip") {
     import spark.implicits._
     val df = dataset.toDF.orderBy("booleanDatum")
-    val targetFile = FileUtils.getTempDirectoryPath() + "roundtrip.xml"
+    val targetFile = Files.createTempDirectory("StaxXmlGeneratorSuite").resolve("roundtrip.xml").toString
     df.write.format("xml").save(targetFile)
     val newDf = spark.read.schema(df.schema).format("xml").load(targetFile).orderBy("booleanDatum")
     assert(df.collect.deep == newDf.collect.deep)
