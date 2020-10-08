@@ -16,11 +16,7 @@
 
 package com.databricks.spark.xml.parsers
 
-import java.nio.charset.{StandardCharsets, UnsupportedCharsetException}
-
 import java.sql.Date
-import java.sql.Timestamp
-import java.time.{ZoneId, ZonedDateTime}
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
@@ -39,7 +35,6 @@ case class KnownData(
     longDatum: Long,
     stringDatum: String,
     timeDatum: String,
-    timestampDatum: Timestamp,
     nullDatum: Null
 )
 
@@ -53,9 +48,6 @@ final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
         integerDatum = 17,
         longDatum = 1520828868,
         stringDatum = "test,breakdelimiter",
-        timestampDatum = Timestamp.from(
-          ZonedDateTime.of(2017, 12, 20, 21, 46, 54, 0,
-          ZoneId.of("UTC")).toInstant),
         timeDatum = "12:34:56",
         nullDatum = null),
       KnownData(booleanDatum = false,
@@ -65,13 +57,9 @@ final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
         integerDatum = 34,
         longDatum = 1520828123,
         stringDatum = "breakdelimiter,test",
-        timestampDatum = Timestamp.from(
-          ZonedDateTime.of(2017, 12, 29, 17, 21, 49, 0,
-          ZoneId.of("America/New_York")).toInstant),
         timeDatum = "23:45:16",
         nullDatum = null)
   )
-  val targetFile = FileUtils.getTempDirectoryPath() + "roundtrip.xml"
 
   private lazy val spark: SparkSession = {
     // It is intentionally a val to allow import implicits.
@@ -88,7 +76,6 @@ final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   override def afterAll(): Unit = {
-    FileUtils.deleteQuietly(new java.io.File(targetFile))
     try {
       spark.stop()
     } finally {
@@ -99,6 +86,7 @@ final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
   test("write/read roundtrip") {
     import spark.implicits._
     val df = dataset.toDF.orderBy("booleanDatum")
+    val targetFile = FileUtils.getTempDirectoryPath() + "roundtrip.xml"
     df.write.format("xml").save(targetFile)
     val newDf = spark.read.schema(df.schema).format("xml").load(targetFile).orderBy("booleanDatum")
     assert(df.collect.deep == newDf.collect.deep)
