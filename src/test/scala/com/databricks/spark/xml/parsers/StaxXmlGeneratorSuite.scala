@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.databricks.spark.xml.util
+
+package com.databricks.spark.xml.parsers
 
 import java.nio.charset.{StandardCharsets, UnsupportedCharsetException}
 
@@ -44,8 +45,31 @@ case class KnownData(
 
 final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
   val dataset = Seq(
-      KnownData(booleanDatum=true, dateDatum=Date.valueOf("2016-12-18"), decimalDatum=Decimal(54.321, 10, 3), doubleDatum=42.4242, integerDatum=17, longDatum=1520828868, stringDatum="test,breakdelimiter", timestampDatum=Timestamp.from(ZonedDateTime.of(2017, 12, 20, 21, 46, 54, 0, ZoneId.of("UTC")).toInstant), timeDatum="12:34:56", nullDatum=null),
-      KnownData(booleanDatum=false, dateDatum=Date.valueOf("2016-12-19"), decimalDatum=Decimal(12.345, 10, 3), doubleDatum=21.2121, integerDatum=34, longDatum=1520828123, stringDatum="breakdelimiter,test", timestampDatum=Timestamp.from(ZonedDateTime.of(2017, 12, 29, 17, 21, 49, 0, ZoneId.of("America/New_York")).toInstant), timeDatum="23:45:16", nullDatum=null)
+      KnownData(
+        booleanDatum = true,
+        dateDatum = Date.valueOf("2016-12-18"),
+        decimalDatum = Decimal(54.321, 10, 3),
+        doubleDatum = 42.4242,
+        integerDatum = 17,
+        longDatum = 1520828868,
+        stringDatum = "test,breakdelimiter",
+        timestampDatum = Timestamp.from(
+          ZonedDateTime.of(2017, 12, 20, 21, 46, 54, 0,
+          ZoneId.of("UTC")).toInstant),
+        timeDatum = "12:34:56",
+        nullDatum = null),
+      KnownData(booleanDatum = false,
+        dateDatum = Date.valueOf("2016-12-19"),
+        decimalDatum = Decimal(12.345, 10, 3),
+        doubleDatum = 21.2121,
+        integerDatum = 34,
+        longDatum = 1520828123,
+        stringDatum = "breakdelimiter,test",
+        timestampDatum = Timestamp.from(
+          ZonedDateTime.of(2017, 12, 29, 17, 21, 49, 0,
+          ZoneId.of("America/New_York")).toInstant),
+        timeDatum = "23:45:16",
+        nullDatum = null)
   )
   val targetFile = FileUtils.getTempDirectoryPath() + "roundtrip.xml"
 
@@ -75,8 +99,8 @@ final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
   test("write/read roundtrip") {
     import spark.implicits._
     val df = dataset.toDF.orderBy("booleanDatum")
-    df.write.format("xml").save(targetFile);
-    val newDf = spark.read.schema(df.schema).format("xml").load(targetFile).orderBy("booleanDatum");
+    df.write.format("xml").save(targetFile)
+    val newDf = spark.read.schema(df.schema).format("xml").load(targetFile).orderBy("booleanDatum")
     assert(df.collect.deep == newDf.collect.deep)
   }
 

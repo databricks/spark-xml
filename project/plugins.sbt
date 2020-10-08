@@ -6,8 +6,8 @@ libraryDependencies += "org.scalariform" %% "scalariform" % "0.2.10"
 
 addSbtPlugin("com.eed3si9n" % "sbt-unidoc" % "0.4.3")
 
-addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.1.2-1")
+addSbtPlugin("com.jsuereth" % "sbt-pgp" % "2.0.1")
 
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.6.1")
 
-addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "0.3.0")
+addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "0.8.0")
