@@ -13,18 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.databricks.spark.xml.util
 
-import java.nio.charset.{StandardCharsets, UnsupportedCharsetException}
+package com.databricks.spark.xml.parsers
 
-import java.sql.Date
-import java.sql.Timestamp
+import java.nio.file.Files
+import java.sql.{Date, Timestamp}
 import java.time.{ZoneId, ZonedDateTime}
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
-
-import org.apache.commons.io.FileUtils
 
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
@@ -43,11 +40,6 @@ case class KnownData(
 )
 
 final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
-  val dataset = Seq(
-      KnownData(booleanDatum=true, dateDatum=Date.valueOf("2016-12-18"), decimalDatum=Decimal(54.321, 10, 3), doubleDatum=42.4242, integerDatum=17, longDatum=1520828868, stringDatum="test,breakdelimiter", timestampDatum=Timestamp.from(ZonedDateTime.of(2017, 12, 20, 21, 46, 54, 0, ZoneId.of("UTC")).toInstant), timeDatum="12:34:56", nullDatum=null),
-      KnownData(booleanDatum=false, dateDatum=Date.valueOf("2016-12-19"), decimalDatum=Decimal(12.345, 10, 3), doubleDatum=21.2121, integerDatum=34, longDatum=1520828123, stringDatum="breakdelimiter,test", timestampDatum=Timestamp.from(ZonedDateTime.of(2017, 12, 29, 17, 21, 49, 0, ZoneId.of("America/New_York")).toInstant), timeDatum="23:45:16", nullDatum=null)
-  )
-  val targetFile = FileUtils.getTempDirectoryPath() + "roundtrip.xml"
 
   private lazy val spark: SparkSession = {
     // It is intentionally a val to allow import implicits.
@@ -64,7 +56,6 @@ final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   override def afterAll(): Unit = {
-    FileUtils.deleteQuietly(new java.io.File(targetFile))
     try {
       spark.stop()
     } finally {
@@ -74,9 +65,39 @@ final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
 
   test("write/read roundtrip") {
     import spark.implicits._
+
+    val dataset = Seq(
+      KnownData(
+        booleanDatum = true,
+        dateDatum = Date.valueOf("2016-12-18"),
+        decimalDatum = Decimal(54.321, 10, 3),
+        doubleDatum = 42.4242,
+        integerDatum = 17,
+        longDatum = 1520828868,
+        stringDatum = "test,breakdelimiter",
+        timeDatum = "12:34:56",
+        timestampDatum = Timestamp.from(ZonedDateTime.of(2017, 12, 20, 21, 46, 54, 0,
+          ZoneId.of("UTC")).toInstant),
+        nullDatum = null),
+      KnownData(booleanDatum = false,
+        dateDatum = Date.valueOf("2016-12-19"),
+        decimalDatum = Decimal(12.345, 10, 3),
+        doubleDatum = 21.2121,
+        integerDatum = 34,
+        longDatum = 1520828123,
+        stringDatum = "breakdelimiter,test",
+        timeDatum = "23:45:16",
+        timestampDatum = Timestamp.from(ZonedDateTime.of(2017, 12, 29, 17, 21, 49, 0,
+          ZoneId.of("America/New_York")).toInstant),
+        nullDatum = null)
+    )
+    
     val df = dataset.toDF.orderBy("booleanDatum")
-    df.write.format("xml").save(targetFile);
-    val newDf = spark.read.schema(df.schema).format("xml").load(targetFile).orderBy("booleanDatum");
+    val targetFile =
+      Files.createTempDirectory("StaxXmlGeneratorSuite").resolve("roundtrip.xml").toString
+    df.write.format("xml").save(targetFile)
+    val newDf =
+      spark.read.schema(df.schema).format("xml").load(targetFile).orderBy("booleanDatum")
     assert(df.collect.deep == newDf.collect.deep)
   }
 

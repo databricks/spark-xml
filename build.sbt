@@ -10,7 +10,7 @@ crossScalaVersions := Seq("2.11.12", "2.12.10")
 
 scalacOptions := Seq("-unchecked", "-deprecation")
 
-val sparkVersion = sys.props.get("spark.testVersion").getOrElse("2.4.6")
+val sparkVersion = sys.props.get("spark.testVersion").getOrElse("2.4.7")
 
 // To avoid packaging it, it's Provided below
 autoScalaLibrary := false
@@ -72,6 +72,8 @@ parallelExecution in Test := false
 
 // Skip tests during assembly
 test in assembly := {}
+
+fork := true
 
 // Prints JUnit tests in output
 testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
