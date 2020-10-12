@@ -74,6 +74,10 @@ When reading files the API accepts several options:
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
 * `charset`: Defaults to 'UTF-8' but can be set to other valid charset names
 * `ignoreSurroundingSpaces`: Defines whether or not surrounding whitespaces from values being read should be skipped. Default is false.
+* `wildcardColName`: Name of a column existing in the provided schema which is interpreted as a 'wildcard'.
+It must have type string or array of strings. It will match any XML child element that is not otherwise matched by the schema.
+The XML of the child becomes the string value of the column. If an array, then all unmatched elements will be returned
+as an array of strings. As its name implies, it is meant to emulate XSD's `xs:any` type. Default is `xs_any`.
 * `rowValidationXSDPath`: Path to an XSD file that is used to validate the XML for each row individually. Rows that fail to 
 validate are treated like parse errors as above. The XSD does not otherwise affect the schema provided, or inferred. 
 Note that if the same local path is not already also visible on the executors in the cluster, then the XSD and any others 

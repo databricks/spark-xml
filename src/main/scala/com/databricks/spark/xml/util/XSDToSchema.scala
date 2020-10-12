@@ -24,6 +24,8 @@ import org.apache.spark.sql.types._
 import org.apache.ws.commons.schema._
 import org.apache.ws.commons.schema.constants.Constants
 
+import com.databricks.spark.xml.XmlOptions
+
 /**
  * Utility to generate a Spark schema from an XSD. Not all XSD schemas are simple tabular schemas,
  * so not all elements or XSDs are supported.
@@ -168,7 +170,7 @@ object XSDToSchema {
                       }
                     case any: XmlSchemaAny =>
                       val dataType = if (any.getMaxOccurs > 1) ArrayType(StringType) else StringType
-                      StructField("xs_any", dataType, true)
+                      StructField(XmlOptions.DEFAULT_WILDCARD_COL_NAME, dataType, true)
                   }
                 // xs:sequence
                 case sequence: XmlSchemaSequence =>
@@ -190,7 +192,7 @@ object XSDToSchema {
                       val dataType =
                         if (any.getMaxOccurs > 1) ArrayType(StringType) else StringType
                       val nullable = any.getMinOccurs == 0
-                      Seq(StructField("xs_any", dataType, nullable))
+                      Seq(StructField(XmlOptions.DEFAULT_WILDCARD_COL_NAME, dataType, nullable))
                     }
                   }
               }

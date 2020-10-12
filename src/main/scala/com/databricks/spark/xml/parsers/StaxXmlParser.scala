@@ -294,6 +294,10 @@ private[xml] object StaxXmlParser extends Serializable {
     convertAttributes(rootAttributes, schema, options).toSeq.foreach { case (f, v) =>
       nameToIndex.get(f).foreach { row(_) = v }
     }
+    
+    val wildcardColName = options.wildcardColName
+    val hasWildcard = schema.exists(_.name == wildcardColName)
+    
     var badRecordException: Option[Throwable] = None
 
     var shouldStop = false
@@ -325,12 +329,12 @@ private[xml] object StaxXmlParser extends Serializable {
             }
 
             case None =>
-              if (schema.exists(_.name == "xs_any")) {
+              if (hasWildcard) {
                 // Special case: there's an 'any' wildcard element that matches anything else
                 // as a string (or array of strings, to parse multiple ones)
                 val newValue = convertField(parser, StringType, options)
-                val anyIndex = schema.fieldIndex("xs_any")
-                schema("xs_any").dataType match {
+                val anyIndex = schema.fieldIndex(wildcardColName)
+                schema(wildcardColName).dataType match {
                   case StringType =>
                     row(anyIndex) = newValue
                   case ArrayType(StringType, _) =>
