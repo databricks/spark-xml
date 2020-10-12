@@ -18,7 +18,7 @@ package com.databricks.spark.xml.util
 
 import java.nio.file.Paths
 
-import org.apache.spark.sql.types.FloatType
+import org.apache.spark.sql.types.{ArrayType, FloatType, StringType}
 import org.scalatest.funsuite.AnyFunSuite
 
 import com.databricks.spark.xml.TestUtils._
@@ -82,6 +82,31 @@ class XSDToSchemaSuite extends AnyFunSuite {
   test("Two root elements") {
     val parsedSchema = XSDToSchema.read(Paths.get(s"${resDir}/twoelements.xsd"))
     val expectedSchema = buildSchema(field("bar", nullable = false), field("foo", nullable = false))
+    assert(expectedSchema === parsedSchema)
+  }
+  
+  test("xs:any schema") {
+    val parsedSchema = XSDToSchema.read(Paths.get(s"${resDir}/xsany.xsd"))
+    val expectedSchema = buildSchema(
+      field("root",
+        struct(
+          field("foo",
+            struct(
+              field("xs_any", nullable = true)),
+            nullable = false),
+          field("bar",
+            struct(
+              field("xs_any", nullable = false)),
+            nullable = false),
+          field("baz",
+            struct(
+              field("xs_any", ArrayType(StringType), nullable = false)),
+            nullable = false),
+          field("bing",
+            struct(
+              field("xs_any", nullable = true)),
+            nullable = false)),
+        nullable = false))
     assert(expectedSchema === parsedSchema)
   }
 

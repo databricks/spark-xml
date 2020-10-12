@@ -325,7 +325,23 @@ private[xml] object StaxXmlParser extends Serializable {
             }
 
             case None =>
-              StaxXmlParserUtils.skipChildren(parser)
+              if (schema.exists(_.name == "xs_any")) {
+                // Special case: there's an 'any' wildcard element that matches anything else
+                // as a string (or array of strings, to parse multiple ones)
+                val newValue = convertField(parser, StringType, options)
+                val anyIndex = schema.fieldIndex("xs_any")
+                schema("xs_any").dataType match {
+                  case StringType =>
+                    row(anyIndex) = newValue
+                  case ArrayType(StringType, _) =>
+                    val values = Option(row(anyIndex))
+                      .map(_.asInstanceOf[ArrayBuffer[String]])
+                      .getOrElse(ArrayBuffer.empty[String])
+                    row(anyIndex) = values :+ newValue
+                }
+              } else {
+                StaxXmlParserUtils.skipChildren(parser)
+              }
           }
         } catch {
           case NonFatal(exception) if options.parseMode == PermissiveMode =>
