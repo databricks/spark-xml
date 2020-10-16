@@ -157,8 +157,8 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .select("date")
       .collect()
 
-    val attrValOne = results(0).getStruct(0)(1)
-    val attrValTwo = results(1).getStruct(0)(1)
+    val attrValOne = results(0).getStruct(0).getString(1)
+    val attrValTwo = results(1).getStruct(0).getString(1)
     assert(attrValOne == "string")
     assert(attrValTwo == "struct")
     assert(results.length === numCars)
@@ -188,8 +188,8 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .option("rowTag", agesTag)
       .xml(agesFile)
       .collect()
-    val attrValOne = results(0).getStruct(0)(1)
-    val attrValTwo = results(1).getStruct(0)(1)
+    val attrValOne = results(0).getStruct(0).getString(1)
+    val attrValTwo = results(1).getStruct(0).getString(1)
     assert(attrValOne == "1990-02-24")
     assert(attrValTwo == "1985-01-01")
     assert(results.length === numAges)
@@ -753,6 +753,39 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .collect()
 
     assert(results.length === numTopics)
+  }
+
+  test("xs_any array matches single element") {
+    val schema = buildSchema(
+      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
+      field("author"),
+      field("description"),
+      field("genre"),
+      field("price", DoubleType),
+      field("publish_date"),
+      field("xs_any"))
+    val results = spark.read.schema(schema).option("rowTag", booksTag).xml(booksFile)
+      // .select("xs_any")
+      .collect()
+    results.foreach { r =>
+      assert(r.getString(0) != null)
+    }
+  }
+
+  test("xs_any array matches multiple elements") {
+    val schema = buildSchema(
+      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
+      field("author"),
+      field("description"),
+      field("genre"),
+      array("xs_any", StringType))
+    spark.read.schema(schema).option("rowTag", booksTag).xml(booksFile).show(truncate = false)
+    val results = spark.read.schema(schema).option("rowTag", booksTag).xml(booksFile)
+      // .select("xs_any")
+      .collect()
+    results.foreach { r => 
+      assert(r.getAs[Seq[String]]("xs_any").size === 3)
+    }
   }
 
   test("Missing nested struct represented as Row of nulls instead of null") {

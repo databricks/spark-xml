@@ -74,12 +74,16 @@ When reading files the API accepts several options:
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
 * `charset`: Defaults to 'UTF-8' but can be set to other valid charset names
 * `ignoreSurroundingSpaces`: Defines whether or not surrounding whitespaces from values being read should be skipped. Default is false.
+* `wildcardColName`: Name of a column existing in the provided schema which is interpreted as a 'wildcard'.
+It must have type string or array of strings. It will match any XML child element that is not otherwise matched by the schema.
+The XML of the child becomes the string value of the column. If an array, then all unmatched elements will be returned
+as an array of strings. As its name implies, it is meant to emulate XSD's `xs:any` type. Default is `xs_any`. New in 0.11.0.
 * `rowValidationXSDPath`: Path to an XSD file that is used to validate the XML for each row individually. Rows that fail to 
 validate are treated like parse errors as above. The XSD does not otherwise affect the schema provided, or inferred. 
 Note that if the same local path is not already also visible on the executors in the cluster, then the XSD and any others 
 it depends on should be added to the Spark executors with 
 [`SparkContext.addFile`](https://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.SparkContext@addFile(path:String):Unit).
-In this case, to use local XSD `/foo/bar.xsd`, call `addFile("/foo/bar.xsd")` and pass just `"bar.xsd"` as `rowValidationXSDPath`. New in 0.8.0.
+In this case, to use local XSD `/foo/bar.xsd`, call `addFile("/foo/bar.xsd")` and pass just `"bar.xsd"` as `rowValidationXSDPath`.
 
 When writing files the API accepts several options:
 
@@ -97,7 +101,7 @@ Currently it supports the shortened name usage. You can use just `xml` instead o
 
 Per above, the XML for individual rows can be validated against an XSD using `rowValidationXSDPath`.
 
-From 0.10 onwards, the utility `com.databricks.spark.xml.util.XSDToSchema` can be used to extract a Spark DataFrame
+The utility `com.databricks.spark.xml.util.XSDToSchema` can be used to extract a Spark DataFrame
 schema from _some_ XSD files. It supports only simple, complex and sequence types, only basic XSD functionality,
 and is experimental.
 
@@ -111,7 +115,7 @@ val df = spark.read.schema(schema)....xml(...)
 
 ### Parsing Nested XML
 
-Although primarily used to convert (portions of) large XML documents into a `DataFrame`, from version 0.8.0 onwards,
+Although primarily used to convert (portions of) large XML documents into a `DataFrame`,
 `spark-xml` can also parse XML in a string-valued column in an existing DataFrame with `from_xml`, in order to add
 it as a new column with parsed results as a struct.
 
@@ -454,7 +458,7 @@ val records = sc.newAPIHadoopFile(
 
 ## Building From Source
 
-This library is built with [SBT](https://www.scala-sbt.org/0.13/docs/Command-Line-Reference.html). To build a JAR file simply run `sbt package` from the project root. The build configuration includes support for both Scala 2.11 and 2.12.
+This library is built with [SBT](https://www.scala-sbt.org/). To build a JAR file simply run `sbt package` from the project root. The build configuration includes support for both Scala 2.11 and 2.12.
 
 ## Acknowledgements
 

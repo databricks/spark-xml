@@ -24,6 +24,8 @@ import org.apache.spark.sql.types._
 import org.apache.ws.commons.schema._
 import org.apache.ws.commons.schema.constants.Constants
 
+import com.databricks.spark.xml.XmlOptions
+
 /**
  * Utility to generate a Spark schema from an XSD. Not all XSD schemas are simple tabular schemas,
  * so not all elements or XSDs are supported.
@@ -158,29 +160,39 @@ object XSDToSchema {
                   }
                 // xs:choice
                 case choice: XmlSchemaChoice =>
-                  choice.getItems.asScala.map { case element: XmlSchemaElement =>
-                    val baseStructField = getStructField(xmlSchema, element.getSchemaType)
-                    if (element.getMaxOccurs == 1) {
-                      StructField(element.getName, baseStructField.dataType, true)
-                    } else {
-                      StructField(element.getName, ArrayType(baseStructField.dataType), true)
-                    }
+                  choice.getItems.asScala.map {
+                    case element: XmlSchemaElement =>
+                      val baseStructField = getStructField(xmlSchema, element.getSchemaType)
+                      if (element.getMaxOccurs == 1) {
+                        StructField(element.getName, baseStructField.dataType, true)
+                      } else {
+                        StructField(element.getName, ArrayType(baseStructField.dataType), true)
+                      }
+                    case any: XmlSchemaAny =>
+                      val dataType = if (any.getMaxOccurs > 1) ArrayType(StringType) else StringType
+                      StructField(XmlOptions.DEFAULT_WILDCARD_COL_NAME, dataType, true)
                   }
                 // xs:sequence
                 case sequence: XmlSchemaSequence =>
                   // flatten xs:choice nodes
-                  sequence.getItems.asScala.flatMap { member: XmlSchemaSequenceMember =>
-                    member match {
-                      case choice: XmlSchemaChoice =>
-                        choice.getItems.asScala.map(e => (e.asInstanceOf[XmlSchemaElement], true))
-                      case element: XmlSchemaElement => Seq((element, element.getMinOccurs == 0))
-                    }
-                  }.map { case (element: XmlSchemaElement, nullable) =>
-                    val baseStructField = getStructField(xmlSchema, element.getSchemaType)
-                    if (element.getMaxOccurs == 1) {
-                      StructField(element.getName, baseStructField.dataType, nullable)
-                    } else {
-                      StructField(element.getName, ArrayType(baseStructField.dataType), nullable)
+                  sequence.getItems.asScala.flatMap { _ match {
+                    case choice: XmlSchemaChoice =>
+                      choice.getItems.asScala.map { e => 
+                        val xme = e.asInstanceOf[XmlSchemaElement]
+                        val baseType = getStructField(xmlSchema, xme.getSchemaType).dataType
+                        val dataType = if (xme.getMaxOccurs > 1) ArrayType(baseType) else baseType
+                        StructField(xme.getName, dataType, true)
+                      }
+                    case e: XmlSchemaElement =>
+                      val baseType = getStructField(xmlSchema, e.getSchemaType).dataType
+                      val dataType = if (e.getMaxOccurs > 1) ArrayType(baseType) else baseType
+                      val nullable = e.getMinOccurs == 0
+                      Seq(StructField(e.getName, dataType, nullable))
+                    case any: XmlSchemaAny =>
+                      val dataType =
+                        if (any.getMaxOccurs > 1) ArrayType(StringType) else StringType
+                      val nullable = any.getMinOccurs == 0
+                      Seq(StructField(XmlOptions.DEFAULT_WILDCARD_COL_NAME, dataType, nullable))
                     }
                   }
               }

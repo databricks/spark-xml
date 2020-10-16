@@ -53,6 +53,8 @@ private[xml] class XmlOptions(
   val parseMode = ParseMode.fromString(parameters.getOrElse("mode", PermissiveMode.name))
   val inferSchema = parameters.get("inferSchema").map(_.toBoolean).getOrElse(true)
   val rowValidationXSDPath = parameters.get("rowValidationXSDPath").orNull
+  val wildcardColName =
+    parameters.getOrElse("wildcardColName", XmlOptions.DEFAULT_WILDCARD_COL_NAME)
 }
 
 private[xml] object XmlOptions {
@@ -62,6 +64,7 @@ private[xml] object XmlOptions {
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_CHARSET: String = StandardCharsets.UTF_8.name
   val DEFAULT_NULL_VALUE: String = null
+  val DEFAULT_WILDCARD_COL_NAME = "xs_any"
 
   def apply(parameters: Map[String, String]): XmlOptions = new XmlOptions(parameters)
 }
