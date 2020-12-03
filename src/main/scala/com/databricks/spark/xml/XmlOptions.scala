@@ -55,6 +55,7 @@ private[xml] class XmlOptions(
   val rowValidationXSDPath = parameters.get("rowValidationXSDPath").orNull
   val wildcardColName =
     parameters.getOrElse("wildcardColName", XmlOptions.DEFAULT_WILDCARD_COL_NAME)
+  val ignoreNamespace = parameters.get("ignoreNamespace").map(_.toBoolean).getOrElse(false)
 }
 
 private[xml] object XmlOptions {

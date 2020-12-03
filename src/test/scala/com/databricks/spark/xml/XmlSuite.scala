@@ -49,6 +49,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   private val booksComplicatedFile = resDir + "books-complicated.xml"
   private val booksComplicatedFileNullAttribute =
     resDir + "books-complicated-null-attribute.xml"
+  private val booksNamespaceFile = resDir + "books-namespaces.xml"
   private val carsFile = resDir + "cars.xml"
   private val carsFile8859 = resDir + "cars-iso-8859-1.xml"
   private val carsFileGzip = resDir + "cars.xml.gz"
@@ -1282,6 +1283,14 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       Files.list(xmlPath).iterator.asScala.filter(_.getFileName.toString.startsWith("part-")).next
     val firstLine = Source.fromFile(xmlFile.toFile).getLines.next
     assert(firstLine === "<root foo=\"bar\" bing=\"baz\">")
+  }
+
+  test("test ignoreNamespace") {
+    val results = spark.read
+      .option("rowTag", "book")
+      .option("ignoreNamespace", true)
+      .xml(booksNamespaceFile)
+    assert(results.filter("author IS NOT NULL").count() === 3)
   }
 
 }
