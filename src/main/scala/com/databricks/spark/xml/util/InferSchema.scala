@@ -16,7 +16,6 @@
 package com.databricks.spark.xml.util
 
 import java.io.StringReader
-import java.util.Comparator
 
 import javax.xml.stream.XMLEventReader
 import javax.xml.stream.events.{Attribute, Characters, EndElement, StartElement, XMLEvent}
@@ -60,12 +59,6 @@ private[xml] object InferSchema {
       Some(numericPrecedence(index))
 
     case _ => None
-  }
-
-  private[this] val structFieldComparator = new Comparator[StructField] {
-    override def compare(o1: StructField, o2: StructField): Int = {
-      o1.name.compare(o2.name)
-    }
   }
 
   /**
@@ -176,7 +169,7 @@ private[xml] object InferSchema {
       parser: XMLEventReader,
       options: XmlOptions,
       rootAttributes: Array[Attribute] = Array.empty): DataType = {
-    val builder = Array.newBuilder[StructField]
+    val builder = ArrayBuffer[StructField]()
     val nameToDataType = collection.mutable.Map.empty[String, ArrayBuffer[DataType]]
     // If there are attributes, then we should process them first.
     val rootValuesMap =
@@ -194,27 +187,23 @@ private[xml] object InferSchema {
           val inferredType = inferField(parser, options) match {
             case st: StructType if valuesMap.nonEmpty =>
               // Merge attributes to the field
-              val nestedBuilder = Array.newBuilder[StructField]
+              val nestedBuilder = ArrayBuffer[StructField]()
               nestedBuilder ++= st.fields
               valuesMap.foreach {
                 case (f, v) =>
                   nestedBuilder += StructField(f, inferFrom(v, options), nullable = true)
               }
-              val nesterBuilderArr = nestedBuilder.result()
-              java.util.Arrays.sort(nesterBuilderArr, structFieldComparator)
-              StructType(nesterBuilderArr)
+              StructType(nestedBuilder.sortBy(_.name).toArray)
 
             case dt: DataType if valuesMap.nonEmpty =>
               // We need to manually add the field for value.
-              val nestedBuilder = Array.newBuilder[StructField]
+              val nestedBuilder = ArrayBuffer[StructField]()
               nestedBuilder += StructField(options.valueTag, dt, nullable = true)
               valuesMap.foreach {
                 case (f, v) =>
                   nestedBuilder += StructField(f, inferFrom(v, options), nullable = true)
               }
-              val nesterBuilderArr = nestedBuilder.result()
-              java.util.Arrays.sort(nesterBuilderArr, structFieldComparator)
-              StructType(nesterBuilderArr)
+              StructType(nestedBuilder.sortBy(_.name).toArray)
 
             case dt: DataType => dt
           }
@@ -240,10 +229,8 @@ private[xml] object InferSchema {
         builder += StructField(field, dataTypes.head, nullable = true)
     }
 
-    val fields = builder.result()
     // Note: other code relies on this sorting for correctness, so don't remove it!
-    java.util.Arrays.sort(fields, structFieldComparator)
-    StructType(fields)
+    StructType(builder.sortBy(_.name).toArray)
   }
 
   /**
@@ -303,12 +290,10 @@ private[xml] object InferSchema {
         case (StructType(fields1), StructType(fields2)) =>
           val newFields = (fields1 ++ fields2).groupBy(_.name).map {
             case (name, fieldTypes) =>
-              val dataType = fieldTypes.view.map(_.dataType).reduce(compatibleType(options))
+              val dataType = fieldTypes.map(_.dataType).reduce(compatibleType(options))
               StructField(name, dataType, nullable = true)
           }
-          val newFieldsArr = newFields.toArray
-          java.util.Arrays.sort(newFieldsArr, structFieldComparator)
-          StructType(newFieldsArr)
+          StructType(newFields.toArray.sortBy(_.name))
 
         case (ArrayType(elementType1, containsNull1), ArrayType(elementType2, containsNull2)) =>
           ArrayType(
