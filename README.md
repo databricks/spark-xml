@@ -84,7 +84,7 @@ Note that if the same local path is not already also visible on the executors in
 it depends on should be added to the Spark executors with 
 [`SparkContext.addFile`](https://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.SparkContext@addFile(path:String):Unit).
 In this case, to use local XSD `/foo/bar.xsd`, call `addFile("/foo/bar.xsd")` and pass just `"bar.xsd"` as `rowValidationXSDPath`.
-* `ignoreNamespace`: If true, namespaces prefixes on XML elements are ignored. Tags `<abc:author>` and `<def:author>` would,
+* `ignoreNamespace`: If true, namespaces prefixes on XML elements and attributes are ignored. Tags `<abc:author>` and `<def:author>` would,
 for example, be treated as if both are just `<author>`. Note that, at the moment, namespaces cannot be ignored on the
 `rowTag` element, only its children. Note that XML parsing is in general not namespace-aware even if `false`.
 Defaults to `false`. New in 0.11.0.

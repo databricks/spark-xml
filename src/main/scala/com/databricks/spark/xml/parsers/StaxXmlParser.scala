@@ -207,14 +207,7 @@ private[xml] object StaxXmlParser extends Serializable {
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
-          val localPart = e.getName.getLocalPart
-          // Ignore namespace prefix up to last : if configured
-          val field = if (options.ignoreNamespace) {
-            localPart.split(":").last
-          } else {
-            localPart
-          }
-          keys += field
+          keys += StaxXmlParserUtils.getName(e.asStartElement.getName, options)
           values += convertField(parser, valueType, options)
         case _: EndElement =>
           shouldStop = StaxXmlParserUtils.checkEndElement(parser)
@@ -312,13 +305,7 @@ private[xml] object StaxXmlParser extends Serializable {
       parser.nextEvent match {
         case e: StartElement => try {
           val attributes = e.getAttributes.asScala.map(_.asInstanceOf[Attribute]).toArray
-          val localPart = e.asStartElement.getName.getLocalPart
-          // Ignore namespace prefix up to last : if configured
-          val field = if (options.ignoreNamespace) {
-            localPart.split(":").last
-          } else {
-            localPart
-          }
+          val field = StaxXmlParserUtils.getName(e.asStartElement.getName, options)
 
           nameToIndex.get(field) match {
             case Some(index) => schema(index).dataType match {

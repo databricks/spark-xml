@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <catalog xmlns:abc="abc" xmlns:def="def">
-   <book id="bk101" >
+   <book abc:id="bk101" >
       <abc:author>Gambardella, Matthew</abc:author>
    </book>
-   <book id="bk102">
+   <book def:id="bk102">
       <def:author>Ralls, Kim</def:author>
    </book>
    <book id="bk103">

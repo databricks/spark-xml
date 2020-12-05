@@ -17,6 +17,7 @@
 package com.databricks.spark.xml.parsers
 
 import java.io.StringReader
+import javax.xml.namespace.QName
 import javax.xml.stream.{EventFilter, XMLEventReader, XMLInputFactory, XMLStreamConstants}
 import javax.xml.stream.events._
 
@@ -92,19 +93,29 @@ private[xml] object StaxXmlParserUtils {
     if (options.excludeAttributeFlag) {
       Map.empty[String, String]
     } else {
-      val attrFields = attributes.map(options.attributePrefix + _.getName.getLocalPart)
-      val attrValues = attributes.map(_.getValue)
-      val nullSafeValues = {
-        if (options.treatEmptyValuesAsNulls) {
-          attrValues.map (v => if (v.trim.isEmpty) null else v)
-        } else {
-          attrValues
+      attributes.map { attr =>
+        val key = options.attributePrefix + getName(attr.getName, options)
+        val value = attr.getValue match {
+          case v if options.treatEmptyValuesAsNulls && v.trim.isEmpty => null
+          case v => v
         }
-      }
-      attrFields.zip(nullSafeValues).toMap
+        key -> value
+      }.toMap
     }
   }
 
+  /**
+   * Gets the local part of an XML name, optionally without namespace.
+   */
+  def getName(name: QName, options: XmlOptions): String = {
+    val localPart = name.getLocalPart
+    // Ignore namespace prefix up to last : if configured
+     if (options.ignoreNamespace) {
+      localPart.split(":").last
+    } else {
+      localPart
+    }
+  }
 
   /**
    * Convert the current structure of XML document to a XML string.

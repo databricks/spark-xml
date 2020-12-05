@@ -1291,6 +1291,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .option("ignoreNamespace", true)
       .xml(booksNamespaceFile)
     assert(results.filter("author IS NOT NULL").count() === 3)
+    assert(results.filter("_id IS NOT NULL").count() === 3)
   }
 
 }

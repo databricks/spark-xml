@@ -219,13 +219,7 @@ private[xml] object InferSchema {
             case dt: DataType => dt
           }
           // Add the field and datatypes so that we can check if this is ArrayType.
-          val localPart = e.asStartElement.getName.getLocalPart
-          // Ignore namespace prefix up to last : if configured
-          val field = if (options.ignoreNamespace) {
-            localPart.split(":").last
-          } else {
-            localPart
-          }
+          val field = StaxXmlParserUtils.getName(e.asStartElement.getName, options)
           val dataTypes = nameToDataType.getOrElse(field, ArrayBuffer.empty[DataType])
           dataTypes += inferredType
           nameToDataType += (field -> dataTypes)
