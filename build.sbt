@@ -83,5 +83,7 @@ mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.10.0")
 mimaBinaryIssueFilters ++= {
   import com.typesafe.tools.mima.core._
   Seq(
+    ProblemFilters.exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.parsers.StaxXmlParser.convertField")
   )
 }
