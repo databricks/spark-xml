@@ -89,6 +89,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   private val basketXSD = resDir + "basket.xsd"
   private val unclosedTag = resDir + "unclosed_tag.xml"
   private val whitespaceError = resDir + "whitespace_error.xml"
+  private val mapAttribute = resDir + "map-attribute.xml"
 
   private val booksTag = "book"
   private val booksRootTag = "books"
@@ -1292,6 +1293,21 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .xml(booksNamespaceFile)
     assert(results.filter("author IS NOT NULL").count() === 3)
     assert(results.filter("_id IS NOT NULL").count() === 3)
+  }
+
+  test("MapType field with attributes") {
+    val schema = buildSchema(
+      field("_startTime"),
+      field("_interval"),
+      field("PMTarget", MapType(StringType, StringType)))
+    val df = spark.read.option("rowTag", "PMSetup").
+      schema(schema).
+      xml(mapAttribute).
+      select("PMTarget")
+    val map = df.collect().head.getAs[Map[String, String]](0)
+    assert(map.contains("_measurementType"))
+    assert(map.contains("M1"))
+    assert(map.contains("M2"))
   }
 
 }
