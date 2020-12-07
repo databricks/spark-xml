@@ -135,16 +135,18 @@ private[xml] object StaxXmlParser extends Serializable {
   private[xml] def convertField(
       parser: XMLEventReader,
       dataType: DataType,
-      options: XmlOptions): Any = {
-    def convertComplicatedType(dt: DataType): Any = dt match {
+      options: XmlOptions,
+      attributes: Array[Attribute] = Array.empty): Any = {
+
+    def convertComplicatedType(dt: DataType, attributes: Array[Attribute]): Any = dt match {
       case st: StructType => convertObject(parser, st, options)
-      case MapType(StringType, vt, _) => convertMap(parser, vt, options)
+      case MapType(StringType, vt, _) => convertMap(parser, vt, options, attributes)
       case ArrayType(st, _) => convertField(parser, st, options)
       case _: StringType => StaxXmlParserUtils.currentStructureAsString(parser)
     }
 
     (parser.peek, dataType) match {
-      case (_: StartElement, dt: DataType) => convertComplicatedType(dt)
+      case (_: StartElement, dt: DataType) => convertComplicatedType(dt, attributes)
       case (_: EndElement, _: StringType) =>
         // Empty. It's null if these are explicitly treated as null, or "" is the null value
         if (options.treatEmptyValuesAsNulls || options.nullValue == ""){
@@ -180,11 +182,11 @@ private[xml] object StaxXmlParser extends Serializable {
         val data = c.getData
         parser.next
         parser.peek match {
-          case _: StartElement => convertComplicatedType(dataType)
+          case _: StartElement => convertComplicatedType(dataType, attributes)
           case _: EndElement if data.isEmpty => null
           case _: EndElement if options.treatEmptyValuesAsNulls => null
           case _: EndElement => convertTo(data, dataType, options)
-          case _ => convertField(parser, dataType, options)
+          case _ => convertField(parser, dataType, options, attributes)
         }
       case (c: Characters, dt: DataType) =>
         convertTo(c.getData, dt, options)
@@ -200,21 +202,25 @@ private[xml] object StaxXmlParser extends Serializable {
   private def convertMap(
       parser: XMLEventReader,
       valueType: DataType,
-      options: XmlOptions): Map[String, Any] = {
-    val keys = ArrayBuffer.empty[String]
-    val values = ArrayBuffer.empty[Any]
+      options: XmlOptions,
+      attributes: Array[Attribute]): Map[String, Any] = {
+    val kvPairs = ArrayBuffer.empty[(String, Any)]
+    attributes.foreach { attr =>
+      kvPairs += (options.attributePrefix + attr.getName.getLocalPart -> attr.getValue)
+    }
     var shouldStop = false
     while (!shouldStop) {
       parser.nextEvent match {
         case e: StartElement =>
-          keys += StaxXmlParserUtils.getName(e.asStartElement.getName, options)
-          values += convertField(parser, valueType, options)
+          kvPairs +=
+            (StaxXmlParserUtils.getName(e.asStartElement.getName, options) ->
+             convertField(parser, valueType, options))
         case _: EndElement =>
           shouldStop = StaxXmlParserUtils.checkEndElement(parser)
         case _ => // do nothing
       }
     }
-    keys.zip(values).toMap
+    kvPairs.toMap
   }
 
   /**
@@ -325,7 +331,7 @@ private[xml] object StaxXmlParser extends Serializable {
                 row(index) = values :+ newValue
 
               case dt: DataType =>
-                row(index) = convertField(parser, dt, options)
+                row(index) = convertField(parser, dt, options, attributes)
             }
 
             case None =>
