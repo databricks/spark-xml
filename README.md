@@ -383,13 +383,13 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
 spark = SparkSession.builder.getOrCreate()
-customSchema = StructType([ \
-    StructField("_id", StringType(), True), \
-    StructField("author", StringType(), True), \
-    StructField("description", StringType(), True), \
-    StructField("genre", StringType(), True), \
-    StructField("price", DoubleType(), True), \
-    StructField("publish_date", StringType(), True), \
+customSchema = StructType([
+    StructField("_id", StringType(), True),
+    StructField("author", StringType(), True),
+    StructField("description", StringType(), True),
+    StructField("genre", StringType(), True),
+    StructField("price", DoubleType(), True),
+    StructField("publish_date", StringType(), True),
     StructField("title", StringType(), True)])
 
 df = spark.read \

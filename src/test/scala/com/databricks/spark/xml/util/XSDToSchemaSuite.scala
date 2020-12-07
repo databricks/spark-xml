@@ -28,7 +28,7 @@ class XSDToSchemaSuite extends AnyFunSuite {
   private val resDir = "src/test/resources"
 
   test("Basic parsing") {
-    val parsedSchema = XSDToSchema.read(Paths.get(s"${resDir}/basket.xsd"))
+    val parsedSchema = XSDToSchema.read(Paths.get(s"$resDir/basket.xsd"))
     val expectedSchema = buildSchema(
       field("basket",
         struct(
@@ -39,7 +39,7 @@ class XSDToSchemaSuite extends AnyFunSuite {
   }
 
   test("Relative path parsing") {
-    val parsedSchema = XSDToSchema.read(Paths.get(s"${resDir}/include-example/first.xsd"))
+    val parsedSchema = XSDToSchema.read(Paths.get(s"$resDir/include-example/first.xsd"))
     val expectedSchema = buildSchema(
       field("basket",
         struct(
@@ -50,7 +50,7 @@ class XSDToSchemaSuite extends AnyFunSuite {
   }
 
   test("Test schema types and attributes") {
-    val parsedSchema = XSDToSchema.read(Paths.get(s"${resDir}/catalog.xsd"))
+    val parsedSchema = XSDToSchema.read(Paths.get(s"$resDir/catalog.xsd"))
     val expectedSchema = buildSchema(
       field("catalog",
         struct(
@@ -73,26 +73,26 @@ class XSDToSchemaSuite extends AnyFunSuite {
   }
 
   test("Test xs:choice nullability") {
-    val parsedSchema = XSDToSchema.read(Paths.get(s"${resDir}/choice.xsd"))
+    val parsedSchema = XSDToSchema.read(Paths.get(s"$resDir/choice.xsd"))
     val expectedSchema = buildSchema(
       field("el", struct(field("foo"), field("bar"), field("baz")), nullable = false))
     assert(expectedSchema === parsedSchema)
   }
 
   test("Two root elements") {
-    val parsedSchema = XSDToSchema.read(Paths.get(s"${resDir}/twoelements.xsd"))
+    val parsedSchema = XSDToSchema.read(Paths.get(s"$resDir/twoelements.xsd"))
     val expectedSchema = buildSchema(field("bar", nullable = false), field("foo", nullable = false))
     assert(expectedSchema === parsedSchema)
   }
   
   test("xs:any schema") {
-    val parsedSchema = XSDToSchema.read(Paths.get(s"${resDir}/xsany.xsd"))
+    val parsedSchema = XSDToSchema.read(Paths.get(s"$resDir/xsany.xsd"))
     val expectedSchema = buildSchema(
       field("root",
         struct(
           field("foo",
             struct(
-              field("xs_any", nullable = true)),
+              field("xs_any")),
             nullable = false),
           field("bar",
             struct(
@@ -104,7 +104,7 @@ class XSDToSchemaSuite extends AnyFunSuite {
             nullable = false),
           field("bing",
             struct(
-              field("xs_any", nullable = true)),
+              field("xs_any")),
             nullable = false)),
         nullable = false))
     assert(expectedSchema === parsedSchema)

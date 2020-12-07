@@ -16,7 +16,7 @@
 package com.databricks.spark.xml
 
 import java.nio.charset.{StandardCharsets, UnsupportedCharsetException}
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
 import java.sql.{Date, Timestamp}
 import java.util.TimeZone
 
@@ -836,7 +836,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   private[this] def testNextedElementFromFile(xmlFile: String) = {
-    val lines = Source.fromFile(xmlFile).getLines.toList
+    val lines = getLines(Paths.get(xmlFile)).toList
     val firstExpected = lines(2).trim
     val lastExpected = lines(3).trim
     val config = new Configuration(spark.sparkContext.hadoopConfiguration)
@@ -1282,7 +1282,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     val xmlFile =
       Files.list(xmlPath).iterator.asScala.filter(_.getFileName.toString.startsWith("part-")).next
-    val firstLine = Source.fromFile(xmlFile.toFile).getLines.next
+    val firstLine = getLines(xmlFile).head
     assert(firstLine === "<root foo=\"bar\" bing=\"baz\">")
   }
 
@@ -1308,6 +1308,15 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(map.contains("_measurementType"))
     assert(map.contains("M1"))
     assert(map.contains("M2"))
+  }
+
+  private def getLines(path: Path): Seq[String] = {
+    val source = Source.fromFile(path.toFile)
+    try {
+      source.getLines.toList
+    } finally {
+      source.close()
+    }
   }
 
 }
