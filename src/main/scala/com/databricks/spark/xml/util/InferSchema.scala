@@ -68,10 +68,10 @@ private[xml] object InferSchema {
    *   3. Replace any remaining null fields with string, the top type
    */
   def infer(xml: RDD[String], options: XmlOptions): StructType = {
-    val schemaData = if (options.samplingRatio > 0.99) {
-      xml
-    } else {
+    val schemaData = if (options.samplingRatio < 1.0) {
       xml.sample(withReplacement = false, options.samplingRatio, 1)
+    } else {
+      xml
     }
     // perform schema inference on each row and merge afterwards
     val rootType = schemaData.mapPartitions { iter =>

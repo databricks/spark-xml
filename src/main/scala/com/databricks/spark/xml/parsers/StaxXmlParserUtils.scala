@@ -61,7 +61,7 @@ private[xml] object StaxXmlParserUtils {
    */
   def skipUntil(parser: XMLEventReader, eventType: Int): XMLEvent = {
     var event = parser.peek
-    while(parser.hasNext && event.getEventType != eventType) {
+    while (parser.hasNext && event.getEventType != eventType) {
       event = parser.nextEvent
     }
     event
