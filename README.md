@@ -26,7 +26,7 @@ You can link against this library in your program at the following coordinates:
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.11
-version: 0.10.0
+version: 0.11.0
 ```
 
 ### Scala 2.12
@@ -34,7 +34,7 @@ version: 0.10.0
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.12
-version: 0.10.0
+version: 0.11.0
 ```
 
 ## Using with Spark shell
@@ -43,12 +43,12 @@ This package can be added to Spark using the `--packages` command line option. F
 
 ### Spark compiled with Scala 2.11
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.10.0
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.11.0
 ```
 
 ### Spark compiled with Scala 2.12
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.12:0.10.0
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.12:0.11.0
 ```
 
 ## Features
@@ -409,7 +409,7 @@ Automatically infer schema (data types)
 ```R
 library(SparkR)
 
-sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.11:0.10.0"))
+sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.11:0.11.0"))
 
 df <- read.df("books.xml", source = "xml", rowTag = "book")
 
@@ -421,7 +421,7 @@ You can manually specify schema:
 ```R
 library(SparkR)
 
-sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.11:0.10.0"))
+sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.11:0.11.0"))
 customSchema <- structType(
   structField("_id", "string"),
   structField("author", "string"),
