@@ -46,7 +46,7 @@ private[xml] object XmlFile {
     context.newAPIHadoopFile(location,
       classOf[XmlInputFormat],
       classOf[LongWritable],
-      classOf[Text]).map { case (_, text) => new String(text.getBytes, 0, text.getLength, charset) }
+      classOf[Text]).map { case (_, text) => text.toString }
   }
 
   /**
