@@ -174,7 +174,10 @@ private[xml] object StaxXmlParser extends Serializable {
           // Otherwise, ignore this character element, and continue parsing the following complex
           // structure
           parser.next
-          convertObject(parser, st, options)
+          parser.peek match {
+            case _: EndElement => null // no struct here at all; done
+            case _ => convertObject(parser, st, options)
+          }
         }
       case (c: Characters, _: DataType) if c.isWhiteSpace =>
         // When `Characters` is found, we need to look further to decide
