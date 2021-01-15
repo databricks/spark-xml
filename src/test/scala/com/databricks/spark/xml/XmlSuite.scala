@@ -90,6 +90,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   private val unclosedTag = resDir + "unclosed_tag.xml"
   private val whitespaceError = resDir + "whitespace_error.xml"
   private val mapAttribute = resDir + "map-attribute.xml"
+  private val structWithOptChild = resDir + "struct_with_optional_child.xml"
 
   private val booksTag = "book"
   private val booksRootTag = "books"
@@ -1308,6 +1309,11 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(map.contains("_measurementType"))
     assert(map.contains("M1"))
     assert(map.contains("M2"))
+  }
+
+  test("StructType with missing optional StructType child") {
+    val df = spark.read.option("rowTag", "Foo").xml(structWithOptChild)
+    assert(df.selectExpr("SIZE(Bar)").collect().head.getInt(0) === 2)
   }
 
   private def getLines(path: Path): Seq[String] = {
