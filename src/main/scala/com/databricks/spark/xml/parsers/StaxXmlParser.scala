@@ -115,16 +115,13 @@ private[xml] object StaxXmlParser extends Serializable {
       case PermissiveMode =>
         logger.debug("Malformed line cause:", cause)
         // The logic below is borrowed from Apache Spark's FailureSafeParser.
-        val corruptFieldIndex = Try(schema.fieldIndex(options.columnNameOfCorruptRecord)).toOption
-        val actualSchema = StructType(schema.filterNot(_.name == options.columnNameOfCorruptRecord))
         val resultRow = new Array[Any](schema.length)
-        var i = 0
-        while (i < actualSchema.length) {
-          val from = actualSchema(i)
-          resultRow(schema.fieldIndex(from.name)) = partialResult.map(_.get(i)).orNull
-          i += 1
+        schema.filterNot(_.name == options.columnNameOfCorruptRecord).foreach { from =>
+          val sourceIndex = schema.fieldIndex(from.name)
+          resultRow(sourceIndex) = partialResult.map(_.get(sourceIndex)).orNull
         }
-        corruptFieldIndex.foreach(index => resultRow(index) = record)
+        val corruptFieldIndex = Try(schema.fieldIndex(options.columnNameOfCorruptRecord)).toOption
+        corruptFieldIndex.foreach(resultRow(_) = record)
         Some(Row.fromSeq(resultRow))
     }
   }
