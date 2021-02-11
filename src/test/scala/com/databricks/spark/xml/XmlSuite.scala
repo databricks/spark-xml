@@ -91,6 +91,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   private val whitespaceError = resDir + "whitespace_error.xml"
   private val mapAttribute = resDir + "map-attribute.xml"
   private val structWithOptChild = resDir + "struct_with_optional_child.xml"
+  private val manualSchemaCorruptRecord = resDir + "manual_schema_corrupt_record.xml"
 
   private val booksTag = "book"
   private val booksRootTag = "books"
@@ -1314,6 +1315,57 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   test("StructType with missing optional StructType child") {
     val df = spark.read.option("rowTag", "Foo").xml(structWithOptChild)
     assert(df.selectExpr("SIZE(Bar)").collect().head.getInt(0) === 2)
+  }
+
+  test("Manual schema with corrupt record field works on permissive mode failure") {
+    // See issue #517
+    val schema = StructType(List(
+      StructField("_id", StringType),
+      StructField("_space", StringType),
+      StructField("c2", DoubleType),
+      StructField("c3", StringType),
+      StructField("c4", StringType),
+      StructField("c5", StringType),
+      StructField("c6", StringType),
+      StructField("c7", StringType),
+      StructField("c8", StringType),
+      StructField("c9", DoubleType),
+      StructField("c11", DoubleType),
+      StructField("c20", ArrayType(StructType(List(
+        StructField("_VALUE", StringType),
+        StructField("_m", IntegerType)))
+      )),
+      StructField("c46", StringType),
+      StructField("c76", StringType),
+      StructField("c78", StringType),
+      StructField("c85", DoubleType),
+      StructField("c93", StringType),
+      StructField("c95", StringType),
+      StructField("c99", ArrayType(StructType(List(
+        StructField("_VALUE", StringType),
+        StructField("_m", IntegerType)))
+      )),
+      StructField("c100", ArrayType(StructType(List(
+        StructField("_VALUE", StringType),
+        StructField("_m", IntegerType)))
+      )),
+      StructField("c108", StringType),
+      StructField("c192", DoubleType),
+      StructField("c193", StringType),
+      StructField("c194", StringType),
+      StructField("c195", StringType),
+      StructField("c196", StringType),
+      StructField("c197", DoubleType),
+      StructField("_corrupt_record", StringType)))
+
+    val df = spark.read
+      .option("inferSchema", false)
+      .option("rowTag", "row")
+      .schema(schema)
+      .xml(manualSchemaCorruptRecord)
+
+    // Assert it works at all
+    assert(df.collect().head.getAs[String]("_corrupt_record") !== null)
   }
 
   private def getLines(path: Path): Seq[String] = {
