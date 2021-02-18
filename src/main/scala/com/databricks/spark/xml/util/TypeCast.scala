@@ -31,7 +31,7 @@ import com.databricks.spark.xml.XmlOptions
 /**
  * Utility functions for type casting
  */
-object TypeCast {
+private[xml] object TypeCast {
 
   /**
    * Casts given string datum to specified type.
