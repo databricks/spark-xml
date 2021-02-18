@@ -86,13 +86,7 @@ object XSDToSchema {
       case simpleType: XmlSchemaSimpleType =>
         val schemaType = simpleType.getContent match {
           case restriction: XmlSchemaSimpleTypeRestriction =>
-            val matchType =
-              if (restriction.getBaseTypeName == Constants.XSD_ANYSIMPLETYPE) {
-                simpleType.getQName
-              } else {
-                restriction.getBaseTypeName
-              }
-            matchType match {
+            simpleType.getQName match {
               case Constants.XSD_BOOLEAN => BooleanType
               case Constants.XSD_DECIMAL =>
                 val scale = restriction.getFacets.asScala.collectFirst {
@@ -143,7 +137,7 @@ object XSDToSchema {
                 }
                 StructField(complexType.getName, StructType(value +: attributes))
             }
-          case null => {
+          case null =>
             val childFields =
               complexType.getParticle match {
                 // xs:all
@@ -205,14 +199,13 @@ object XSDToSchema {
             }
             StructField(complexType.getName, StructType(childFields ++ attributes))
           }
-        }
       case unsupported =>
         throw new IllegalArgumentException(s"Unsupported schema element type: $unsupported")
     }
   }
 
   private def getStructType(xmlSchema: XmlSchema): StructType = {
-    StructType(xmlSchema.getElements.asScala.toSeq.map { case (qName, schemaElement) =>
+    StructType(xmlSchema.getElements.asScala.toSeq.map { case (_, schemaElement) =>
       val schemaType = schemaElement.getSchemaType
       // if (schemaType.isAnonymous) {
       //   schemaType.setName(qName.getLocalPart)

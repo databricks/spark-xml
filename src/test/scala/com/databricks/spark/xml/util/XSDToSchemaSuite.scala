@@ -18,7 +18,7 @@ package com.databricks.spark.xml.util
 
 import java.nio.file.Paths
 
-import org.apache.spark.sql.types.{ArrayType, FloatType, StringType}
+import org.apache.spark.sql.types.{ArrayType, FloatType, LongType, StringType}
 import org.scalatest.funsuite.AnyFunSuite
 
 import com.databricks.spark.xml.TestUtils._
@@ -107,6 +107,14 @@ class XSDToSchemaSuite extends AnyFunSuite {
               field("xs_any")),
             nullable = false)),
         nullable = false))
+    assert(expectedSchema === parsedSchema)
+  }
+
+  test("Tests xs:long type / Issue 520") {
+    val parsedSchema = XSDToSchema.read(Paths.get(s"$resDir/long.xsd"))
+    val expectedSchema = buildSchema(
+      field("test",
+        struct(field("userId", LongType, nullable = false)), nullable = false))
     assert(expectedSchema === parsedSchema)
   }
 
