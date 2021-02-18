@@ -92,6 +92,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   private val mapAttribute = resDir + "map-attribute.xml"
   private val structWithOptChild = resDir + "struct_with_optional_child.xml"
   private val manualSchemaCorruptRecord = resDir + "manual_schema_corrupt_record.xml"
+  private val dateFile = resDir + "date.xml"
 
   private val booksTag = "book"
   private val booksRootTag = "books"
@@ -1366,6 +1367,22 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     // Assert it works at all
     assert(df.collect().head.getAs[String]("_corrupt_record") !== null)
+  }
+
+  test("Test date parsing") {
+    val schema = buildSchema(field("author"), field("date", DateType))
+    val df = spark.read
+      .option("rowTag", "book")
+      .schema(schema)
+      .xml(dateFile)
+    assert(df.collect().head.getAs[Date](1) === new Date(1609480800000L)) // 2021-01-01
+  }
+
+  test("Test date type inference") {
+    val df = spark.read
+      .option("rowTag", "book")
+      .xml(dateFile)
+    assert(df.dtypes(1) === ("date", "DateType"))
   }
 
   private def getLines(path: Path): Seq[String] = {
