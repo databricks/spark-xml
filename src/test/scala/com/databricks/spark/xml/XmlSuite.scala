@@ -193,10 +193,10 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .option("rowTag", agesTag)
       .xml(agesFile)
       .collect()
-    val attrValOne = results(0).getStruct(0).getString(1)
-    val attrValTwo = results(1).getStruct(0).getString(1)
-    assert(attrValOne == "1990-02-24")
-    assert(attrValTwo == "1985-01-01")
+    val attrValOne = results(0).getStruct(0).getAs[Date](1)
+    val attrValTwo = results(1).getStruct(0).getAs[Date](1)
+    assert(attrValOne ===  new Date(635839200000L)) // 1990-02-24
+    assert(attrValTwo === new Date(473407200000L)) // 1985-01-01
     assert(results.length === numAges)
   }
 
@@ -559,7 +559,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("description"),
       field("genre"),
       field("price", DoubleType),
-      field("publish_date"),
+      field("publish_date", DateType),
       field("title")))
 
     assert(results.collect().length === numBooks)
@@ -577,7 +577,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("description"),
       field("genre"),
       field("price", DoubleType),
-      field("publish_date"),
+      field("publish_date", DateType),
       field("title")))
 
     assert(results.collect().length === numBooks)
@@ -595,7 +595,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("genre"),
       field("price", DoubleType),
       struct("publish_dates",
-        field("publish_date")),
+        field("publish_date", DateType)),
       field("title")))
 
     assert(results.collect().length === numBooks)
@@ -612,7 +612,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("description"),
       field("genre"),
       field("price", DoubleType),
-      array("publish_date", StringType),
+      array("publish_date", DateType),
       field("title")))
 
     assert(results.collect().length === numBooks)
@@ -654,7 +654,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       struct("price",
         field("_VALUE"),
         field(s"_unit")),
-      field("publish_date"),
+      field("publish_date", DateType),
       field("title"))
 
     assert(resultsOne.schema === schemaOne)
@@ -675,7 +675,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       struct("price",
         field(valueTag),
         field(s"${attributePrefix}unit")),
-      field("publish_date"),
+      field("publish_date", DateType),
       field("title"))
 
     assert(resultsTwo.schema === schemaTwo)
@@ -693,7 +693,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("description"),
       field("genre"),
       field("price", DoubleType),
-      field("publish_date"),
+      field("publish_date", DateType),
       field("title"))
 
     assert(results.schema === schema)
@@ -953,7 +953,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .collect()
     val attrValOne = results(0).getStruct(0)(1)
     val attrValTwo = results(1).getStruct(0)(0)
-    assert(attrValOne === "1990-02-24")
+    assert(attrValOne === new Date(635839200000L)) // 1990-02-24
     assert(attrValTwo === 30)
     assert(results.length === numAges)
   }
