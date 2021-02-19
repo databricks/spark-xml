@@ -195,8 +195,8 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .collect()
     val attrValOne = results(0).getStruct(0).getAs[Date](1)
     val attrValTwo = results(1).getStruct(0).getAs[Date](1)
-    assert(attrValOne ===  new Date(635839200000L)) // 1990-02-24
-    assert(attrValTwo === new Date(473407200000L)) // 1985-01-01
+    assert(attrValOne.toString === "1990-02-24")
+    assert(attrValTwo.toString === "1985-01-01")
     assert(results.length === numAges)
   }
 
@@ -953,7 +953,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .collect()
     val attrValOne = results(0).getStruct(0)(1)
     val attrValTwo = results(1).getStruct(0)(0)
-    assert(attrValOne === new Date(635839200000L)) // 1990-02-24
+    assert(attrValOne.toString === "1990-02-24")
     assert(attrValTwo === 30)
     assert(results.length === numAges)
   }
@@ -1375,7 +1375,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .option("rowTag", "book")
       .schema(schema)
       .xml(dateFile)
-    assert(df.collect().head.getAs[Date](1) === new Date(1609480800000L)) // 2021-01-01
+    assert(df.collect().head.getAs[Date](1).toString === "2021-01-01")
   }
 
   test("Test date type inference") {
