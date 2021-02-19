@@ -81,9 +81,26 @@ testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
 mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.11.0")
 
 mimaBinaryIssueFilters ++= {
-  import com.typesafe.tools.mima.core._
+  import com.typesafe.tools.mima.core.ProblemFilters.exclude
+  import com.typesafe.tools.mima.core.DirectMissingMethodProblem
   Seq(
-    ProblemFilters.exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.parsers.StaxXmlParser.convertField")
+    exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.parsers.StaxXmlParser.convertField"),
+    exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.util.TypeCast.parseXmlTimestamp"),
+    exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.util.TypeCast.supportedXmlTimestampFormatters"),
+    exclude[DirectMissingMethodProblem](
+    "com.databricks.spark.xml.util.TypeCast.parseXmlDate"),
+    exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.util.TypeCast.supportedXmlDateFormatters"),
+    exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.util.TypeCast.supportedXmlDateFormatters"),
+    exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.util.TypeCast.parseXmlDate"),
+    exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.util.TypeCast.supportedXmlTimestampFormatters"),
+    exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.util.TypeCast.parseXmlTimestamp")
   )
 }

@@ -92,6 +92,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   private val mapAttribute = resDir + "map-attribute.xml"
   private val structWithOptChild = resDir + "struct_with_optional_child.xml"
   private val manualSchemaCorruptRecord = resDir + "manual_schema_corrupt_record.xml"
+  private val dateFile = resDir + "date.xml"
 
   private val booksTag = "book"
   private val booksRootTag = "books"
@@ -192,10 +193,10 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .option("rowTag", agesTag)
       .xml(agesFile)
       .collect()
-    val attrValOne = results(0).getStruct(0).getString(1)
-    val attrValTwo = results(1).getStruct(0).getString(1)
-    assert(attrValOne == "1990-02-24")
-    assert(attrValTwo == "1985-01-01")
+    val attrValOne = results(0).getStruct(0).getAs[Date](1)
+    val attrValTwo = results(1).getStruct(0).getAs[Date](1)
+    assert(attrValOne.toString === "1990-02-24")
+    assert(attrValTwo.toString === "1985-01-01")
     assert(results.length === numAges)
   }
 
@@ -558,7 +559,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("description"),
       field("genre"),
       field("price", DoubleType),
-      field("publish_date"),
+      field("publish_date", DateType),
       field("title")))
 
     assert(results.collect().length === numBooks)
@@ -576,7 +577,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("description"),
       field("genre"),
       field("price", DoubleType),
-      field("publish_date"),
+      field("publish_date", DateType),
       field("title")))
 
     assert(results.collect().length === numBooks)
@@ -594,7 +595,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("genre"),
       field("price", DoubleType),
       struct("publish_dates",
-        field("publish_date")),
+        field("publish_date", DateType)),
       field("title")))
 
     assert(results.collect().length === numBooks)
@@ -611,7 +612,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("description"),
       field("genre"),
       field("price", DoubleType),
-      array("publish_date", StringType),
+      array("publish_date", DateType),
       field("title")))
 
     assert(results.collect().length === numBooks)
@@ -653,7 +654,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       struct("price",
         field("_VALUE"),
         field(s"_unit")),
-      field("publish_date"),
+      field("publish_date", DateType),
       field("title"))
 
     assert(resultsOne.schema === schemaOne)
@@ -674,7 +675,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       struct("price",
         field(valueTag),
         field(s"${attributePrefix}unit")),
-      field("publish_date"),
+      field("publish_date", DateType),
       field("title"))
 
     assert(resultsTwo.schema === schemaTwo)
@@ -692,7 +693,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("description"),
       field("genre"),
       field("price", DoubleType),
-      field("publish_date"),
+      field("publish_date", DateType),
       field("title"))
 
     assert(results.schema === schema)
@@ -952,7 +953,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .collect()
     val attrValOne = results(0).getStruct(0)(1)
     val attrValTwo = results(1).getStruct(0)(0)
-    assert(attrValOne === "1990-02-24")
+    assert(attrValOne.toString === "1990-02-24")
     assert(attrValTwo === 30)
     assert(results.length === numAges)
   }
@@ -1366,6 +1367,22 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     // Assert it works at all
     assert(df.collect().head.getAs[String]("_corrupt_record") !== null)
+  }
+
+  test("Test date parsing") {
+    val schema = buildSchema(field("author"), field("date", DateType))
+    val df = spark.read
+      .option("rowTag", "book")
+      .schema(schema)
+      .xml(dateFile)
+    assert(df.collect().head.getAs[Date](1).toString === "2021-01-01")
+  }
+
+  test("Test date type inference") {
+    val df = spark.read
+      .option("rowTag", "book")
+      .xml(dateFile)
+    assert(df.dtypes(1) === ("date", "DateType"))
   }
 
   private def getLines(path: Path): Seq[String] = {

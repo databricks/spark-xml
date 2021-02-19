@@ -31,7 +31,7 @@ import com.databricks.spark.xml.XmlOptions
 /**
  * Utility functions for type casting
  */
-object TypeCast {
+private[xml] object TypeCast {
 
   /**
    * Casts given string datum to specified type.
@@ -64,8 +64,8 @@ object TypeCast {
           .getOrElse(NumberFormat.getInstance(Locale.getDefault).parse(datum).doubleValue())
         case _: BooleanType => parseXmlBoolean(datum)
         case _: DecimalType => new BigDecimal(datum.replaceAll(",", ""))
-        case _: TimestampType => parseXmlTimestamp(supportedXmlTimestampFormatters, datum)
-        case _: DateType => parseXmlDate(supportedXmlDateFormatters, datum)
+        case _: TimestampType => parseXmlTimestamp(datum)
+        case _: DateType => parseXmlDate(datum)
         case _: StringType => datum
         case _ => throw new IllegalArgumentException(s"Unsupported type: ${castType.typeName}")
       }
@@ -73,35 +73,31 @@ object TypeCast {
   }
 
   private def parseXmlBoolean(s: String): Boolean = {
-    s.toLowerCase match {
-      case "true" => true
-      case "false" => false
-      case "1" => true
-      case "0" => false
+    s.toLowerCase(Locale.ROOT) match {
+      case "true" | "1" => true
+      case "false" | "0" => false
       case _ => throw new IllegalArgumentException(s"For input string: $s")
     }
   }
 
-  val supportedXmlDateFormatters = List(
+  private val supportedXmlDateFormatters = Seq(
     // 2011-12-03
     // 2011-12-03+01:00
     DateTimeFormatter.ISO_DATE
   )
 
-  @scala.annotation.tailrec
-  def parseXmlDate(formatters: List[DateTimeFormatter], value: String): Date = {
-    formatters match {
-      case Nil => throw new IllegalArgumentException(s"cannot convert value $value to Date")
-      case head :: tail =>
-        try {
-          java.sql.Date.valueOf(LocalDate.parse(value, head))
-        } catch {
-          case _: Exception => parseXmlDate(tail, value)
-        }
+  private def parseXmlDate(value: String): Date = {
+    supportedXmlDateFormatters.foreach { format =>
+      try {
+        return Date.valueOf(LocalDate.parse(value, format))
+      } catch {
+        case _: Exception => // continue
+      }
     }
+    throw new IllegalArgumentException(s"cannot convert value $value to Date")
   }
 
-  val supportedXmlTimestampFormatters = List(
+  private val supportedXmlTimestampFormatters = Seq(
     // 2002-05-30 21:46:54
     new DateTimeFormatterBuilder()
       .parseCaseInsensitive()
@@ -118,20 +114,19 @@ object TypeCast {
     DateTimeFormatter.ISO_INSTANT
   )
 
-  @scala.annotation.tailrec
-  def parseXmlTimestamp(formatters: List[DateTimeFormatter], value: String): Timestamp = {
-    formatters match {
-      case Nil => throw new IllegalArgumentException(s"cannot convert value $value to Timestamp")
-      case head :: tail =>
-        try {
-          Timestamp.from(ZonedDateTime.parse(value, head).toInstant)
-        } catch {
-          case _: Exception => parseXmlTimestamp(tail, value)
-        }
+  private def parseXmlTimestamp(value: String): Timestamp = {
+    supportedXmlTimestampFormatters.foreach { format =>
+      try {
+        return Timestamp.from(ZonedDateTime.parse(value, format).toInstant)
+      } catch {
+        case _: Exception => // continue
+      }
     }
+    throw new IllegalArgumentException(s"cannot convert value $value to Timestamp")
   }
 
-  // TODO: This function unnecessarily does type dispatch. Should merge it with `castTo`.
+
+    // TODO: This function unnecessarily does type dispatch. Should merge it with `castTo`.
   private[xml] def convertTo(
       datum: String,
       dataType: DataType,
@@ -163,14 +158,14 @@ object TypeCast {
    * Helper method that checks and cast string representation of a numeric types.
    */
   private[xml] def isBoolean(value: String): Boolean = {
-    value.toLowerCase match {
+    value.toLowerCase(Locale.ROOT) match {
       case "true" | "false" => true
       case _ => false
     }
   }
 
   private[xml] def isDouble(value: String): Boolean = {
-    val signSafeValue: String = if (value.startsWith("+") || value.startsWith("-")) {
+    val signSafeValue = if (value.startsWith("+") || value.startsWith("-")) {
       value.substring(1)
     } else {
       value
@@ -179,7 +174,7 @@ object TypeCast {
   }
 
   private[xml] def isInteger(value: String): Boolean = {
-    val signSafeValue: String = if (value.startsWith("+") || value.startsWith("-")) {
+    val signSafeValue = if (value.startsWith("+") || value.startsWith("-")) {
       value.substring(1)
     } else {
       value
@@ -188,7 +183,7 @@ object TypeCast {
   }
 
   private[xml] def isLong(value: String): Boolean = {
-    val signSafeValue: String = if (value.startsWith("+") || value.startsWith("-")) {
+    val signSafeValue = if (value.startsWith("+") || value.startsWith("-")) {
       value.substring(1)
     } else {
       value
@@ -198,6 +193,10 @@ object TypeCast {
 
   private[xml] def isTimestamp(value: String): Boolean = {
     (allCatch opt Timestamp.valueOf(value)).isDefined
+  }
+
+  private[xml] def isDate(value: String): Boolean = {
+    (allCatch opt Date.valueOf(value)).isDefined
   }
 
   private[xml] def signSafeToLong(value: String, options: XmlOptions): Long = {

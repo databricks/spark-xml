@@ -119,6 +119,7 @@ private[xml] object InferSchema {
         case v if isDouble(v) => DoubleType
         case v if isBoolean(v) => BooleanType
         case v if isTimestamp(v) => TimestampType
+        case v if isDate(v) => DateType
         case _ => StringType
       }
     } else {
