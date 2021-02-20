@@ -101,6 +101,8 @@ mimaBinaryIssueFilters ++= {
     exclude[DirectMissingMethodProblem](
       "com.databricks.spark.xml.util.TypeCast.supportedXmlTimestampFormatters"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.parseXmlTimestamp")
+      "com.databricks.spark.xml.util.TypeCast.parseXmlTimestamp"),
+    exclude[DirectMissingMethodProblem](
+      "com.databricks.spark.xml.util.TypeCast.isTimestamp")
   )
 }
