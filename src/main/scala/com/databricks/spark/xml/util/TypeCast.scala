@@ -64,8 +64,8 @@ private[xml] object TypeCast {
           .getOrElse(NumberFormat.getInstance(Locale.getDefault).parse(datum).doubleValue())
         case _: BooleanType => parseXmlBoolean(datum)
         case _: DecimalType => new BigDecimal(datum.replaceAll(",", ""))
-        case _: TimestampType => parseXmlTimestamp(datum)
-        case _: DateType => parseXmlDate(datum)
+        case _: TimestampType => parseXmlTimestamp(datum, options)
+        case _: DateType => parseXmlDate(datum, options)
         case _: StringType => datum
         case _ => throw new IllegalArgumentException(s"Unsupported type: ${castType.typeName}")
       }
@@ -86,8 +86,10 @@ private[xml] object TypeCast {
     DateTimeFormatter.ISO_DATE
   )
 
-  private def parseXmlDate(value: String): Date = {
-    supportedXmlDateFormatters.foreach { format =>
+  private def parseXmlDate(value: String, options: XmlOptions): Date = {
+    val formatters = options.dateFormat.map(DateTimeFormatter.ofPattern).
+      map(supportedXmlDateFormatters :+ _).getOrElse(supportedXmlDateFormatters)
+    formatters.foreach { format =>
       try {
         return Date.valueOf(LocalDate.parse(value, format))
       } catch {
@@ -114,8 +116,10 @@ private[xml] object TypeCast {
     DateTimeFormatter.ISO_INSTANT
   )
 
-  private def parseXmlTimestamp(value: String): Timestamp = {
-    supportedXmlTimestampFormatters.foreach { format =>
+  private def parseXmlTimestamp(value: String, options: XmlOptions): Timestamp = {
+    val formatters = options.timestampFormat.map(DateTimeFormatter.ofPattern).
+      map(supportedXmlTimestampFormatters :+ _).getOrElse(supportedXmlTimestampFormatters)
+    formatters.foreach { format =>
       try {
         return Timestamp.from(ZonedDateTime.parse(value, format).toInstant)
       } catch {
@@ -191,12 +195,22 @@ private[xml] object TypeCast {
     (allCatch opt signSafeValue.toLong).isDefined
   }
 
-  private[xml] def isTimestamp(value: String): Boolean = {
-    (allCatch opt Timestamp.valueOf(value)).isDefined
+  private[xml] def isTimestamp(value: String, options: XmlOptions): Boolean = {
+    try {
+      parseXmlTimestamp(value, options)
+      true
+    } catch {
+      case _: IllegalArgumentException => false
+    }
   }
 
-  private[xml] def isDate(value: String): Boolean = {
-    (allCatch opt Date.valueOf(value)).isDefined
+  private[xml] def isDate(value: String, options: XmlOptions): Boolean = {
+    try {
+      parseXmlDate(value, options)
+      true
+    } catch {
+      case _: IllegalArgumentException => false
+    }
   }
 
   private[xml] def signSafeToLong(value: String, options: XmlOptions): Long = {

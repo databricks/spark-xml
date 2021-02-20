@@ -48,6 +48,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       master("local[2]").
       appName("XmlSuite").
       config("spark.ui.enabled", false).
+      config("spark.sql.session.timeZone", "UTC").
       getOrCreate()
   }
   private var tempDir: Path = _
@@ -1298,19 +1299,64 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("Test date parsing") {
-    val schema = buildSchema(field("author"), field("date", DateType))
+    val schema = buildSchema(field("author"), field("date", DateType), field("date2", StringType))
     val df = spark.read
       .option("rowTag", "book")
       .schema(schema)
       .xml(resDir + "date.xml")
-    assert(df.collect().head.getAs[Date](1).toString === "2021-01-01")
+    assert(df.collect().head.getAs[Date](1).toString === "2021-02-01")
   }
 
   test("Test date type inference") {
     val df = spark.read
       .option("rowTag", "book")
       .xml(resDir + "date.xml")
-    assert(df.dtypes(1) === ("date", "DateType"))
+    val expectedSchema =
+      buildSchema(field("author"), field("date", DateType), field("date2", StringType))
+    assert(df.schema === expectedSchema)
+    assert(df.collect().head.getAs[Date](1).toString === "2021-02-01")
+  }
+
+  test("Test timestamp parsing") {
+    val schema =
+      buildSchema(field("author"), field("time", TimestampType), field("time2", StringType))
+    val df = spark.read
+      .option("rowTag", "book")
+      .schema(schema)
+      .xml(resDir + "time.xml")
+    assert(df.collect().head.getAs[Timestamp](1).getTime === 1322907330000L)
+  }
+
+  test("Test timestamp type inference") {
+    val df = spark.read
+      .option("rowTag", "book")
+      .xml(resDir + "time.xml")
+    val expectedSchema =
+      buildSchema(field("author"), field("time", TimestampType), field("time2", StringType))
+    assert(df.schema === expectedSchema)
+    assert(df.collect().head.getAs[Timestamp](1).getTime === 1322907330000L)
+  }
+
+  test("Test dateFormat") {
+    val df = spark.read
+      .option("rowTag", "book")
+      .option("dateFormat", "MM-dd-yyyy")
+      .xml(resDir + "date.xml")
+    val expectedSchema =
+      buildSchema(field("author"), field("date", DateType), field("date2", DateType))
+    assert(df.schema === expectedSchema)
+    assert(df.collect().head.getAs[Date](2).toString === "2021-02-01")
+  }
+
+  test("Test timestampFormat") {
+    val df = spark.read
+      .option("rowTag", "book")
+      .option("timestampFormat", "MM-dd-yyyy HH:mm:ss z")
+      .xml(resDir + "time.xml")
+    val expectedSchema =
+      buildSchema(field("author"), field("time", TimestampType), field("time2", TimestampType))
+    assert(df.schema === expectedSchema)
+    assert(df.collect().head.getAs[Timestamp](2).getTime === 1322936130000L)
   }
 
   private def getLines(path: Path): Seq[String] = {
