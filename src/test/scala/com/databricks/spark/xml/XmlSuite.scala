@@ -1324,7 +1324,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .option("rowTag", "book")
       .schema(schema)
       .xml(resDir + "time.xml")
-    assert(df.collect().head.getAs[Timestamp](1).toString === "2011-12-03 04:15:30.0")
+    assert(df.collect().head.getAs[Timestamp](1).getTime === 1322907330000L)
   }
 
   test("Test timestamp type inference") {
@@ -1334,7 +1334,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     val expectedSchema =
       buildSchema(field("author"), field("time", TimestampType), field("time2", StringType))
     assert(df.schema === expectedSchema)
-    assert(df.collect().head.getAs[Timestamp](1).toString === "2011-12-03 04:15:30.0")
+    assert(df.collect().head.getAs[Timestamp](1).getTime === 1322907330000L)
   }
 
   test("Test dateFormat") {
@@ -1356,7 +1356,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     val expectedSchema =
       buildSchema(field("author"), field("time", TimestampType), field("time2", TimestampType))
     assert(df.schema === expectedSchema)
-    assert(df.collect().head.getAs[Timestamp](2).toString === "2011-12-03 12:15:30.0")
+    assert(df.collect().head.getAs[Timestamp](2).getTime === 1322936130000L)
   }
 
   private def getLines(path: Path): Seq[String] = {
