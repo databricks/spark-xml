@@ -88,6 +88,13 @@ In this case, to use local XSD `/foo/bar.xsd`, call `addFile("/foo/bar.xsd")` an
 for example, be treated as if both are just `<author>`. Note that, at the moment, namespaces cannot be ignored on the
 `rowTag` element, only its children. Note that XML parsing is in general not namespace-aware even if `false`.
 Defaults to `false`. New in 0.11.0.
+* `timestampFormat`: Specifies an additional timestamp format that will be tried when parsing values as `TimestampType` 
+columns. The format is specified as described in [DateTimeFormatter](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html).
+Defaults to try several formats, including [ISO_INSTANT](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_INSTANT),
+including variations with offset timezones or no timezone (defaults to UTC). New in 0.12.0.  
+* `dateFormat`: Specifies an additional timestamp format that will be tried when parsing values as `DateType` 
+columns. The format is specified as described in [DateTimeFormatter](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html).
+Defaults to [ISO_DATE](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_DATE). New in 0.12.0.
 
 When writing files the API accepts several options:
 
@@ -98,6 +105,12 @@ When writing files the API accepts several options:
 * `attributePrefix`: The prefix for attributes so that we can differentiating attributes and elements. This will be the prefix for field names. Default is `_`.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
 * `compression`: compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec` or one of case-insensitive shorten names (`bzip2`, `gzip`, `lz4`, and `snappy`). Defaults to no compression when a codec is not specified.
+* `timestampFormat`: Controls the format used to write `TimestampType` format columns.
+The format is specified as described in [DateTimeFormatter](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html).
+Defaults to [ISO_INSTANT](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_INSTANT). New in 0.12.0.
+* `dateFormat`: Controls the format used to write `DateType` format columns.
+The format is specified as described in [DateTimeFormatter](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html).
+Defaults to [ISO_DATE](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_DATE). New in 0.12.0.
 
 Currently it supports the shortened name usage. You can use just `xml` instead of `com.databricks.spark.xml`.
 

@@ -15,6 +15,7 @@
  */
 package com.databricks.spark.xml.parsers
 
+import java.sql.{Date, Timestamp}
 import java.time.format.DateTimeFormatter
 
 import javax.xml.stream.XMLStreamWriter
@@ -46,10 +47,10 @@ private[xml] object StaxXmlGenerator {
         // elements when given values are `null`.
       case (_, _, _) if name == options.valueTag =>
         // If this is meant to be value but in no child, write only a value
-        writeElement(dt, v)
+        writeElement(dt, v, options)
       case (_, _, _) =>
         writer.writeStartElement(name)
-        writeElement(dt, v)
+        writeElement(dt, v, options)
         writer.writeEndElement()
     }
 
@@ -75,11 +76,17 @@ private[xml] object StaxXmlGenerator {
       }
     }
 
-    def writeElement(dt: DataType, v: Any): Unit = (dt, v) match {
+    def writeElement(dt: DataType, v: Any, options: XmlOptions): Unit = (dt, v) match {
       case (_, null) | (NullType, _) => writer.writeCharacters(options.nullValue)
       case (StringType, v: String) => writer.writeCharacters(v)
-      case (TimestampType, v: java.sql.Timestamp) =>
-        writer.writeCharacters(DateTimeFormatter.ISO_INSTANT.format(v.toInstant()))
+      case (TimestampType, v: Timestamp) =>
+        val formatter = options.timestampFormat.map(DateTimeFormatter.ofPattern).
+          getOrElse(DateTimeFormatter.ISO_INSTANT)
+        writer.writeCharacters(formatter.format(v.toInstant()))
+      case (DateType, v: Date) =>
+        val formatter = options.dateFormat.map(DateTimeFormatter.ofPattern).
+          getOrElse(DateTimeFormatter.ISO_DATE)
+        writer.writeCharacters(formatter.format(v.toLocalDate()))
       case (IntegerType, v: Int) => writer.writeCharacters(v.toString)
       case (ShortType, v: Short) => writer.writeCharacters(v.toString)
       case (FloatType, v: Float) => writer.writeCharacters(v.toString)
@@ -88,7 +95,6 @@ private[xml] object StaxXmlGenerator {
       case (DecimalType(), v: java.math.BigDecimal) => writer.writeCharacters(v.toString)
       case (ByteType, v: Byte) => writer.writeCharacters(v.toString)
       case (BooleanType, v: Boolean) => writer.writeCharacters(v.toString)
-      case (DateType, _) => writer.writeCharacters(v.toString)
 
       // For the case roundtrip in reading and writing XML files, [[ArrayType]] cannot have
       // [[ArrayType]] as element type. It always wraps the element with [[StructType]]. So,
@@ -142,7 +148,7 @@ private[xml] object StaxXmlGenerator {
     val (names, values) = elements.unzip
     val elementSchema = StructType(schema.filter(names.contains))
     val elementRow = Row.fromSeq(row.toSeq.filter(values.contains))
-    writeElement(elementSchema, elementRow)
+    writeElement(elementSchema, elementRow, options)
     writer.writeEndElement()
   }
 }

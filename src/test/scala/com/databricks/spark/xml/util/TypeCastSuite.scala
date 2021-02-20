@@ -155,7 +155,7 @@ final class TypeCastSuite extends AnyFunSuite {
     assert(TypeCast.isLong("10"))
     assert(TypeCast.isDouble("+10.1"))
     val timestamp = "2015-01-01 00:00:00"
-    assert(TypeCast.isTimestamp(timestamp))
+    assert(TypeCast.isTimestamp(timestamp, new XmlOptions()))
   }
 
   test("Float and Double Types are cast correctly with Locale") {
