@@ -925,6 +925,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
         "attributesStartWithNewLineCR.xml",
         "attributesStartWithNewLineLF.xml").foreach { file =>
       val df = spark.read
+        .option("ignoreNamespace", "true")
         .option("excludeAttribute", "false")
         .option("rowTag", "note")
         .xml(resDir + file)
