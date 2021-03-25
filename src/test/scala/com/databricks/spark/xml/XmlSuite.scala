@@ -136,8 +136,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test for iso-8859-1 encoded file") {
-    val dataFrame = new XmlReader()
-      .withCharset(StandardCharsets.ISO_8859_1.name)
+    val dataFrame = new XmlReader(Map("charset" -> StandardCharsets.ISO_8859_1.name))
       .xmlFile(spark, resDir + "cars-iso-8859-1.xml")
     assert(dataFrame.select("year").collect().length === 3)
 
@@ -198,16 +197,14 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test for parsing a malformed XML file") {
-    val results = new XmlReader()
-      .withParseMode(DropMalformedMode.name)
+    val results = new XmlReader(Map("mode" -> DropMalformedMode.name))
       .xmlFile(spark, resDir + "cars-malformed.xml")
 
     assert(results.count() === 1)
   }
 
   test("DSL test for dropping malformed rows") {
-    val cars = new XmlReader()
-      .withParseMode(DropMalformedMode.name)
+    val cars = new XmlReader(Map("mode" -> DropMalformedMode.name))
       .xmlFile(spark, resDir + "cars-malformed.xml")
 
     assert(cars.count() == 1)
@@ -216,8 +213,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
 
   test("DSL test for failing fast") {
     val exceptionInParse = intercept[SparkException] {
-      new XmlReader()
-        .withParseMode("FAILFAST")
+      new XmlReader(Map("mode" -> FailFastMode.name))
         .xmlFile(spark, resDir + "cars-malformed.xml")
         .collect()
     }
@@ -236,9 +232,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test for permissive mode for corrupt records") {
-    val carsDf = new XmlReader()
-      .withParseMode(PermissiveMode.name)
-      .withColumnNameOfCorruptRecord("_malformed_records")
+    val carsDf = new XmlReader(Map("mode" -> PermissiveMode.name, "columnNameOfCorruptRecord" -> "_malformed_records"))
       .xmlFile(spark, resDir + "cars-malformed.xml")
     val cars = carsDf.collect()
     assert(cars.length === 3)
@@ -259,8 +253,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test with empty file and known schema") {
-    val results = new XmlReader()
-      .withSchema(buildSchema(field("column", StringType, false)))
+    val results = new XmlReader(buildSchema(field("column", StringType, false)))
       .xmlFile(spark, resDir + "empty.xml")
       .count()
 
@@ -274,8 +267,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("make"),
       field("model"),
       field("comment"))
-    val results = new XmlReader()
-      .withSchema(schema)
+    val results = new XmlReader(schema)
       .xmlFile(spark, resDir + "cars-unbalanced-elements.xml")
       .count()
 
@@ -470,8 +462,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       val df = spark.createDataFrame(data, schema)
       df.write.xml(copyFilePath.toString)
 
-      val dfCopy = new XmlReader()
-        .withSchema(schema)
+      val dfCopy = new XmlReader(schema)
         .xmlFile(spark, copyFilePath.toString)
 
       assert(dfCopy.collect() === df.collect())
@@ -575,8 +566,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
 
   test("DSL test parsing and inferring attribute in elements having no child element") {
     // Default value.
-    val resultsOne = new XmlReader()
-      .withRowTag("book")
+    val resultsOne = new XmlReader(Map("rowTag" -> "book"))
       .xmlFile(spark, resDir + "books-attributes-in-no-child.xml")
 
     val schemaOne = buildSchema(
@@ -594,11 +584,9 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     // Explicitly set
     val attributePrefix = "@#"
     val valueTag = "#@@value"
-    val resultsTwo = new XmlReader()
-      .withRowTag("book")
-      .withAttributePrefix(attributePrefix)
-      .withValueTag(valueTag)
-      .xmlFile(spark, resDir + "books-attributes-in-no-child.xml")
+    val resultsTwo =
+      new XmlReader(Map("rowTag" -> "book", "attributePrefix" -> attributePrefix, "valueTag" -> valueTag))
+        .xmlFile(spark, resDir + "books-attributes-in-no-child.xml")
 
     val schemaTwo = buildSchema(
       field(s"${attributePrefix}id"),
@@ -614,9 +602,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test schema (excluding tags) inferred correctly") {
-    val results = new XmlReader()
-      .withExcludeAttribute(true)
-      .withRowTag("book")
+    val results = new XmlReader(Map("excludeAttribute" -> true, "rowTag" -> "book"))
       .xmlFile(spark, resDir + "books.xml")
 
     val schema = buildSchema(
@@ -637,8 +623,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("comment"),
       field("color"),
       field("year", IntegerType))
-    val results = new XmlReader()
-      .withSchema(schema)
+    val results = new XmlReader(schema)
       .xmlFile(spark, resDir + "cars-unbalanced-elements.xml")
       .count()
 
@@ -659,8 +644,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     val schema = buildSchema(
       field("name", StringType, false),
       field("age"))
-    val results = new XmlReader()
-      .withSchema(schema)
+    val results = new XmlReader(schema)
       .xmlFile(spark, resDir + "null-numbers.xml")
       .collect()
 
@@ -673,9 +657,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     val schema = buildSchema(
       field("name", StringType, false),
       field("age", IntegerType))
-    val results = new XmlReader()
-      .withSchema(schema)
-      .withTreatEmptyValuesAsNulls(true)
+    val results = new XmlReader(schema, Map("treatEmptyValuesAsNulls" -> true))
       .xmlFile(spark, resDir + "null-numbers.xml")
       .collect()
 
@@ -758,8 +740,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
         field("b", IntegerType),
         field("a", IntegerType)))
 
-    val result = new XmlReader()
-      .withSchema(schema)
+    val result = new XmlReader(schema)
       .xmlFile(spark, resDir + "simple-nested-objects.xml")
       .select("c.a", "c.b")
       .collect()
@@ -797,8 +778,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("Nested element with same name as parent schema inference") {
-    val df = new XmlReader()
-      .withRowTag("parent")
+    val df = new XmlReader(Map("rowTag" -> "parent"))
       .xmlFile(spark, resDir + "nested-element-with-name-of-parent.xml")
 
     val schema = buildSchema(
@@ -875,9 +855,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("ignoreSurroundingSpaces test") {
-    val results = new XmlReader()
-      .withIgnoreSurroundingSpaces(true)
-      .withRowTag("person")
+    val results = new XmlReader(Map("ignoreSurroundingSpaces" -> true, "rowTag" -> "person"))
       .xmlFile(spark, resDir + "ages-with-spaces.xml")
       .collect()
     val attrValOne = results(0).getStruct(0)(1)
@@ -888,9 +866,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test with malformed attributes") {
-    val results = new XmlReader()
-      .withParseMode(DropMalformedMode.name)
-        .withRowTag("book")
+    val results = new XmlReader(Map("mode" -> DropMalformedMode.name, "rowTag" -> "book"))
         .xmlFile(spark, resDir + "books-malformed-attributes.xml")
         .collect()
 
@@ -939,8 +915,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("non-empty-tag", IntegerType),
       field("self-closing-tag", IntegerType))
 
-    val result = new XmlReader()
-      .withSchema(schema)
+    val result = new XmlReader(schema)
       .xmlFile(spark, resDir + "self-closing-tag.xml")
       .collect()
 
@@ -1093,19 +1068,6 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       "<ROW><year>2015</year><make>Chevy</make><model>Volt</model><comment>No</comment></ROW>")
     val rdd = spark.sparkContext.parallelize(data)
     assert(new XmlReader().xmlRdd(spark, rdd).collect().length === 3)
-  }
-
-  test("test xmlDataset and spark.read.xml(dataset)") {
-    import spark.implicits._
-
-    val data = Seq(
-      "<ROW><year>2012</year><make>Tesla</make><model>S</model><comment>No comment</comment></ROW>",
-      "<ROW><year>1997</year><make>Ford</make><model>E350</model><comment>Get one</comment></ROW>",
-      "<ROW><year>2015</year><make>Chevy</make><model>Volt</model><comment>No</comment></ROW>")
-    val df = spark.createDataFrame(data.map(Tuple1(_)))
-
-    assert(new XmlReader().xmlDataset(spark, df.as[String]).collect().length === 3)
-    assert(spark.read.xml(df.as[String]).collect().length === 3)
   }
 
   test("from_xml basic test") {

@@ -24,41 +24,63 @@ import com.databricks.spark.xml.util.FailFastMode
 /**
  * A collection of static functions for working with XML files in Spark SQL
  */
-class XmlReader extends Serializable {
-  private var parameters = collection.mutable.Map.empty[String, String]
-  private var schema: StructType = null
+class XmlReader(private var schema: StructType,
+                private val options: Map[String, Any]) extends Serializable {
 
+  private val parameters = collection.mutable.Map.empty[String, String]
+  parameters ++= options.mapValues(_.toString)
+
+  // Explicit constructors for Java compatibility
+
+  def this() {
+    this(null, Map.empty)
+  }
+
+  def this(schema: StructType) {
+    this(schema, Map.empty)
+  }
+
+  def this(options: Map[String, Any]) {
+    this(null, options)
+  }
+
+  @deprecated("Use XmlReader(Map) with key 'charset' to specify options", "0.13.0")
   def withCharset(charset: String): XmlReader = {
     parameters += ("charset" -> charset)
     this
   }
 
+  @deprecated("Use XmlReader(Map) with key 'codec' to specify options", "0.13.0")
   def withCompression(codec: String): XmlReader = {
     parameters += ("codec" -> codec)
     this
   }
 
+  @deprecated("Use XmlReader(Map) with key 'rowTag' to specify options", "0.13.0")
   def withRowTag(rowTag: String): XmlReader = {
     parameters += ("rowTag" -> rowTag)
     this
   }
 
+  @deprecated("Use XmlReader(Map) with key 'samplingRatio' to specify options", "0.13.0")
   def withSamplingRatio(samplingRatio: Double): XmlReader = {
     parameters += ("samplingRatio" -> samplingRatio.toString)
     this
   }
 
+  @deprecated("Use XmlReader(Map) with key 'excludeAttribute' to specify options", "0.13.0")
   def withExcludeAttribute(exclude: Boolean): XmlReader = {
     parameters += ("excludeAttribute" -> exclude.toString)
     this
   }
 
+  @deprecated("Use XmlReader(Map) with key 'treatEmptyValuesAsNulls' to specify options", "0.13.0")
   def withTreatEmptyValuesAsNulls(treatAsNull: Boolean): XmlReader = {
     parameters += ("treatEmptyValuesAsNulls" -> treatAsNull.toString)
     this
   }
 
-  @deprecated("Use withParseMode(\"FAILFAST\") instead", "0.10.0")
+  @deprecated("Use XmlReader(Map) with key 'mode' as 'FAILFAST' to specify options", "0.10.0")
   def withFailFast(failFast: Boolean): XmlReader = {
     if (failFast) {
       parameters += ("mode" -> FailFastMode.name)
@@ -68,36 +90,43 @@ class XmlReader extends Serializable {
     this
   }
 
+  @deprecated("Use XmlReader(Map) with key 'mode' to specify options", "0.13.0")
   def withParseMode(mode: String): XmlReader = {
     parameters += ("mode" -> mode)
     this
   }
 
+  @deprecated("Use XmlReader(Map) with key 'attributePrefix' to specify options", "0.13.0")
   def withAttributePrefix(attributePrefix: String): XmlReader = {
     parameters += ("attributePrefix" -> attributePrefix)
     this
   }
 
+  @deprecated("Use XmlReader(Map) with key 'valueTag' to specify options", "0.13.0")
   def withValueTag(valueTag: String): XmlReader = {
     parameters += ("valueTag" -> valueTag)
     this
   }
 
+  @deprecated("Use XmlReader(Map) with key 'columnNameOfCorruptRecord' to specify options", "0.13.0")
   def withColumnNameOfCorruptRecord(name: String): XmlReader = {
     parameters += ("columnNameOfCorruptRecord" -> name)
     this
   }
 
+  @deprecated("Use XmlReader(Map) with key 'ignoreSurroundingSpaces' to specify options", "0.13.0")
   def withIgnoreSurroundingSpaces(ignore: Boolean): XmlReader = {
     parameters += ("ignoreSurroundingSpaces" -> ignore.toString)
     this
   }
 
+  @deprecated("Use XmlReader(StructType) to specify schema", "0.13.0")
   def withSchema(schema: StructType): XmlReader = {
     this.schema = schema
     this
   }
 
+  @deprecated("Use XmlReader(Map) with key 'rowValidationXSDPath' to specify options", "0.13.0")
   def withRowValidationXSDPath(path: String): XmlReader = {
     parameters += ("rowValidationXSDPath" -> path)
     this
