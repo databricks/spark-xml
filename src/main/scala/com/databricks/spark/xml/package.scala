@@ -84,6 +84,7 @@ package object xml {
   implicit class XmlDataFrameReader(reader: DataFrameReader) {
     def xml: String => DataFrame = reader.format("com.databricks.spark.xml").load
 
+    @deprecated("Use XmlReader directly", "0.13.0")
     def xml(xmlDataset: Dataset[String]): DataFrame = {
       val spark = SparkSession.builder.getOrCreate()
       new XmlReader().xmlDataset(spark, xmlDataset)
