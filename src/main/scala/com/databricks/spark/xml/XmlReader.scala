@@ -108,7 +108,8 @@ class XmlReader(private var schema: StructType,
     this
   }
 
-  @deprecated("Use XmlReader(Map) with key 'columnNameOfCorruptRecord' to specify options", "0.13.0")
+  @deprecated("Use XmlReader(Map) with key 'columnNameOfCorruptRecord' to specify options",
+              "0.13.0")
   def withColumnNameOfCorruptRecord(name: String): XmlReader = {
     parameters += ("columnNameOfCorruptRecord" -> name)
     this

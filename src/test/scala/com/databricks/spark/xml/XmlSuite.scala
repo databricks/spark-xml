@@ -232,7 +232,9 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("DSL test for permissive mode for corrupt records") {
-    val carsDf = new XmlReader(Map("mode" -> PermissiveMode.name, "columnNameOfCorruptRecord" -> "_malformed_records"))
+    val carsDf = new XmlReader(Map(
+        "mode" -> PermissiveMode.name,
+        "columnNameOfCorruptRecord" -> "_malformed_records"))
       .xmlFile(spark, resDir + "cars-malformed.xml")
     val cars = carsDf.collect()
     assert(cars.length === 3)
@@ -584,9 +586,10 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     // Explicitly set
     val attributePrefix = "@#"
     val valueTag = "#@@value"
-    val resultsTwo =
-      new XmlReader(Map("rowTag" -> "book", "attributePrefix" -> attributePrefix, "valueTag" -> valueTag))
-        .xmlFile(spark, resDir + "books-attributes-in-no-child.xml")
+    val resultsTwo = new XmlReader(Map(
+        "rowTag" -> "book", "attributePrefix" -> attributePrefix,
+        "valueTag" -> valueTag))
+      .xmlFile(spark, resDir + "books-attributes-in-no-child.xml")
 
     val schemaTwo = buildSchema(
       field(s"${attributePrefix}id"),
