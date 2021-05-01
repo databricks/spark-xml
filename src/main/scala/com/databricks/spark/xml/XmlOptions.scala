@@ -32,7 +32,9 @@ private[xml] class XmlOptions(
   val codec = parameters.get("compression").orElse(parameters.get("codec")).orNull
   val rowTag = parameters.getOrElse("rowTag", XmlOptions.DEFAULT_ROW_TAG)
   require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")
+  require(!rowTag.startsWith("<") && !rowTag.endsWith(">"), "'rowTag' should not include angle brackets")
   val rootTag = parameters.getOrElse("rootTag", XmlOptions.DEFAULT_ROOT_TAG)
+  require(!rootTag.startsWith("<") && !rootTag.endsWith(">"), "'rootTag' should not include angle brackets")
   val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
   require(samplingRatio > 0, s"samplingRatio ($samplingRatio) should be greater than 0")
   val excludeAttributeFlag = parameters.get("excludeAttribute").map(_.toBoolean).getOrElse(false)
