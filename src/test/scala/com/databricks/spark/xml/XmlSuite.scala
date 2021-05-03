@@ -828,6 +828,29 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(messageThree === "requirement failed: 'valueTag' option should not be empty string.")
   }
 
+  test("'rowTag' and 'rootTag' should not include angle brackets") {
+    val messageOne = intercept[IllegalArgumentException] {
+      spark.read.option("rowTag", "ROW>").xml(resDir + "cars.xml")
+    }.getMessage
+    assert(messageOne === "requirement failed: 'rowTag' should not include angle brackets")
+
+    val messageTwo = intercept[IllegalArgumentException] {
+            spark.read.option("rowTag", "<ROW").xml(resDir + "cars.xml")
+    }.getMessage
+    assert(
+      messageTwo === "requirement failed: 'rowTag' should not include angle brackets")
+
+    val messageThree = intercept[IllegalArgumentException] {
+      spark.read.option("rootTag", "ROWSET>").xml(resDir + "cars.xml")
+    }.getMessage
+    assert(messageThree === "requirement failed: 'rootTag' should not include angle brackets")
+
+    val messageFour = intercept[IllegalArgumentException] {
+      spark.read.option("rootTag", "<ROWSET").xml(resDir + "cars.xml")
+    }.getMessage
+    assert(messageFour === "requirement failed: 'rootTag' should not include angle brackets")
+  }
+
   test("valueTag and attributePrefix should not be the same.") {
     val messageOne = intercept[IllegalArgumentException] {
       spark.read
