@@ -1185,6 +1185,16 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(whitespaceDF.take(1).head.getAs[String]("_corrupt_record") !== null)
   }
 
+  test("struct with only attributes and no value tag does not crash") {
+    val schema = buildSchema(struct("book", field("_id", StringType)), field("_corrupt_record"))
+    val booksDF = spark.read
+      .option("rowTag", "book")
+      .schema(schema)
+      .xml(resDir + "books.xml")
+
+    assert(booksDF.count() === 12)
+  }
+
   test("XML in String field preserves attributes") {
     val schema = buildSchema(field("ROW"))
     val result = spark.read
