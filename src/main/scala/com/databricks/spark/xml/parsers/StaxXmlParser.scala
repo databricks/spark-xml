@@ -164,9 +164,9 @@ private[xml] object StaxXmlParser extends Serializable {
         }
         if (attributesOnly) {
           // If everything else is an attribute column, there's no complex structure.
-          // Just return the value of the character element
-          val dt = st.find(_.name == options.valueTag).get.dataType
-          convertTo(c.getData, dt, options)
+          // Just return the value of the character element, or null if we don't have a value tag
+          st.find(_.name == options.valueTag).map(
+            valueTag => convertTo(c.getData, valueTag.dataType, options)).orNull
         } else {
           // Otherwise, ignore this character element, and continue parsing the following complex
           // structure
