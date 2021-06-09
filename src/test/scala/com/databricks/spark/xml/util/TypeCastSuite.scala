@@ -52,14 +52,6 @@ final class TypeCastSuite extends AnyFunSuite {
     assert(TypeCast.castTo("", StringType, options) === "")
   }
 
-  test("Throws exception for empty string with non null type") {
-    val options = new XmlOptions()
-    val exception = intercept[NumberFormatException]{
-      TypeCast.castTo("", IntegerType, options, nullable = false)
-    }
-    assert(exception.getMessage.contains("For input string: \"\""))
-  }
-
   test("Types are cast correctly") {
     val options = new XmlOptions()
     assert(TypeCast.castTo("10", ByteType, options) === 10)
