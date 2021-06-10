@@ -46,11 +46,9 @@ private[xml] object TypeCast {
   private[xml] def castTo(
       datum: String,
       castType: DataType,
-      options: XmlOptions,
-      nullable: Boolean = true): Any = {
-    if (datum == options.nullValue &&
-      nullable ||
-      (options.treatEmptyValuesAsNulls && datum == "")){
+      options: XmlOptions): Any = {
+    if ((datum == options.nullValue) ||
+        (options.treatEmptyValuesAsNulls && datum == "")) {
       null
     } else {
       castType match {
@@ -140,21 +138,26 @@ private[xml] object TypeCast {
     } else {
       datum
     }
-    dataType match {
-      case NullType => castTo(value, StringType, options)
-      case LongType => signSafeToLong(value, options)
-      case DoubleType => signSafeToDouble(value, options)
-      case BooleanType => castTo(value, BooleanType, options)
-      case StringType => castTo(value, StringType, options)
-      case DateType => castTo(value, DateType, options)
-      case TimestampType => castTo(value, TimestampType, options)
-      case FloatType => signSafeToFloat(value, options)
-      case ByteType => castTo(value, ByteType, options)
-      case ShortType => castTo(value, ShortType, options)
-      case IntegerType => signSafeToInt(value, options)
-      case dt: DecimalType => castTo(value, dt, options)
-      case _ => throw new IllegalArgumentException(
-        s"Failed to parse a value for data type $dataType.")
+    if ((value == options.nullValue) ||
+      (options.treatEmptyValuesAsNulls && value == "")) {
+      null
+    } else {
+      dataType match {
+        case NullType => castTo(value, StringType, options)
+        case LongType => signSafeToLong(value, options)
+        case DoubleType => signSafeToDouble(value, options)
+        case BooleanType => castTo(value, BooleanType, options)
+        case StringType => castTo(value, StringType, options)
+        case DateType => castTo(value, DateType, options)
+        case TimestampType => castTo(value, TimestampType, options)
+        case FloatType => signSafeToFloat(value, options)
+        case ByteType => castTo(value, ByteType, options)
+        case ShortType => castTo(value, ShortType, options)
+        case IntegerType => signSafeToInt(value, options)
+        case dt: DecimalType => castTo(value, dt, options)
+        case _ => throw new IllegalArgumentException(
+          s"Failed to parse a value for data type $dataType.")
+      }
     }
   }
 

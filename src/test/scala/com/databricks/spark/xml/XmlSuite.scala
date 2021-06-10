@@ -34,6 +34,7 @@ import com.databricks.spark.xml.XmlOptions._
 import com.databricks.spark.xml.functions._
 import com.databricks.spark.xml.util._
 
+import org.apache.spark.sql.functions.{explode, column}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Row, SaveMode, SparkSession}
 import org.apache.spark.SparkException
@@ -1356,6 +1357,22 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       buildSchema(field("author"), field("time", TimestampType), field("time2", TimestampType))
     assert(df.schema === expectedSchema)
     assert(df.collect().head.getAs[Timestamp](2).getTime === 1322936130000L)
+  }
+
+  test("Test null number type is null not 0.0") {
+    val schema = buildSchema(
+      struct("Header",
+        field("_Name"), field("_SequenceNumber", LongType)),
+      structArray("T",
+        field("_Number", LongType), field("_VALUE", DoubleType), field("_Volume", DoubleType)))
+
+    val df = spark.read.option("rowTag", "TEST")
+      .option("nullValue", "")
+      .schema(schema)
+      .xml(resDir + "null-numbers-2.xml")
+      .select(explode(column("T")))
+
+    assert(df.collect()(1).getStruct(0).get(2) === null)
   }
 
   private def getLines(path: Path): Seq[String] = {
