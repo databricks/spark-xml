@@ -22,7 +22,7 @@ import com.databricks.spark.xml.util.XmlFile
 import com.databricks.spark.xml.util.FailFastMode
 
 /**
- * A collection of static functions for working with XML files in Spark SQL
+ * A collection of static functions for working with XML files in Spark SQL.
  */
 class XmlReader(private var schema: StructType,
                 private val options: Map[String, Any]) extends Serializable {
