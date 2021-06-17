@@ -1,9 +1,9 @@
 name: Spark 2 / Java 8
 on:
   push:
-    branches: [ $default-branch ]
+    branches: [master]
   pull_request:
-    branches: [ $default-branch ]
+    branches: [master]
 jobs:
   build:
     runs-on: ubuntu-latest
