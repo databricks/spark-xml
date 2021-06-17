@@ -12,7 +12,6 @@ jobs:
       - name: Set up Java, SBT
         uses: olafurpg/setup-scala@v11
         with:
-          java-version: '8'
-          distribution: 'adopt'
+          java-version: 'adopt@1.8'
       - name: Build and test
         run: sbt -Dspark.testVersion=2.4.8 ++2.11.12 clean scalastyle test:scalastyle mimaReportBinaryIssues test
