@@ -78,7 +78,7 @@ package object xml {
   }
 
   /**
-   * Adds a method, `xml`, to DataFrameReader that allows you to read avro files using
+   * Adds a method, `xml`, to DataFrameReader that allows you to read XML files using
    * the DataFileReader
    */
   implicit class XmlDataFrameReader(reader: DataFrameReader) {
@@ -92,7 +92,7 @@ package object xml {
   }
 
   /**
-   * Adds a method, `xml`, to DataFrameWriter that allows you to write avro files using
+   * Adds a method, `xml`, to DataFrameWriter that allows you to write XML files using
    * the DataFileWriter
    */
   implicit class XmlDataFrameWriter[T](writer: DataFrameWriter[T]) {

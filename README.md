@@ -1,22 +1,13 @@
 # XML Data Source for Apache Spark
 
-[![Build Status](https://travis-ci.org/databricks/spark-xml.svg?branch=master)](https://travis-ci.org/databricks/spark-xml) [![codecov](https://codecov.io/gh/databricks/spark-xml/branch/master/graph/badge.svg)](https://codecov.io/gh/databricks/spark-xml)
+[![codecov](https://codecov.io/gh/databricks/spark-xml/branch/master/graph/badge.svg)](https://codecov.io/gh/databricks/spark-xml)
 
 - A library for parsing and querying XML data with [Apache Spark](https://spark.apache.org), for Spark SQL and DataFrames.
 The structure and test tools are mostly copied from [CSV Data Source for Spark](https://github.com/databricks/spark-csv).
 
 - This package supports to process format-free XML files in a distributed way, unlike JSON datasource in Spark restricts in-line JSON format.
 
-- As of 0.6.x+ Spark 3.x is also supported (requires Scala 2.12)
-
-## Requirements
-
-| spark-xml | Spark         |
-| --------- | ------------- |
-| 0.6.x+    | 2.3.x+, 3.x   |
-| 0.5.x     | 2.2.x - 2.4.x |
-| 0.4.x     | 2.0.x - 2.1.x |
-| 0.3.x     | 1.x           |
+- Compatible with Spark 2.4.x (with Scala 2.11) and 3.x (with Scala 2.12)
 
 ## Linking
 You can link against this library in your program at the following coordinates:
