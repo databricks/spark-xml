@@ -136,6 +136,8 @@ object XSDToSchema {
                       attribute.getUse != XmlSchemaUse.REQUIRED)
                 }
                 StructField(complexType.getName, StructType(value +: attributes))
+              case unsupported =>
+                throw new IllegalArgumentException(s"Unsupported content: $unsupported")
             }
           case null =>
             val childFields =
@@ -187,8 +189,12 @@ object XSDToSchema {
                         if (any.getMaxOccurs > 1) ArrayType(StringType) else StringType
                       val nullable = any.getMinOccurs == 0
                       Seq(StructField(XmlOptions.DEFAULT_WILDCARD_COL_NAME, dataType, nullable))
+                    case unsupported =>
+                      throw new IllegalArgumentException(s"Unsupported item: $unsupported")
                     }
                   }
+                case unsupported =>
+                  throw new IllegalArgumentException(s"Unsupported particle: $unsupported")
               }
             val attributes = complexType.getAttributes.asScala.map {
               case attribute: XmlSchemaAttribute =>
@@ -198,7 +204,9 @@ object XSDToSchema {
                   attribute.getUse != XmlSchemaUse.REQUIRED)
             }
             StructField(complexType.getName, StructType(childFields ++ attributes))
-          }
+          case unsupported =>
+            throw new IllegalArgumentException(s"Unsupported content model: $unsupported")
+        }
       case unsupported =>
         throw new IllegalArgumentException(s"Unsupported schema element type: $unsupported")
     }
