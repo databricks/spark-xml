@@ -92,13 +92,13 @@ final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
         nullDatum = null)
     )
     
-    val df = dataset.toDF.orderBy("booleanDatum")
+    val df = dataset.toDF().orderBy("booleanDatum")
     val targetFile =
       Files.createTempDirectory("StaxXmlGeneratorSuite").resolve("roundtrip.xml").toString
     df.write.format("xml").save(targetFile)
     val newDf =
       spark.read.schema(df.schema).format("xml").load(targetFile).orderBy("booleanDatum")
-    assert(df.collect.deep == newDf.collect.deep)
+    assert(df.collect().toSeq === newDf.collect().toSeq)
   }
 
 }

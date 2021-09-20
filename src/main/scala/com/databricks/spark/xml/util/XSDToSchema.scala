@@ -134,7 +134,7 @@ object XSDToSchema {
                       xmlSchema.getParent.getTypeByQName(attribute.getSchemaTypeName))
                     StructField(s"_${attribute.getName}", baseStructField.dataType,
                       attribute.getUse != XmlSchemaUse.REQUIRED)
-                }
+                }.toSeq
                 StructField(complexType.getName, StructType(value +: attributes))
               case unsupported =>
                 throw new IllegalArgumentException(s"Unsupported content: $unsupported")
@@ -153,7 +153,7 @@ object XSDToSchema {
                       } else {
                         StructField(element.getName, ArrayType(baseStructField.dataType), nullable)
                       }
-                  }
+                  }.toSeq
                 // xs:choice
                 case choice: XmlSchemaChoice =>
                   choice.getItems.asScala.map {
@@ -167,7 +167,7 @@ object XSDToSchema {
                     case any: XmlSchemaAny =>
                       val dataType = if (any.getMaxOccurs > 1) ArrayType(StringType) else StringType
                       StructField(XmlOptions.DEFAULT_WILDCARD_COL_NAME, dataType, true)
-                  }
+                  }.toSeq
                 // xs:sequence
                 case sequence: XmlSchemaSequence =>
                   // flatten xs:choice nodes
@@ -192,7 +192,7 @@ object XSDToSchema {
                     case unsupported =>
                       throw new IllegalArgumentException(s"Unsupported item: $unsupported")
                     }
-                  }
+                  }.toSeq
                 case unsupported =>
                   throw new IllegalArgumentException(s"Unsupported particle: $unsupported")
               }
@@ -202,7 +202,7 @@ object XSDToSchema {
                   xmlSchema.getParent.getTypeByQName(attribute.getSchemaTypeName))
                 StructField(s"_${attribute.getName}", baseStructField.dataType,
                   attribute.getUse != XmlSchemaUse.REQUIRED)
-            }
+            }.toSeq
             StructField(complexType.getName, StructType(childFields ++ attributes))
           case unsupported =>
             throw new IllegalArgumentException(s"Unsupported content model: $unsupported")

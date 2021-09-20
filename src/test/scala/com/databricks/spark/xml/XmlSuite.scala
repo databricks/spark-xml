@@ -327,8 +327,8 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     val carsCopy = spark.read.xml(copyFilePath.toString)
 
-    assert(carsCopy.count === cars.count)
-    assert(carsCopy.collect.map(_.toString).toSet === cars.collect.map(_.toString).toSet)
+    assert(carsCopy.count() === cars.count())
+    assert(carsCopy.collect().map(_.toString).toSet === cars.collect().map(_.toString).toSet)
   }
 
   test("DSL save with gzip compression codec by shorten name") {
@@ -345,8 +345,8 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     val carsCopy = spark.read.xml(copyFilePath.toString)
 
-    assert(carsCopy.count === cars.count)
-    assert(carsCopy.collect.map(_.toString).toSet === cars.collect.map(_.toString).toSet)
+    assert(carsCopy.count() === cars.count())
+    assert(carsCopy.collect().map(_.toString).toSet === cars.collect().map(_.toString).toSet)
   }
 
   test("DSL save") {
@@ -362,8 +362,8 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     val booksCopy = spark.read
       .option("rowTag", "book")
       .xml(copyFilePath.toString)
-    assert(booksCopy.count === books.count)
-    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+    assert(booksCopy.count() === books.count())
+    assert(booksCopy.collect().map(_.toString).toSet === books.collect().map(_.toString).toSet)
   }
 
   test("DSL save with nullValue and treatEmptyValuesAsNulls") {
@@ -381,8 +381,8 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .option("treatEmptyValuesAsNulls", "true")
       .xml(copyFilePath.toString)
 
-    assert(booksCopy.count === books.count)
-    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+    assert(booksCopy.count() === books.count())
+    assert(booksCopy.collect().map(_.toString).toSet === books.collect().map(_.toString).toSet)
   }
 
   test("Write values properly as given to valueTag even if it starts with attributePrefix") {
@@ -408,8 +408,8 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .option("rowTag", "book")
       .xml(copyFilePath.toString)
 
-    assert(booksCopy.count === books.count)
-    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+    assert(booksCopy.count() === books.count())
+    assert(booksCopy.collect().map(_.toString).toSet === books.collect().map(_.toString).toSet)
   }
 
   test("DSL save dataframe not read from a XML file") {
@@ -429,7 +429,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
         field("item", ArrayType(StringType))))
     val dfCopy = spark.read.xml(copyFilePath.toString)
 
-    assert(dfCopy.count === df.count)
+    assert(dfCopy.count() === df.count())
     assert(dfCopy.schema === schemaCopy)
   }
 
@@ -582,7 +582,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("title"))
 
     assert(resultsOne.schema === schemaOne)
-    assert(resultsOne.count === 12)
+    assert(resultsOne.count() === 12)
 
     // Explicitly set
     val attributePrefix = "@#"
@@ -602,7 +602,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("title"))
 
     assert(resultsTwo.schema === schemaTwo)
-    assert(resultsTwo.count === 12)
+    assert(resultsTwo.count() === 12)
   }
 
   test("DSL test schema (excluding tags) inferred correctly") {
@@ -752,7 +752,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(result(0) === Row(111, 222))
   }
 
-  private[this] def testNextedElementFromFile(xmlFile: String) = {
+  private[this] def testNextedElementFromFile(xmlFile: String): Unit = {
     val lines = getLines(Paths.get(xmlFile)).toList
     val firstExpected = lines(2).trim
     val lastExpected = lines(3).trim
@@ -962,8 +962,8 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     val booksCopy = spark.read
       .option("rowTag", "book")
       .xml(copyFilePath.toString)
-    assert(booksCopy.count === books.count)
-    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
+    assert(booksCopy.count() === books.count())
+    assert(booksCopy.collect().map(_.toString).toSet === books.collect().map(_.toString).toSet)
   }
 
   test("DSL test nulls out invalid values when set to permissive and given explicit schema") {
@@ -1213,7 +1213,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     df.write.option("rootTag", "root foo='bar' bing=\"baz\"").xml(xmlPath.toString)
 
     val xmlFile =
-      Files.list(xmlPath).iterator.asScala.filter(_.getFileName.toString.startsWith("part-")).next
+      Files.list(xmlPath).iterator.asScala.filter(_.getFileName.toString.startsWith("part-")).next()
     val firstLine = getLines(xmlFile).head
     assert(firstLine === "<root foo=\"bar\" bing=\"baz\">")
   }
@@ -1378,7 +1378,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   private def getLines(path: Path): Seq[String] = {
     val source = Source.fromFile(path.toFile)
     try {
-      source.getLines.toList
+      source.getLines().toList
     } finally {
       source.close()
     }

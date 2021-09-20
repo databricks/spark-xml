@@ -23,7 +23,6 @@ import javax.xml.transform.stream.StreamSource
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
-import scala.collection.Seq
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.NonFatal
 

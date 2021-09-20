@@ -86,7 +86,7 @@ package object xml {
 
     @deprecated("Use XmlReader directly", "0.13.0")
     def xml(xmlDataset: Dataset[String]): DataFrame = {
-      val spark = SparkSession.builder.getOrCreate()
+      val spark = SparkSession.builder().getOrCreate()
       new XmlReader().xmlDataset(spark, xmlDataset)
     }
   }
