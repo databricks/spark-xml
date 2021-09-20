@@ -193,14 +193,20 @@ object XSDToSchema {
                       throw new IllegalArgumentException(s"Unsupported item: $unsupported")
                     }
                   }.toSeq
+                case null =>
+                  Seq.empty
                 case unsupported =>
                   throw new IllegalArgumentException(s"Unsupported particle: $unsupported")
               }
             val attributes = complexType.getAttributes.asScala.map {
               case attribute: XmlSchemaAttribute =>
-                val baseStructField = getStructField(xmlSchema,
-                  xmlSchema.getParent.getTypeByQName(attribute.getSchemaTypeName))
-                StructField(s"_${attribute.getName}", baseStructField.dataType,
+                val attributeType = attribute.getSchemaTypeName match {
+                  case null =>
+                    StringType
+                  case t =>
+                    getStructField(xmlSchema, xmlSchema.getParent.getTypeByQName(t)).dataType
+                }
+                StructField(s"_${attribute.getName}", attributeType,
                   attribute.getUse != XmlSchemaUse.REQUIRED)
             }.toSeq
             StructField(complexType.getName, StructType(childFields ++ attributes))
