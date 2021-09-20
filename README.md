@@ -279,7 +279,7 @@ You can also use `.format("xml")` and `.load(...)`.
 import org.apache.spark.sql.SparkSession
 import com.databricks.spark.xml._
 
-val spark = SparkSession.builder.getOrCreate()
+val spark = SparkSession.builder().getOrCreate()
 val df = spark.read
   .option("rowTag", "book")
   .xml("books.xml")
@@ -298,7 +298,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.{StructType, StructField, StringType, DoubleType}
 import com.databricks.spark.xml._
 
-val spark = SparkSession.builder.getOrCreate()
+val spark = SparkSession.builder().getOrCreate()
 val customSchema = StructType(Array(
   StructField("_id", StringType, nullable = true),
   StructField("author", StringType, nullable = true),
@@ -372,7 +372,7 @@ df.select("author", "_id").write()
 
 ```python
 from pyspark.sql import SparkSession
-spark = SparkSession.builder.getOrCreate()
+spark = SparkSession.builder().getOrCreate()
 
 df = spark.read.format('xml').options(rowTag='book').load('books.xml')
 df.select("author", "_id").write \
@@ -386,7 +386,7 @@ You can manually specify schema:
 from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
-spark = SparkSession.builder.getOrCreate()
+spark = SparkSession.builder().getOrCreate()
 customSchema = StructType([
     StructField("_id", StringType(), True),
     StructField("author", StringType(), True),

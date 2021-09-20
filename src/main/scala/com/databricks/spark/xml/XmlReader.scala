@@ -32,15 +32,15 @@ class XmlReader(private var schema: StructType,
 
   // Explicit constructors for Java compatibility
 
-  def this() {
+  def this() = {
     this(null, Map.empty)
   }
 
-  def this(schema: StructType) {
+  def this(schema: StructType) = {
     this(schema, Map.empty)
   }
 
-  def this(options: Map[String, Any]) {
+  def this(options: Map[String, Any]) = {
     this(null, options)
   }
 

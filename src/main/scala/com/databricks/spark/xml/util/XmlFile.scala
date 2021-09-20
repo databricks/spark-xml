@@ -105,7 +105,7 @@ private[xml] object XmlFile {
 
         override def hasNext: Boolean = iter.hasNext || firstRow || lastRow
 
-        override def next: String = {
+        override def next(): String = {
           if (iter.nonEmpty) {
             if (firstRow) {
               indentingXmlWriter.writeStartElement(rootElementName)

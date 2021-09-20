@@ -122,7 +122,7 @@ private[xml] object StaxXmlParser extends Serializable {
         }
         val corruptFieldIndex = Try(schema.fieldIndex(options.columnNameOfCorruptRecord)).toOption
         corruptFieldIndex.foreach(resultRow(_) = record)
-        Some(Row.fromSeq(resultRow))
+        Some(Row.fromSeq(resultRow.toIndexedSeq))
     }
   }
 
@@ -281,7 +281,7 @@ private[xml] object StaxXmlParser extends Serializable {
       // Return an empty row with all nested elements by the schema set to null.
       Row.fromSeq(Seq.fill(schema.fieldNames.length)(null))
     } else {
-      Row.fromSeq(row)
+      Row.fromSeq(row.toIndexedSeq)
     }
   }
 
@@ -366,9 +366,9 @@ private[xml] object StaxXmlParser extends Serializable {
     }
 
     if (badRecordException.isEmpty) {
-      Row.fromSeq(row)
+      Row.fromSeq(row.toIndexedSeq)
     } else {
-      throw PartialResultException(Row.fromSeq(row), badRecordException.get)
+      throw PartialResultException(Row.fromSeq(row.toIndexedSeq), badRecordException.get)
     }
   }
 }
