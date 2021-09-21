@@ -7,39 +7,24 @@ The structure and test tools are mostly copied from [CSV Data Source for Spark](
 
 - This package supports to process format-free XML files in a distributed way, unlike JSON datasource in Spark restricts in-line JSON format.
 
-- Compatible with Spark 2.4.x (with Scala 2.11) and 3.x (with Scala 2.12)
+- Compatible with Spark 2.4.x and 3.x, with Scala 2.12. Scala 2.11 support with Spark 2.4.x is deprecated.
 
 ## Linking
+
 You can link against this library in your program at the following coordinates:
-
-### Scala 2.11
-
-```
-groupId: com.databricks
-artifactId: spark-xml_2.11
-version: 0.12.0
-```
-
-### Scala 2.12
 
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.12
-version: 0.12.0
+version: 0.13.0
 ```
 
 ## Using with Spark shell
+
 This package can be added to Spark using the `--packages` command line option. For example, to include it when starting the spark shell:
 
-
-### Spark compiled with Scala 2.11
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.11:0.12.0
-```
-
-### Spark compiled with Scala 2.12
-```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.12:0.12.0
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.12:0.13.0
 ```
 
 ## Features
@@ -413,7 +398,7 @@ Automatically infer schema (data types)
 ```R
 library(SparkR)
 
-sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.11:0.12.0"))
+sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.12:0.13.0"))
 
 df <- read.df("books.xml", source = "xml", rowTag = "book")
 
@@ -425,7 +410,7 @@ You can manually specify schema:
 ```R
 library(SparkR)
 
-sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.11:0.12.0"))
+sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.12:0.13.0"))
 customSchema <- structType(
   structField("_id", "string"),
   structField("author", "string"),
@@ -466,7 +451,7 @@ val records = sc.newAPIHadoopFile(
 
 ## Building From Source
 
-This library is built with [SBT](https://www.scala-sbt.org/). To build a JAR file simply run `sbt package` from the project root. The build configuration includes support for both Scala 2.11 and 2.12.
+This library is built with [SBT](https://www.scala-sbt.org/). To build a JAR file simply run `sbt package` from the project root.
 
 ## Acknowledgements
 
