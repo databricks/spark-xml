@@ -385,7 +385,8 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .options(Map("rootTag" -> "books", "rowTag" -> "book"))
       .xml(copyFilePath2.toString)
 
-    assert(getLines(copyFilePath2.resolve("part-00000")).head ==="<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+    assert(getLines(copyFilePath2.resolve("part-00000")).head ===
+      "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>")
   }
 
   test("DSL save with nullValue and treatEmptyValuesAsNulls") {
