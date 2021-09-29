@@ -37,6 +37,9 @@ private[xml] class XmlOptions(
   val rootTag = parameters.getOrElse("rootTag", XmlOptions.DEFAULT_ROOT_TAG)
   require(!rootTag.startsWith("<") && !rootTag.endsWith(">"), 
           "'rootTag' should not include angle brackets")
+  val declaration = parameters.getOrElse("declaration", XmlOptions.DEFAULT_DECLARATION)
+  require(!declaration.startsWith("<") && !declaration.endsWith(">"),
+          "'declaration' should not include angle brackets")
   val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
   require(samplingRatio > 0, s"samplingRatio ($samplingRatio) should be greater than 0")
   val excludeAttributeFlag = parameters.get("excludeAttribute").map(_.toBoolean).getOrElse(false)
@@ -69,6 +72,7 @@ private[xml] object XmlOptions {
   val DEFAULT_VALUE_TAG = "_VALUE"
   val DEFAULT_ROW_TAG = "ROW"
   val DEFAULT_ROOT_TAG = "ROWS"
+  val DEFAULT_DECLARATION = "version=\"1.0\" encoding=\"UTF-8\""
   val DEFAULT_CHARSET: String = StandardCharsets.UTF_8.name
   val DEFAULT_NULL_VALUE: String = null
   val DEFAULT_WILDCARD_COL_NAME = "xs_any"

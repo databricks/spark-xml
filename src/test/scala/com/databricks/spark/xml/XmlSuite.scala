@@ -366,6 +366,28 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(booksCopy.collect().map(_.toString).toSet === books.collect().map(_.toString).toSet)
   }
 
+  test("DSL save with declaration") {
+    val copyFilePath1 = getEmptyTempDir().resolve("books-copy.xml")
+
+    val books = spark.read
+      .option("rowTag", "book")
+      .xml(resDir + "books-complicated.xml")
+
+    books.write
+      .options(Map("rootTag" -> "books", "rowTag" -> "book", "declaration" -> ""))
+      .xml(copyFilePath1.toString)
+
+    assert(getLines(copyFilePath1.resolve("part-00000")).head === "<books>")
+
+    val copyFilePath2 = getEmptyTempDir().resolve("books-copy.xml")
+
+    books.write
+      .options(Map("rootTag" -> "books", "rowTag" -> "book"))
+      .xml(copyFilePath2.toString)
+
+    assert(getLines(copyFilePath2.resolve("part-00000")).head ==="<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+  }
+
   test("DSL save with nullValue and treatEmptyValuesAsNulls") {
     val copyFilePath = getEmptyTempDir().resolve("books-copy.xml")
 
