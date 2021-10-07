@@ -91,6 +91,7 @@ private[xml] object XmlFile {
       } else {
         Map.empty
       }
+    val declaration = options.declaration
 
     val xmlRDD = dataFrame.rdd.mapPartitions { iter =>
       val factory = XMLOutputFactory.newInstance()
@@ -108,6 +109,10 @@ private[xml] object XmlFile {
         override def next(): String = {
           if (iter.nonEmpty) {
             if (firstRow) {
+              if (declaration != null && declaration.nonEmpty) {
+                indentingXmlWriter.writeProcessingInstruction("xml", declaration)
+                indentingXmlWriter.writeCharacters("\n")
+              }
               indentingXmlWriter.writeStartElement(rootElementName)
               rootAttributes.foreach { case (k, v) =>
                 indentingXmlWriter.writeAttribute(k, v)
