@@ -1,9 +1,5 @@
 name: Spark 3 / Java 11
-on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+on: push
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -13,6 +9,8 @@ jobs:
         uses: olafurpg/setup-scala@v11
         with:
           java-version: 'adopt@1.11'
+      - name: Coursier cache
+        uses: coursier/cache-action@v5
       - name: Build and test
         run: sbt -Dspark.testVersion=3.1.2 ++2.12.10 clean scalastyle test:scalastyle mimaReportBinaryIssues coverage test coverageReport
       - name: Check code coverage

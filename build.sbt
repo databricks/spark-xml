@@ -4,7 +4,7 @@ version := "0.13.0"
 
 organization := "com.databricks"
 
-scalaVersion := "2.12.10"
+scalaVersion := "2.12.15"
 
 crossScalaVersions := Seq("2.11.12", "2.12.10")
 

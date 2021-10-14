@@ -1,0 +1,14 @@
+image:
+  file: .gitpod.Dockerfile
+tasks:
+  - init: |
+      sbt compile
+    command: |
+      sbt bloopInstall
+vscode:
+  extensions:
+    - scalameta.metals
+    - scala-lang.scala
+    - github.vscode-pull-request-github
+    - ms-azuretools.vscode-docker
+    - vivaxy.vscode-conventional-commits

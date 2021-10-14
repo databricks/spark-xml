@@ -1,9 +1,5 @@
 name: Spark 2 / Java 8
-on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+on: push
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -13,5 +9,7 @@ jobs:
         uses: olafurpg/setup-scala@v11
         with:
           java-version: 'adopt@1.8'
+      - name: Coursier cache
+        uses: coursier/cache-action@v5
       - name: Build and test
         run: sbt -Dspark.testVersion=2.4.8 ++2.11.12 clean scalastyle test:scalastyle mimaReportBinaryIssues test
