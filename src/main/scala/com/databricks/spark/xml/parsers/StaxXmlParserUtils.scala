@@ -28,10 +28,12 @@ import com.databricks.spark.xml.XmlOptions
 
 private[xml] object StaxXmlParserUtils {
 
-  private val factory: XMLInputFactory = {
+  private[xml] val factory: XMLInputFactory = {
     val factory = XMLInputFactory.newInstance()
     factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
     factory.setProperty(XMLInputFactory.IS_COALESCING, true)
+    factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false)
+    factory.setProperty(XMLInputFactory.SUPPORT_DTD, false)
     factory
   }
 
