@@ -1,16 +1,16 @@
 name := "spark-xml"
 
-version := "0.13.0"
+version := "0.14.0"
 
 organization := "com.databricks"
 
 scalaVersion := "2.12.10"
 
-crossScalaVersions := Seq("2.11.12", "2.12.10")
+crossScalaVersions := Seq("2.12.10", "2.13.5")
 
 scalacOptions := Seq("-unchecked", "-deprecation")
 
-val sparkVersion = sys.props.get("spark.testVersion").getOrElse("2.4.8")
+val sparkVersion = sys.props.get("spark.testVersion").getOrElse("3.2.0")
 
 // To avoid packaging it, it's Provided below
 autoScalaLibrary := false

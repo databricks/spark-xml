@@ -7,7 +7,7 @@ The structure and test tools are mostly copied from [CSV Data Source for Spark](
 
 - This package supports to process format-free XML files in a distributed way, unlike JSON datasource in Spark restricts in-line JSON format.
 
-- Compatible with Spark 2.4.x and 3.x, with Scala 2.12. Scala 2.11 support with Spark 2.4.x is deprecated.
+- Compatible with Spark 3.0 and later with Scala 2.12, and also Spark 3.2 and later with Scala 2.12 or 2.13. Scala 2.11 and Spark 2 support ended with version 0.13.0.
 
 ## Linking
 
@@ -16,7 +16,7 @@ You can link against this library in your program at the following coordinates:
 ```
 groupId: com.databricks
 artifactId: spark-xml_2.12
-version: 0.13.0
+version: 0.14.0
 ```
 
 ## Using with Spark shell
@@ -24,7 +24,7 @@ version: 0.13.0
 This package can be added to Spark using the `--packages` command line option. For example, to include it when starting the spark shell:
 
 ```
-$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.12:0.13.0
+$SPARK_HOME/bin/spark-shell --packages com.databricks:spark-xml_2.12:0.14.0
 ```
 
 ## Features
@@ -398,7 +398,7 @@ Automatically infer schema (data types)
 ```R
 library(SparkR)
 
-sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.12:0.13.0"))
+sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.12:0.14.0"))
 
 df <- read.df("books.xml", source = "xml", rowTag = "book")
 
@@ -410,7 +410,7 @@ You can manually specify schema:
 ```R
 library(SparkR)
 
-sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.12:0.13.0"))
+sparkR.session("local[4]", sparkPackages = c("com.databricks:spark-xml_2.12:0.14.0"))
 customSchema <- structType(
   structField("_id", "string"),
   structField("author", "string"),

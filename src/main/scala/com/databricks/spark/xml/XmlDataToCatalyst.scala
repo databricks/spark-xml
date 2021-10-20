@@ -57,4 +57,7 @@ case class XmlDataToCatalyst(
     case _: StructType => Seq(StringType)
     case ArrayType(_: StructType, _) => Seq(ArrayType(StringType))
   }
+
+  // Overrides, in Spark 3.2.0+
+  protected def withNewChildInternal(newChild: Expression): XmlDataToCatalyst = copy(newChild)
 }

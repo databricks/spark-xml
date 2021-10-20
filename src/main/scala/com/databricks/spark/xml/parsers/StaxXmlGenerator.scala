@@ -66,7 +66,7 @@ private[xml] object StaxXmlGenerator {
           writer.writeAttribute(name.substring(options.attributePrefix.length), v.toString)
 
         // For ArrayType, we just need to write each as XML element.
-        case (ArrayType(ty, _), v: Seq[_]) =>
+        case (ArrayType(ty, _), v: scala.collection.Seq[_]) =>
           v.foreach { e =>
             writeChildElement(name, ty, e)
           }
@@ -101,7 +101,7 @@ private[xml] object StaxXmlGenerator {
       // this case only can happen when we convert a normal [[DataFrame]] to XML file.
       // When [[ArrayType]] has [[ArrayType]] as elements, it is confusing what is element name
       // for XML file. Now, it is "item" but this might have to be according the parent field name.
-      case (ArrayType(ty, _), v: Seq[_]) =>
+      case (ArrayType(ty, _), v: scala.collection.Seq[_]) =>
         v.foreach { e =>
           writeChild("item", ty, e)
         }

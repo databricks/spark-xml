@@ -867,17 +867,17 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     val resultsOne = spark.read
       .option("treatEmptyValuesAsNulls", "true")
       .xml(resDir + "gps-empty-field.xml")
-    assert(resultsOne.selectExpr("extensions.TrackPointExtension").head.getStruct(0) !== null)
+    assert(resultsOne.selectExpr("extensions.TrackPointExtension").head().getStruct(0) !== null)
     assert(resultsOne.selectExpr("extensions.TrackPointExtension")
-      .head.getStruct(0)(0) === null)
+      .head().getStruct(0)(0) === null)
     // Is the behavior below consistent? see line above.
-    assert(resultsOne.selectExpr("extensions.TrackPointExtension.hr").head.getStruct(0) === null)
+    assert(resultsOne.selectExpr("extensions.TrackPointExtension.hr").head().getStruct(0) === null)
     assert(resultsOne.collect().length === 2)
 
     val resultsTwo = spark.read
       .option("nullValue", "2013-01-24T06:18:43Z")
       .xml(resDir + "gps-empty-field.xml")
-    assert(resultsTwo.selectExpr("time").head.getStruct(0) === null)
+    assert(resultsTwo.selectExpr("time").head().getStruct(0) === null)
     assert(resultsTwo.collect().length === 2)
   }
 
