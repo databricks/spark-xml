@@ -28,9 +28,7 @@ import com.databricks.spark.xml.XmlOptions
 
 final class StaxXmlParserUtilsSuite extends AnyFunSuite with BeforeAndAfterAll {
 
-  private val factory = XMLInputFactory.newInstance()
-  factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false)
-  factory.setProperty(XMLInputFactory.IS_COALESCING, true)
+  private val factory = StaxXmlParserUtils.factory
 
   test("Test if elements are skipped until the given event type") {
     val input = <ROW><id>2</id><name>Sam Mad Dog Smith</name><amount>93</amount></ROW>
@@ -86,5 +84,10 @@ final class StaxXmlParserUtilsSuite extends AnyFunSuite with BeforeAndAfterAll {
     parser.next()
     StaxXmlParserUtils.skipChildren(parser)
     assert(parser.nextEvent().asEndElement().getName.getLocalPart === "test")
+  }
+
+  test("XML Input Factory disables DTD parsing") {
+    assert(factory.getProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES) === false)
+    assert(factory.getProperty(XMLInputFactory.SUPPORT_DTD) === false)
   }
 }
