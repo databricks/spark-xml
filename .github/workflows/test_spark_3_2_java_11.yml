@@ -1,4 +1,4 @@
-name: Spark 3 / Java 11
+name: Spark 3.2 / Java 11 / Scala 2.13
 on:
   push:
     branches: [master]
@@ -14,6 +14,4 @@ jobs:
         with:
           java-version: 'adopt@1.11'
       - name: Build and test
-        run: sbt -Dspark.testVersion=3.1.2 ++2.12.10 clean scalastyle test:scalastyle mimaReportBinaryIssues coverage test coverageReport
-      - name: Check code coverage
-        run: bash <(curl -s https://codecov.io/bash)
+        run: sbt -Dspark.testVersion=3.2.0 ++2.13.5 clean test
