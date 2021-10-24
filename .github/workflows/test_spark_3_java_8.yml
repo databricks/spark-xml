@@ -16,4 +16,6 @@ jobs:
       - name: Build and test
         run: sbt -Dspark.testVersion=3.0.3 ++2.12.10 clean scalastyle test:scalastyle mimaReportBinaryIssues coverage test coverageReport
       - name: Check code coverage
-        run: bash <(curl -s https://codecov.io/bash)
+        uses: codecov/codecov-action@v2
+        with:
+          fail_ci_if_error: true
