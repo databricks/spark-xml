@@ -358,7 +358,7 @@ df.select("author", "_id").write()
 
 ```python
 from pyspark.sql import SparkSession
-spark = SparkSession.builder().getOrCreate()
+spark = SparkSession.builder.getOrCreate()
 
 df = spark.read.format('xml').options(rowTag='book').load('books.xml')
 df.select("author", "_id").write \
@@ -372,7 +372,7 @@ You can manually specify schema:
 from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
-spark = SparkSession.builder().getOrCreate()
+spark = SparkSession.builder.getOrCreate()
 customSchema = StructType([
     StructField("_id", StringType(), True),
     StructField("author", StringType(), True),
