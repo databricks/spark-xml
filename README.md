@@ -46,7 +46,7 @@ When reading files the API accepts several options:
   * `FAILFAST` : throws an exception when it meets corrupted records.
 * `inferSchema`: if `true`, attempts to infer an appropriate type for each resulting DataFrame column, like a boolean, numeric or date type. If `false`, all resulting columns are of string type. Default is `true`.
 * `columnNameOfCorruptRecord`: The name of new field where malformed strings are stored. Default is `_corrupt_record`.
-* `attributePrefix`: The prefix for attributes so that we can differentiate attributes and elements. This will be the prefix for field names. Default is `_`.
+* `attributePrefix`: The prefix for attributes so that we can differentiate attributes and elements. This will be the prefix for field names. Default is `_`. Can be empty, but only for reading XML.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
 * `charset`: Defaults to 'UTF-8' but can be set to other valid charset names
 * `ignoreSurroundingSpaces`: Defines whether or not surrounding whitespaces from values being read should be skipped. Default is false.
@@ -79,7 +79,7 @@ When writing files the API accepts several options:
 * `rootTag`: The root tag of your xml files to treat as the root. For example, in `<books> <book><book> ...</books>`, the appropriate value would be `books`. It can include basic attributes by specifying a value like `books foo="bar"` (as of 0.11.0). Default is `ROWS`.
 * `declaration`: Content of XML declaration to write at the start of every output XML file, before the `rootTag`. For example, a value of `foo` causes `<?xml foo?>` to be written. Set to empty string to suppress. Defaults to `version="1.0" encoding="UTF-8" standalone="yes"`. New in 0.14.0.
 * `nullValue`: The value to write `null` value. Default is string `null`. When this is `null`, it does not write attributes and elements for fields.
-* `attributePrefix`: The prefix for attributes so that we can differentiating attributes and elements. This will be the prefix for field names. Default is `_`.
+* `attributePrefix`: The prefix for attributes so that we can differentiating attributes and elements. This will be the prefix for field names. Default is `_`. Cannot be empty for writing XML.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
 * `compression`: compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec` or one of case-insensitive shorten names (`bzip2`, `gzip`, `lz4`, and `snappy`). Defaults to no compression when a codec is not specified.
 * `timestampFormat`: Controls the format used to write `TimestampType` format columns.
