@@ -40,6 +40,10 @@ private[xml] object StaxXmlGenerator {
       schema: StructType,
       writer: XMLStreamWriter,
       options: XmlOptions)(row: Row): Unit = {
+
+    require(options.attributePrefix.nonEmpty,
+      "'attributePrefix' option should not be empty string.")
+
     def writeChildElement(name: String, dt: DataType, v: Any): Unit = (name, dt, v) match {
       // If this is meant to be value but in no child, write only a value
       case (_, _, null) | (_, NullType, _) if options.nullValue == null =>
