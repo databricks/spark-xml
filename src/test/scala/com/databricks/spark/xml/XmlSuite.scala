@@ -840,12 +840,6 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     }.getMessage
     assert(messageOne === "requirement failed: 'rowTag' option should not be empty string.")
 
-    val messageTwo = intercept[IllegalArgumentException] {
-      spark.read.option("attributePrefix", "").xml(resDir + "cars.xml")
-    }.getMessage
-    assert(
-      messageTwo === "requirement failed: 'attributePrefix' option should not be empty string.")
-
     val messageThree = intercept[IllegalArgumentException] {
       spark.read.option("valueTag", "").xml(resDir + "cars.xml")
     }.getMessage
