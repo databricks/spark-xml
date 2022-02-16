@@ -86,8 +86,7 @@ object XSDToSchema {
       case simpleType: XmlSchemaSimpleType =>
         val schemaType = simpleType.getContent match {
           case restriction: XmlSchemaSimpleTypeRestriction =>
-            val qName = simpleType.getQName match {
-              case null => restriction.getBaseTypeName
+            val qName = simpleType.getQName match { case null => restriction.getBaseTypeName
               case _ => simpleType.getQName
             }
             qName match {
