@@ -17,10 +17,8 @@
 package com.databricks.spark.xml.util
 
 import java.nio.file.Paths
-
-import org.apache.spark.sql.types.{ArrayType, FloatType, LongType, StringType}
+import org.apache.spark.sql.types.{ArrayType, DecimalType, FloatType, LongType, StringType}
 import org.scalatest.funsuite.AnyFunSuite
-
 import com.databricks.spark.xml.TestUtils._
 
 class XSDToSchemaSuite extends AnyFunSuite {
@@ -116,6 +114,13 @@ class XSDToSchemaSuite extends AnyFunSuite {
       field("test",
         struct(field("userId", LongType, nullable = false)), nullable = false))
     assert(expectedSchema === parsedSchema)
+  }
+
+  test("decimal-with-restriction") {
+    val parsedSchema = XSDToSchema.read(Paths.get(s"$resDir/decimal-with-restriction.xsd"))
+    val expectedSchema = buildSchema(field("decimal_type_1", DecimalType(38, 18), nullable = false),
+      field("decimal_type_2", DecimalType(38, 2), nullable = false))
+    assert(parsedSchema === expectedSchema)
   }
 
 }
