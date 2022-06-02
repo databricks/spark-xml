@@ -22,6 +22,7 @@ import java.util.TimeZone
 
 import scala.io.Source
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.{LongWritable, Text}
@@ -1393,6 +1394,41 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .select(explode(column("T")))
 
     assert(df.collect()(1).getStruct(0).get(2) === null)
+  }
+
+  test("read multiple xml files in parallel") {
+    val failedAgesSet = mutable.Set[Long]()
+    val threads_ages = (1 to 10).map { i =>
+      new Thread {
+        override def run() {
+          val df = spark.read.option("rowTag", "person").format("xml")
+            .load(resDir + "ages.xml")
+          if (df.schema.fields.isEmpty) {
+            failedAgesSet.add(i)
+          }
+        }
+      }
+    }
+
+    val failedBooksSet = mutable.Set[Long]()
+    val threads_books = (11 to 20).map { i =>
+      new Thread {
+        override def run() {
+          val df = spark.read.option("rowTag", "book").format("xml")
+            .load(resDir + "books.xml")
+          if (df.schema.fields.isEmpty) {
+            failedBooksSet.add(i)
+          }
+        }
+      }
+    }
+
+    threads_ages.foreach(_.start())
+    threads_books.foreach(_.start())
+    threads_ages.foreach(_.join())
+    threads_books.foreach(_.join())
+    assert(failedBooksSet.isEmpty)
+    assert(failedAgesSet.isEmpty)
   }
 
   private def getLines(path: Path): Seq[String] = {

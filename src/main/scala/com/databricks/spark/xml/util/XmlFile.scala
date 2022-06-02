@@ -23,6 +23,7 @@ import scala.collection.Map
 
 import com.databricks.spark.xml.parsers.StaxXmlGenerator
 import com.sun.xml.txw2.output.IndentingXMLStreamWriter
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.{Text, LongWritable}
 
 import org.apache.spark.rdd.RDD
@@ -40,13 +41,15 @@ private[xml] object XmlFile {
       rowTag: String): RDD[String] = {
     // This just checks the charset's validity early, to keep behavior
     Charset.forName(charset)
-    context.hadoopConfiguration.set(XmlInputFormat.START_TAG_KEY, s"<$rowTag>")
-    context.hadoopConfiguration.set(XmlInputFormat.END_TAG_KEY, s"</$rowTag>")
-    context.hadoopConfiguration.set(XmlInputFormat.ENCODING_KEY, charset)
+    val config = new Configuration(context.hadoopConfiguration)
+    config.set(XmlInputFormat.START_TAG_KEY, s"<$rowTag>")
+    config.set(XmlInputFormat.END_TAG_KEY, s"</$rowTag>")
+    config.set(XmlInputFormat.ENCODING_KEY, charset)
     context.newAPIHadoopFile(location,
       classOf[XmlInputFormat],
       classOf[LongWritable],
-      classOf[Text]).map { case (_, text) => text.toString }
+      classOf[Text],
+      config).map { case (_, text) => text.toString }
   }
 
   /**
