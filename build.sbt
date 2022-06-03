@@ -1,26 +1,26 @@
 name := "spark-xml"
 
-version := "0.14.0"
+version := "0.15.0"
 
 organization := "com.databricks"
 
-scalaVersion := "2.12.10"
+scalaVersion := "2.12.15"
 
-crossScalaVersions := Seq("2.12.10", "2.13.5")
+crossScalaVersions := Seq("2.12.15", "2.13.8")
 
 scalacOptions := Seq("-unchecked", "-deprecation")
 
-val sparkVersion = sys.props.get("spark.testVersion").getOrElse("3.2.0")
+val sparkVersion = sys.props.get("spark.testVersion").getOrElse("3.2.1")
 
 // To avoid packaging it, it's Provided below
 autoScalaLibrary := false
 
 libraryDependencies ++= Seq(
-  "commons-io" % "commons-io" % "2.8.0",
-  "org.glassfish.jaxb" % "txw2" % "2.3.4",
-  "org.apache.ws.xmlschema" % "xmlschema-core" % "2.2.5",
-  "org.slf4j" % "slf4j-api" % "1.7.30" % Provided,
-  "org.scalatest" %% "scalatest" % "3.2.9" % Test,
+  "commons-io" % "commons-io" % "2.11.0",
+  "org.glassfish.jaxb" % "txw2" % "3.0.2",
+  "org.apache.ws.xmlschema" % "xmlschema-core" % "2.3.0",
+  "org.slf4j" % "slf4j-api" % "1.7.36" % Provided,
+  "org.scalatest" %% "scalatest" % "3.2.12" % Test,
   "com.novocode" % "junit-interface" % "0.11" % Test,
   "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
   "org.apache.spark" %% "spark-sql" % sparkVersion % Provided,
@@ -78,35 +78,11 @@ fork := true
 // Prints JUnit tests in output
 testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
 
-mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.12.0")
+mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.14.0")
 
 mimaBinaryIssueFilters ++= {
   import com.typesafe.tools.mima.core.ProblemFilters.exclude
   import com.typesafe.tools.mima.core.DirectMissingMethodProblem
   Seq(
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.parsers.StaxXmlParser.convertField"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.parseXmlTimestamp"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.supportedXmlTimestampFormatters"),
-    exclude[DirectMissingMethodProblem](
-    "com.databricks.spark.xml.util.TypeCast.parseXmlDate"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.supportedXmlDateFormatters"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.supportedXmlDateFormatters"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.parseXmlDate"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.supportedXmlTimestampFormatters"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.parseXmlTimestamp"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.isTimestamp"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.castTo"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.castTo$default$4")
   )
 }

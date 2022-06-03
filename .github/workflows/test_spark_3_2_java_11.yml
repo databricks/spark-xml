@@ -14,4 +14,4 @@ jobs:
         with:
           java-version: 'adopt@1.11'
       - name: Build and test
-        run: sbt -Dspark.testVersion=3.2.0 ++2.13.5 clean test
+        run: sbt -Dspark.testVersion=3.2.1 ++2.13.8 clean mimaReportBinaryIssues test
