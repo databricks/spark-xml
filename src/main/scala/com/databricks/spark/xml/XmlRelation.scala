@@ -35,6 +35,9 @@ case class XmlRelation protected[spark] (
   with InsertableRelation
   with PrunedScan {
 
+  // Hacky: ensure RDD's underlying data actually already exists early on
+  baseRDD().partitions
+
   private val options = XmlOptions(parameters)
 
   override val schema: StructType = {
