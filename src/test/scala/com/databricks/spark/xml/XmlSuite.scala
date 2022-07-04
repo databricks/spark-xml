@@ -19,23 +19,20 @@ import java.nio.charset.{StandardCharsets, UnsupportedCharsetException}
 import java.nio.file.{Files, Path, Paths}
 import java.sql.{Date, Timestamp}
 import java.util.TimeZone
-
 import scala.io.Source
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.io.compress.GzipCodec
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
-
 import com.databricks.spark.xml.TestUtils._
 import com.databricks.spark.xml.XmlOptions._
 import com.databricks.spark.xml.functions._
 import com.databricks.spark.xml.util._
-
-import org.apache.spark.sql.functions.{explode, column}
+import org.apache.hadoop.mapreduce.lib.input.InvalidInputException
+import org.apache.spark.sql.functions.{column, explode}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Row, SaveMode, SparkSession}
 import org.apache.spark.SparkException
@@ -1429,6 +1426,15 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     threads_books.foreach(_.join())
     assert(failedBooksSet.isEmpty)
     assert(failedAgesSet.isEmpty)
+  }
+
+  test("Issue 588: Ensure fails when data is not present, with or without schema") {
+    intercept[InvalidInputException] {
+      spark.read.xml("/this/file/does/not/exist")
+    }
+    intercept[InvalidInputException] {
+      spark.read.schema(buildSchema(field("dummy"))).xml("/this/file/does/not/exist")
+    }
   }
 
   private def getLines(path: Path): Seq[String] = {
