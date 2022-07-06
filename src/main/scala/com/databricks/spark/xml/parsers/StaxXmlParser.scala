@@ -103,8 +103,8 @@ private[xml] object StaxXmlParser extends Serializable {
       case FailFastMode =>
         val abbreviatedRecord =
           if (record.length() > 1000) record.substring(0, 1000) + "..." else record
-        throw new IllegalArgumentException(
-          s"Malformed line in FAILFAST mode: ${abbreviatedRecord.replaceAll("\n", "")}", cause)
+        logger.debug("Malformed line:", abbreviatedRecord.replaceAll("\n", ""))
+        throw new IllegalArgumentException("Malformed line in FAILFAST mode", cause)
       case DropMalformedMode =>
         val reason = if (cause != null) s"Reason: ${cause.getMessage}" else ""
         val abbreviatedRecord =
