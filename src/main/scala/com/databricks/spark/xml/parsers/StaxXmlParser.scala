@@ -16,22 +16,19 @@
 package com.databricks.spark.xml.parsers
 
 import java.io.StringReader
-
 import javax.xml.stream.XMLEventReader
 import javax.xml.stream.events.{Attribute, Characters, EndElement, StartElement, XMLEvent}
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.Schema
-
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 import scala.util.Try
-
 import org.slf4j.LoggerFactory
-
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.catalyst.util._
 import com.databricks.spark.xml.util.TypeCast._
 import com.databricks.spark.xml.XmlOptions
 import com.databricks.spark.xml.util._
