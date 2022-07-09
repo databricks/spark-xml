@@ -99,21 +99,21 @@ private[xml] object StaxXmlParser extends Serializable {
       cause: Throwable = null,
       partialResult: Option[Row] = None): Option[Row] = {
     // create a row even if no corrupt record column is present
+    val abbreviatedRecord =
+      (if (record.length() > 1000) record.substring(0, 1000) + "..." else record).
+        replaceAll("\n", "")
     parseMode match {
       case FailFastMode =>
-        val abbreviatedRecord =
-          if (record.length() > 1000) record.substring(0, 1000) + "..." else record
-        throw new IllegalArgumentException(
-          s"Malformed line in FAILFAST mode: ${abbreviatedRecord.replaceAll("\n", "")}", cause)
+        logger.info("Malformed line:", abbreviatedRecord)
+        logger.debug("Caused by:", cause)
+        throw new IllegalArgumentException("Malformed line in FAILFAST mode", cause)
       case DropMalformedMode =>
-        val reason = if (cause != null) s"Reason: ${cause.getMessage}" else ""
-        val abbreviatedRecord =
-          if (record.length() > 1000) record.substring(0, 1000) + "..." else record
-        logger.warn(s"Dropping malformed line: ${abbreviatedRecord.replaceAll("\n", "")}. $reason")
-        logger.debug("Malformed line cause:", cause)
+        logger.info("Malformed line:", abbreviatedRecord)
+        logger.debug("Caused by:", cause)
         None
       case PermissiveMode =>
-        logger.debug("Malformed line cause:", cause)
+        logger.debug("Malformed line:", abbreviatedRecord)
+        logger.debug("Caused by:", cause)
         // The logic below is borrowed from Apache Spark's FailureSafeParser.
         val resultRow = new Array[Any](schema.length)
         schema.filterNot(_.name == options.columnNameOfCorruptRecord).foreach { from =>
