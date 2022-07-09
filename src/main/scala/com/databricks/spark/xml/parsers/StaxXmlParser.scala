@@ -28,10 +28,10 @@ import org.slf4j.LoggerFactory
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.catalyst.util._
 import com.databricks.spark.xml.util.TypeCast._
 import com.databricks.spark.xml.XmlOptions
 import com.databricks.spark.xml.util._
+import org.apache.spark.sql.catalyst.util.{DropMalformedMode, FailFastMode, ParseMode, PermissiveMode}
 
 /**
  * Wraps parser to iteration process.
