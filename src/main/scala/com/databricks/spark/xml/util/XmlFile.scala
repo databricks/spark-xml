@@ -15,21 +15,23 @@
  */
 package com.databricks.spark.xml.util
 
-import com.databricks.spark.xml.parsers.StaxXmlGenerator
-import com.databricks.spark.xml.{XmlInputFormat, XmlOptions}
-import com.sun.xml.txw2.output.IndentingXMLStreamWriter
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.io.{LongWritable, Text}
-import org.apache.spark.SparkContext
-import org.apache.hadoop.io.compress.CompressionCodec
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.catalyst.util.CompressionCodecs
-
 import java.io.CharArrayWriter
 import java.nio.charset.Charset
 import javax.xml.stream.XMLOutputFactory
+
 import scala.collection.Map
+
+import com.databricks.spark.xml.parsers.StaxXmlGenerator
+import com.databricks.spark.xml.{XmlOptions, XmlInputFormat}
+import com.sun.xml.txw2.output.IndentingXMLStreamWriter
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.io.{Text, LongWritable}
+import org.apache.hadoop.io.compress.CompressionCodec
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.SparkContext
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.catalyst.util.CompressionCodecs
 
 private[xml] object XmlFile {
   val DEFAULT_INDENT = "    "
