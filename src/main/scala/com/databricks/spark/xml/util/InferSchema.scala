@@ -16,20 +16,18 @@
 package com.databricks.spark.xml.util
 
 import java.io.StringReader
-
 import javax.xml.stream.XMLEventReader
 import javax.xml.stream.events.{Attribute, Characters, EndElement, StartElement, XMLEvent}
 import javax.xml.transform.stream.StreamSource
-
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.NonFatal
-
 import com.databricks.spark.xml.XmlOptions
 import com.databricks.spark.xml.parsers.StaxXmlParserUtils
 import com.databricks.spark.xml.util.TypeCast._
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.catalyst.util.PermissiveMode
 import org.apache.spark.sql.types._
 
 private[xml] object InferSchema {

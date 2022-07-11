@@ -22,14 +22,16 @@ import javax.xml.stream.XMLOutputFactory
 import scala.collection.Map
 
 import com.databricks.spark.xml.parsers.StaxXmlGenerator
+import com.databricks.spark.xml.{XmlOptions, XmlInputFormat}
 import com.sun.xml.txw2.output.IndentingXMLStreamWriter
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.{Text, LongWritable}
+import org.apache.hadoop.io.compress.CompressionCodec
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.DataFrame
-import com.databricks.spark.xml.{XmlOptions, XmlInputFormat}
+import org.apache.spark.sql.catalyst.util.CompressionCodecs
 
 private[xml] object XmlFile {
   val DEFAULT_INDENT = "    "
@@ -76,7 +78,10 @@ private[xml] object XmlFile {
       path: String,
       parameters: Map[String, String] = Map()): Unit = {
     val options = XmlOptions(parameters.toMap)
-    val codecClass = CompressionCodecs.getCodecClass(options.codec)
+    val codec = Option(options.codec).map(CompressionCodecs.getCodecClassName)
+    // scalastyle:off classforname
+    val codecClass: Option[Class[_ <: CompressionCodec]] =
+      codec.map(Class.forName(_).asInstanceOf[Class[CompressionCodec]])
     val rowSchema = dataFrame.schema
     val indent = XmlFile.DEFAULT_INDENT
 
@@ -150,8 +155,8 @@ private[xml] object XmlFile {
     }
 
     codecClass match {
-      case null => xmlRDD.saveAsTextFile(path)
-      case codec => xmlRDD.saveAsTextFile(path, codec)
+      case None => xmlRDD.saveAsTextFile(path)
+      case Some(codec) => xmlRDD.saveAsTextFile(path, codec)
     }
   }
 }

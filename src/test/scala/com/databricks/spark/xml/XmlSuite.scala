@@ -30,7 +30,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import com.databricks.spark.xml.TestUtils._
 import com.databricks.spark.xml.XmlOptions._
 import com.databricks.spark.xml.functions._
-import com.databricks.spark.xml.util._
+import org.apache.spark.sql.catalyst.util._
 import org.apache.hadoop.mapreduce.lib.input.InvalidInputException
 import org.apache.spark.sql.functions.{column, explode}
 import org.apache.spark.sql.types._

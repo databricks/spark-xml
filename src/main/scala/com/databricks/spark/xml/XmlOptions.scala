@@ -15,9 +15,8 @@
  */
 package com.databricks.spark.xml
 
+import org.apache.spark.sql.catalyst.util.{ParseMode, PermissiveMode}
 import java.nio.charset.StandardCharsets
-
-import com.databricks.spark.xml.util._
 
 /**
  * Options for the XML data source.

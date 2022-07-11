@@ -1,3 +1,5 @@
+import com.typesafe.tools.mima.core.MissingClassProblem
+
 name := "spark-xml"
 
 version := "0.15.0"
@@ -81,8 +83,18 @@ testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
 mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.14.0")
 
 mimaBinaryIssueFilters ++= {
-  import com.typesafe.tools.mima.core.ProblemFilters.exclude
   import com.typesafe.tools.mima.core.DirectMissingMethodProblem
+  import com.typesafe.tools.mima.core.ProblemFilters.exclude
   Seq(
-  )
+    "com.databricks.spark.xml.util.CompressionCodecs",
+    "com.databricks.spark.xml.util.CompressionCodecs$",
+    "com.databricks.spark.xml.util.DropMalformedMode",
+    "com.databricks.spark.xml.util.DropMalformedMode$",
+    "com.databricks.spark.xml.util.FailFastMode",
+    "com.databricks.spark.xml.util.FailFastMode$",
+    "com.databricks.spark.xml.util.ParseMode",
+    "com.databricks.spark.xml.util.ParseMode$",
+    "com.databricks.spark.xml.util.PermissiveMode",
+    "com.databricks.spark.xml.util.PermissiveMode$"
+  ).map(exclude[MissingClassProblem](_))
 }
