@@ -2,7 +2,7 @@ import com.typesafe.tools.mima.core.MissingClassProblem
 
 name := "spark-xml"
 
-version := "0.15.0"
+version := "0.16.0"
 
 organization := "com.databricks"
 
@@ -80,7 +80,7 @@ fork := true
 // Prints JUnit tests in output
 testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
 
-mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.14.0")
+mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.15.0")
 
 mimaBinaryIssueFilters ++= {
   import com.typesafe.tools.mima.core.DirectMissingMethodProblem

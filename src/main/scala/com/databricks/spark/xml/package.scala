@@ -17,7 +17,6 @@ package com.databricks.spark
 
 import org.apache.hadoop.io.compress.CompressionCodec
 
-import org.apache.spark.annotation.Experimental
 import org.apache.spark.sql._
 import org.apache.spark.sql.types.{ArrayType, StructType}
 
@@ -122,7 +121,6 @@ package object xml {
    * @param options additional XML parsing options
    * @return inferred schema for XML
    */
-  @Experimental
   def schema_of_xml(ds: Dataset[String], options: Map[String, String] = Map.empty): StructType =
     InferSchema.infer(ds.rdd, XmlOptions(options))
 
@@ -133,7 +131,6 @@ package object xml {
    * @param options additional XML parsing options
    * @return inferred schema for XML
    */
-  @Experimental
   def schema_of_xml_df(df: DataFrame, options: Map[String, String] = Map.empty): StructType =
     schema_of_xml(df.as[String](Encoders.STRING), options)
 
@@ -144,7 +141,6 @@ package object xml {
    * @param options additional XML parsing options
    * @return inferred schema for XML. Will be an ArrayType[StructType].
    */
-  @Experimental
   def schema_of_xml_array(ds: Dataset[Array[String]],
                           options: Map[String, String] = Map.empty): ArrayType =
     ArrayType(InferSchema.infer(ds.rdd.flatMap(a => a), XmlOptions(options)))
@@ -155,7 +151,6 @@ package object xml {
    * @param options key-value pairs that correspond to those supported by [[XmlOptions]]
    * @return [[Row]] representing the parsed XML structure
    */
-  @Experimental
   def from_xml_string(xml: String, schema: StructType,
                       options: Map[String, String] = Map.empty): Row = {
     StaxXmlParser.parseColumn(xml, schema, XmlOptions(options))

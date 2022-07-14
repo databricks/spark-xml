@@ -1,0 +1,17 @@
+name: Spark 3.3 / Java 11 / Scala 2.13
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Java, SBT
+        uses: olafurpg/setup-scala@v11
+        with:
+          java-version: 'adopt@1.11'
+      - name: Build and test
+        run: sbt -Dspark.testVersion=3.3.0 ++2.13.8 clean mimaReportBinaryIssues test

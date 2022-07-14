@@ -19,7 +19,6 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 
 import scala.collection.JavaConverters._
-import org.apache.spark.annotation.Experimental
 import org.apache.spark.sql.types._
 import org.apache.ws.commons.schema._
 import org.apache.ws.commons.schema.constants.Constants
@@ -30,7 +29,6 @@ import com.databricks.spark.xml.XmlOptions
  * Utility to generate a Spark schema from an XSD. Not all XSD schemas are simple tabular schemas,
  * so not all elements or XSDs are supported.
  */
-@Experimental
 object XSDToSchema {
 
   /**
@@ -42,7 +40,6 @@ object XSDToSchema {
    * @param xsdFile XSD file
    * @return Spark-compatible schema
    */
-  @Experimental
   def read(xsdFile: File): StructType = {
     val xmlSchemaCollection = new XmlSchemaCollection()
     xmlSchemaCollection.setBaseUri(xsdFile.getParent)
@@ -61,7 +58,6 @@ object XSDToSchema {
    * @param xsdFile XSD file
    * @return Spark-compatible schema
    */
-  @Experimental
   def read(xsdFile: Path): StructType = read(xsdFile.toFile)
 
   /**
@@ -73,7 +69,6 @@ object XSDToSchema {
    * @param xsdString XSD as a string
    * @return Spark-compatible schema
    */
-  @Experimental
   def read(xsdString: String): StructType = {
     val xmlSchema = new XmlSchemaCollection().read(new StringReader(xsdString))
     getStructType(xmlSchema)
