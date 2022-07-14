@@ -94,8 +94,7 @@ Currently it supports the shortened name usage. You can use just `xml` instead o
 Per above, the XML for individual rows can be validated against an XSD using `rowValidationXSDPath`.
 
 The utility `com.databricks.spark.xml.util.XSDToSchema` can be used to extract a Spark DataFrame
-schema from _some_ XSD files. It supports only simple, complex and sequence types, only basic XSD functionality,
-and is experimental.
+schema from _some_ XSD files. It supports only simple, complex and sequence types, and only basic XSD functionality.
 
 ```scala
 import com.databricks.spark.xml.util.XSDToSchema

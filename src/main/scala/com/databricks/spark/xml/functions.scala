@@ -16,7 +16,6 @@
 
 package com.databricks.spark.xml
 
-import org.apache.spark.annotation.Experimental
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
 import org.apache.spark.sql.types.DataType
@@ -34,7 +33,6 @@ object functions {
    *   column is string-valued, or ArrayType[StructType] if column is an array of strings
    * @param options key-value pairs that correspond to those supported by [[XmlOptions]]
    */
-  @Experimental
   def from_xml(e: Column, schema: DataType, options: Map[String, String] = Map.empty): Column = {
     val expr = CatalystSqlParser.parseExpression(e.toString())
     new Column(XmlDataToCatalyst(expr, schema, XmlOptions(options)))
