@@ -104,10 +104,10 @@ private[xml] object StaxXmlGenerator {
       // [[ArrayType]] as element type. It always wraps the element with [[StructType]]. So,
       // this case only can happen when we convert a normal [[DataFrame]] to XML file.
       // When [[ArrayType]] has [[ArrayType]] as elements, it is confusing what is element name
-      // for XML file. Now, it is "item" but this might have to be according the parent field name.
+      // for XML file.
       case (ArrayType(ty, _), v: scala.collection.Seq[_]) =>
         v.foreach { e =>
-          writeChild("item", ty, e)
+          writeChild(options.arrayElementName, ty, e)
         }
 
       case (MapType(_, vt, _), mv: Map[_, _]) =>

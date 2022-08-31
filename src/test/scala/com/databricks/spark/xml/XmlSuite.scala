@@ -387,6 +387,13 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>")
   }
 
+  test("DSL save with item") {
+    val tempPath = getEmptyTempDir().resolve("items-temp.xml")
+    val items = spark.createDataFrame(Seq(Tuple1(Array(Array(3, 4))))).toDF("thing").repartition(1)
+    items.write.option("arrayElementName", "foo").xml(tempPath.toString)
+    assert(getLines(tempPath.resolve("part-00000")).count(_.contains("<foo>")) === 2)
+  }
+
   test("DSL save with nullValue and treatEmptyValuesAsNulls") {
     val copyFilePath = getEmptyTempDir().resolve("books-copy.xml")
 
@@ -443,11 +450,11 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     df.write.xml(copyFilePath.toString)
 
     // When [[ArrayType]] has [[ArrayType]] as elements, it is confusing what is the element
-    // name for XML file. Now, it is "item". So, "item" field is additionally added
+    // name for XML file. Now, it is "item" by default. So, "item" field is additionally added
     // to wrap the element.
     val schemaCopy = buildSchema(
       structArray("a",
-        field("item", ArrayType(StringType))))
+        field(XmlOptions.DEFAULT_ARRAY_ELEMENT_NAME, ArrayType(StringType))))
     val dfCopy = spark.read.xml(copyFilePath.toString)
 
     assert(dfCopy.count() === df.count())
