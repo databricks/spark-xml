@@ -39,6 +39,8 @@ private[xml] class XmlOptions(
   val declaration = parameters.getOrElse("declaration", XmlOptions.DEFAULT_DECLARATION)
   require(!declaration.startsWith("<") && !declaration.endsWith(">"),
           "'declaration' should not include angle brackets")
+  val arrayElementName = parameters.getOrElse("arrayElementName",
+    XmlOptions.DEFAULT_ARRAY_ELEMENT_NAME)
   val samplingRatio = parameters.get("samplingRatio").map(_.toDouble).getOrElse(1.0)
   require(samplingRatio > 0, s"samplingRatio ($samplingRatio) should be greater than 0")
   val excludeAttributeFlag = parameters.get("excludeAttribute").map(_.toBoolean).getOrElse(false)
@@ -71,6 +73,7 @@ private[xml] object XmlOptions {
   val DEFAULT_ROW_TAG = "ROW"
   val DEFAULT_ROOT_TAG = "ROWS"
   val DEFAULT_DECLARATION = "version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\""
+  val DEFAULT_ARRAY_ELEMENT_NAME = "item"
   val DEFAULT_CHARSET: String = StandardCharsets.UTF_8.name
   val DEFAULT_NULL_VALUE: String = null
   val DEFAULT_WILDCARD_COL_NAME = "xs_any"
