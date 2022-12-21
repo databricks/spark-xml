@@ -64,6 +64,7 @@ private[xml] class XmlOptions(
     parameters.getOrElse("wildcardColName", XmlOptions.DEFAULT_WILDCARD_COL_NAME)
   val ignoreNamespace = parameters.get("ignoreNamespace").map(_.toBoolean).getOrElse(false)
   val timestampFormat = parameters.get("timestampFormat")
+  val timeZone = parameters.getOrElse("timeZone", XmlOptions.DEFAULT_TIME_ZONE)
   val dateFormat = parameters.get("dateFormat")
 }
 
@@ -77,6 +78,7 @@ private[xml] object XmlOptions {
   val DEFAULT_CHARSET: String = StandardCharsets.UTF_8.name
   val DEFAULT_NULL_VALUE: String = null
   val DEFAULT_WILDCARD_COL_NAME = "xs_any"
+  val DEFAULT_TIME_ZONE = "UTC"
 
   def apply(parameters: Map[String, String]): XmlOptions = new XmlOptions(parameters)
 }
