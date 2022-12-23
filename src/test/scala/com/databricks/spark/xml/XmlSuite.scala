@@ -20,8 +20,8 @@ import java.nio.file.{Files, Path, Paths}
 import java.sql.{Date, Timestamp}
 import java.util.TimeZone
 import scala.io.Source
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.io.compress.GzipCodec
@@ -54,7 +54,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    spark  // Initialize Spark session
+    spark.sparkContext.setLogLevel("WARN")  // Initialize Spark session
     tempDir = Files.createTempDirectory("XmlSuite")
     tempDir.toFile.deleteOnExit()
   }
@@ -1404,7 +1404,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     val failedAgesSet = mutable.Set[Long]()
     val threads_ages = (1 to 10).map { i =>
       new Thread {
-        override def run() {
+        override def run(): Unit = {
           val df = spark.read.option("rowTag", "person").format("xml")
             .load(resDir + "ages.xml")
           if (df.schema.fields.isEmpty) {
@@ -1417,7 +1417,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     val failedBooksSet = mutable.Set[Long]()
     val threads_books = (11 to 20).map { i =>
       new Thread {
-        override def run() {
+        override def run(): Unit = {
           val df = spark.read.option("rowTag", "book").format("xml")
             .load(resDir + "books.xml")
           if (df.schema.fields.isEmpty) {

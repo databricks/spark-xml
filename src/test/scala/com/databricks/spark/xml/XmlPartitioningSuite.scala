@@ -31,6 +31,7 @@ final class XmlPartitioningSuite extends AnyFunSuite with Matchers with BeforeAn
       .config("spark.ui.enabled", false)
       .config("spark.hadoop.fs.local.block.size", blockSize)
       .getOrCreate()
+    spark.sparkContext.setLogLevel("WARN")
     try {
       val fileName = s"fias_house${if (large) ".large" else ""}.xml$suffix"
       val xmlFile = getClass.getClassLoader.getResource(fileName).getFile

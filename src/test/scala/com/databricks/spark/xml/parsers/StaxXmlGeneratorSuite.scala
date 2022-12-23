@@ -52,7 +52,7 @@ final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    spark
+    spark.sparkContext.setLogLevel("WARN")
   }
 
   override def afterAll(): Unit = {
