@@ -128,7 +128,8 @@ class XSDToSchemaSuite extends AnyFunSuite {
   test("Test ref attribute / Issue 617") {
     val parsedSchema = XSDToSchema.read(Paths.get(s"$resDir/ref-attribute.xsd"))
     val expectedSchema = buildSchema(
-      field("book",
+      field(
+        "book",
         struct(
           field("name", StringType, false),
           field("author", StringType, false),
@@ -136,13 +137,15 @@ class XSDToSchemaSuite extends AnyFunSuite {
         ),
         false
       ),
-      field("bookList",
+      field(
+        "bookList",
         struct(
-        structArray("book",
-          field("name", StringType, false),
-          field("author", StringType, false),
-          field("isbn", StringType, false)
-        )),
+          structArray("book",
+            field("name", StringType, false),
+            field("author", StringType, false),
+            field("isbn", StringType, false)
+          )
+        ),
         false
       )
     )
