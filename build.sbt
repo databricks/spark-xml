@@ -12,7 +12,7 @@ crossScalaVersions := Seq("2.12.15", "2.13.8")
 
 scalacOptions := Seq("-unchecked", "-deprecation")
 
-val sparkVersion = sys.props.get("spark.testVersion").getOrElse("3.2.1")
+val sparkVersion = sys.props.get("spark.testVersion").getOrElse("3.3.1")
 
 // To avoid packaging it, it's Provided below
 autoScalaLibrary := false
@@ -21,8 +21,9 @@ libraryDependencies ++= Seq(
   "commons-io" % "commons-io" % "2.11.0",
   "org.glassfish.jaxb" % "txw2" % "3.0.2",
   "org.apache.ws.xmlschema" % "xmlschema-core" % "2.3.0",
+  "org.scala-lang.modules" %% "scala-collection-compat" % "2.9.0",
   "org.slf4j" % "slf4j-api" % "1.7.36" % Provided,
-  "org.scalatest" %% "scalatest" % "3.2.12" % Test,
+  "org.scalatest" %% "scalatest" % "3.2.14" % Test,
   "com.novocode" % "junit-interface" % "0.11" % Test,
   "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
   "org.apache.spark" %% "spark-sql" % sparkVersion % Provided,

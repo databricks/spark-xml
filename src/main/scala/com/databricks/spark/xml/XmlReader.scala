@@ -28,7 +28,7 @@ class XmlReader(private var schema: StructType,
                 private val options: Map[String, Any]) extends Serializable {
 
   private val parameters = collection.mutable.Map.empty[String, String]
-  parameters ++= options.mapValues(_.toString)
+  options.foreach { case (k, v) => parameters(k) = v.toString }
 
   // Explicit constructors for Java compatibility
 

@@ -46,6 +46,7 @@ public final class JavaXmlSuite {
             appName("XmlSuite").
             config("spark.ui.enabled", false).
             getOrCreate();
+        spark.sparkContext().setLogLevel("WARN");
         tempDir = Files.createTempDirectory("JavaXmlSuite");
         tempDir.toFile().deleteOnExit();
     }
