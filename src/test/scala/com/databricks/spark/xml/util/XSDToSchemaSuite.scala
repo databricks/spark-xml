@@ -140,7 +140,8 @@ class XSDToSchemaSuite extends AnyFunSuite {
       field(
         "bookList",
         struct(
-          structArray("book",
+          structArray(
+            "book",
             field("name", StringType, false),
             field("author", StringType, false),
             field("isbn", StringType, false)
