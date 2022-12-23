@@ -70,15 +70,15 @@ credentials += Credentials(
 resolvers +=
   "GCS Maven Central mirror" at "https://maven-central.storage-download.googleapis.com/maven2/"
 
-parallelExecution in Test := false
+Test / parallelExecution := false
 
 // Skip tests during assembly
-test in assembly := {}
+assembly / test := {}
 
 fork := true
 
 // Prints JUnit tests in output
-testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
+Test / testOptions := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
 
 mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.15.0")
 

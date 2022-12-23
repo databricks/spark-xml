@@ -3,3 +3,7 @@ target/
 .idea_modules/
 .bsp/
 .DS_Store
+.metals/
+.vscode/
+.bloop/
+metals.sbt
