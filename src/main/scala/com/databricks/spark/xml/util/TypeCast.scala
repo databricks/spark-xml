@@ -119,7 +119,15 @@ private[xml] object TypeCast {
       map(supportedXmlTimestampFormatters :+ _).getOrElse(supportedXmlTimestampFormatters)
     formatters.foreach { format =>
       try {
-        return Timestamp.from(ZonedDateTime.parse(value, format).toInstant)
+        // If format is not in supported and no timezone in format, use default Spark timezone
+        if (!supportedXmlTimestampFormatters.contains(format) && Option(format.getZone).isEmpty) {
+          return Timestamp.from(
+            ZonedDateTime.parse(value, format.withZone(ZoneId.of(options.timezone.get))).toInstant
+          )
+        }
+        return Timestamp.from(
+          ZonedDateTime.parse(value, format).toInstant
+        )
       } catch {
         case _: Exception => // continue
       }

@@ -70,7 +70,8 @@ class DefaultSource
     XmlRelation(
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
       Some(path),
-      parameters,
+      parameters + ("timezone" ->
+        sqlContext.sparkContext.getConf.get("spark.sql.session.timeZone")),
       schema)(sqlContext)
   }
 

@@ -64,6 +64,7 @@ private[xml] class XmlOptions(
     parameters.getOrElse("wildcardColName", XmlOptions.DEFAULT_WILDCARD_COL_NAME)
   val ignoreNamespace = parameters.get("ignoreNamespace").map(_.toBoolean).getOrElse(false)
   val timestampFormat = parameters.get("timestampFormat")
+  val timezone = parameters.get("timezone")
   val dateFormat = parameters.get("dateFormat")
 }
 
