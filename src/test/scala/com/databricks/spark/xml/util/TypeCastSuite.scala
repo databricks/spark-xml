@@ -34,8 +34,9 @@ final class TypeCastSuite extends AnyFunSuite {
     val decimalType = DecimalType.SYSTEM_DEFAULT
 
     stringValues.zip(decimalValues).foreach { case (strVal, decimalVal) =>
-      val decimal = new BigDecimal(decimalVal.toString)
-      assert(TypeCast.castTo(strVal, decimalType, options) === decimal)
+      val dt = new BigDecimal(decimalVal.toString)
+      assert(TypeCast.castTo(strVal, decimalType, options) ===
+        Decimal(dt, dt.precision(), dt.scale()))
     }
   }
 
