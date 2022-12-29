@@ -67,12 +67,23 @@ class DefaultSource
       (options.charset, options.rowTag)
     }
 
-    XmlRelation(
-      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
-      Some(path),
-      parameters + ("timezone" ->
-        sqlContext.sparkContext.getConf.get("spark.sql.session.timeZone")),
-      schema)(sqlContext)
+    val sparkTimezone = sqlContext.sparkContext.getConf.getOption(
+      "spark.sql.session.timeZone"
+    )
+
+    if (sparkTimezone.isDefined) {
+      XmlRelation(
+        () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
+        Some(path),
+        parameters + ("timezone" -> sparkTimezone.get),
+        schema)(sqlContext)
+    } else {
+      XmlRelation(
+        () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
+        Some(path),
+        parameters,
+        schema)(sqlContext)
+    }
   }
 
   override def createRelation(
