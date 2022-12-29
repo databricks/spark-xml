@@ -141,7 +141,6 @@ private[xml] object TypeCast {
           )
         }
       } catch {
-        case _: NoSuchElementException => throw new NoSuchElementException("test")
         case _: Exception => // continue
       }
     }
