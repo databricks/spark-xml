@@ -115,20 +115,33 @@ private[xml] object TypeCast {
   )
 
   private def parseXmlTimestamp(value: String, options: XmlOptions): Timestamp = {
-    val formatters = options.timestampFormat.map(DateTimeFormatter.ofPattern).
-      map(supportedXmlTimestampFormatters :+ _).getOrElse(supportedXmlTimestampFormatters)
-    formatters.foreach { format =>
+    // Loop over built-in formats
+    supportedXmlTimestampFormatters.foreach { format =>
       try {
-        // If format is not in supported and no timezone in format, use default Spark timezone
-        if (!supportedXmlTimestampFormatters.contains(format) && Option(format.getZone).isEmpty) {
-          return Timestamp.from(
-            ZonedDateTime.parse(value, format.withZone(ZoneId.of(options.timezone.get))).toInstant
-          )
-        }
         return Timestamp.from(
           ZonedDateTime.parse(value, format).toInstant
         )
       } catch {
+        case _: Exception => // continue
+      }
+    }
+    // Custom format
+    if (options.timestampFormat.isDefined) {
+      try {
+        val format = DateTimeFormatter.ofPattern(options.timestampFormat.get)
+        // Custom format with timezone
+        if (Option(format.getZone).isDefined) {
+          return Timestamp.from(
+            ZonedDateTime.parse(value, format).toInstant
+          )
+        } else {
+          // Custom format without timezone
+          return Timestamp.from(
+            ZonedDateTime.parse(value, format.withZone(ZoneId.of(options.timezone.get))).toInstant
+          )
+        }
+      } catch {
+        case _: NoSuchElementException => throw new NoSuchElementException("test")
         case _: Exception => // continue
       }
     }
