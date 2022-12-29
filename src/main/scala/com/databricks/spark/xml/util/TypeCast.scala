@@ -61,7 +61,8 @@ private[xml] object TypeCast {
         case _: DoubleType => Try(datum.toDouble)
           .getOrElse(NumberFormat.getInstance(Locale.getDefault).parse(datum).doubleValue())
         case _: BooleanType => parseXmlBoolean(datum)
-        case _: DecimalType => new BigDecimal(datum.replaceAll(",", ""))
+        case dt: DecimalType =>
+          Decimal(new BigDecimal(datum.replaceAll(",", "")), dt.precision, dt.scale)
         case _: TimestampType => parseXmlTimestamp(datum, options)
         case _: DateType => parseXmlDate(datum, options)
         case _: StringType => datum
