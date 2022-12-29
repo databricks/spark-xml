@@ -1197,6 +1197,20 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(result.select("decoded").head().get(0) === null)
   }
 
+  test("decimals with scale greater than precision") {
+    import spark.implicits._
+    val schema = buildSchema(field("Number", DecimalType(7, 4)))
+    val outputDF = Seq("0.0000", "0.01")
+      .map { n => s"<Row> <Number>$n</Number> </Row>" }
+      .toDF("xml")
+      .withColumn("parsed", from_xml($"xml", schema, Map("rowTag" -> "Row")))
+      .select("parsed.Number")
+
+    val results = outputDF.collect()
+    assert(results(0).getAs[java.math.BigDecimal](0).toString === "0.0000")
+    assert(results(1).getAs[java.math.BigDecimal](0).toString === "0.0100")
+  }
+
   test("double field encounters whitespace-only value") {
     val schema = buildSchema(struct("Book", field("Price", DoubleType)), field("_corrupt_record"))
     val whitespaceDF = spark.read
