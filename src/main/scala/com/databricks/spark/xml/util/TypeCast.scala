@@ -127,19 +127,20 @@ private[xml] object TypeCast {
     }
     // Custom format
     if (options.timestampFormat.isDefined) {
+      val format = DateTimeFormatter.ofPattern(options.timestampFormat.get)
       try {
-        val format = DateTimeFormatter.ofPattern(options.timestampFormat.get)
-        // Custom format with timezone
-        if (Option(format.getZone).isDefined) {
-          return Timestamp.from(
-            ZonedDateTime.parse(value, format).toInstant
-          )
-        } else {
-          // Custom format without timezone
-          return Timestamp.from(
-            ZonedDateTime.parse(value, format.withZone(ZoneId.of(options.timezone.get))).toInstant
-          )
-        }
+        // Custom format with timezone or offset
+        return Timestamp.from(
+          ZonedDateTime.parse(value, format).toInstant
+        )
+      } catch {
+        case _: Exception => // continue
+      }
+      try {
+        // Custom format without timezone or offset
+        return Timestamp.from(
+          ZonedDateTime.parse(value, format.withZone(ZoneId.of(options.timezone.get))).toInstant
+        )
       } catch {
         case _: Exception => // continue
       }
