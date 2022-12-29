@@ -65,7 +65,7 @@ Defaults to `false`. New in 0.11.0.
 * `timestampFormat`: Specifies an additional timestamp format that will be tried when parsing values as `TimestampType` 
 columns. The format is specified as described in [DateTimeFormatter](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html).
 Defaults to try several formats, including [ISO_INSTANT](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_INSTANT),
-including variations with offset timezones or no timezone (defaults to UTC). If a custom format is used, it will check if it has a timezone in the pattern. If not, it will uses the default spark timezone from `spark.sql.session.timeZone`. New in 0.12.0.  
+including variations with offset timezones or no timezone (defaults to UTC). New in 0.12.0. As of 0.16.0, if a custom format pattern is used without a timezone, the default Spark timezone specified by `spark.sql.session.timeZone` will be used.
 * `dateFormat`: Specifies an additional timestamp format that will be tried when parsing values as `DateType` 
 columns. The format is specified as described in [DateTimeFormatter](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html).
 Defaults to [ISO_DATE](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_DATE). New in 0.12.0.
@@ -83,7 +83,7 @@ When writing files the API accepts several options:
 * `compression`: compression codec to use when saving to file. Should be the fully qualified name of a class implementing `org.apache.hadoop.io.compress.CompressionCodec` or one of case-insensitive shorten names (`bzip2`, `gzip`, `lz4`, and `snappy`). Defaults to no compression when a codec is not specified.
 * `timestampFormat`: Controls the format used to write `TimestampType` format columns.
 The format is specified as described in [DateTimeFormatter](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html).
-Defaults to [ISO_INSTANT](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_INSTANT). If a custom format is used, it will check if it has a timezone in the pattern. If not, it will uses the default spark timezone from `spark.sql.session.timeZone`. New in 0.12.0.
+Defaults to [ISO_INSTANT](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_INSTANT). New in 0.12.0. As of 0.16.0, if a custom format pattern is used without a timezone, the default Spark timezone specified by `spark.sql.session.timeZone` will be used.
 * `dateFormat`: Controls the format used to write `DateType` format columns.
 The format is specified as described in [DateTimeFormatter](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html).
 Defaults to [ISO_DATE](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_DATE). New in 0.12.0.
