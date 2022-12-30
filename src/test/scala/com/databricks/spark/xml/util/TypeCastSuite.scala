@@ -192,7 +192,6 @@ final class TypeCastSuite extends AnyFunSuite {
     checkBuiltInTimestamps.foreach { case(format, value) =>
       assert(isParseableAsZonedDateTime(value, format))
     }
-    sys.exit()
 
     assert(isParseableAsZonedDateTime(
       "12-03-2011 10:15:30 PST",
