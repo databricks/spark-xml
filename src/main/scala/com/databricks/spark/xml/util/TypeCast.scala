@@ -112,7 +112,7 @@ private[xml] object TypeCast {
     // 2002-05-30T21:46:54+06:00
     DateTimeFormatter.ISO_OFFSET_DATE_TIME,
     // 2002-05-30T21:46:54.1234Z
-    DateTimeFormatter.ISO_INSTANT
+    DateTimeFormatter.ISO_INSTANT.withZone(ZoneId.of("UTC"))
   )
 
   private def parseXmlTimestamp(value: String, options: XmlOptions): Timestamp = {
