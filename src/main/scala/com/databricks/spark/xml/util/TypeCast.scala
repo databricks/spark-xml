@@ -17,9 +17,10 @@ package com.databricks.spark.xml.util
 
 import java.math.BigDecimal
 import java.sql.{Date, Timestamp}
-import java.text.NumberFormat
+import java.text.{NumberFormat, ParsePosition}
 import java.time.{LocalDate, ZoneId, ZonedDateTime}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
+import java.time.temporal.TemporalQueries
 import java.util.Locale
 
 import scala.util.Try
@@ -116,32 +117,19 @@ private[xml] object TypeCast {
   )
 
   private def parseXmlTimestamp(value: String, options: XmlOptions): Timestamp = {
-    // Loop over built-in formats
-    supportedXmlTimestampFormatters.foreach { format =>
+    val formatters = options.timestampFormat.map(DateTimeFormatter.ofPattern).
+      map(supportedXmlTimestampFormatters :+ _).getOrElse(supportedXmlTimestampFormatters)
+    formatters.foreach { format =>
       try {
-        return Timestamp.from(
-          ZonedDateTime.parse(value, format).toInstant
-        )
-      } catch {
-        case _: Exception => // continue
-      }
-    }
-    // Custom format
-    if (options.timestampFormat.isDefined) {
-      val format = DateTimeFormatter.ofPattern(options.timestampFormat.get)
-      try {
-        // Custom format with timezone or offset
-        return Timestamp.from(
-          ZonedDateTime.parse(value, format).toInstant
-        )
-      } catch {
-        case _: Exception => // continue
-      }
-      try {
-        // Custom format without timezone or offset
-        return Timestamp.from(
-          ZonedDateTime.parse(value, format.withZone(ZoneId.of(options.timezone.get))).toInstant
-        )
+        if (isParseableAsZonedDateTime(value, format)) {
+          return Timestamp.from(
+            ZonedDateTime.parse(value, format).toInstant
+          )
+        } else {
+          return Timestamp.from(
+            ZonedDateTime.parse(value, format.withZone(ZoneId.of(options.timezone.get))).toInstant
+          )
+        }
       } catch {
         case _: Exception => // continue
       }
@@ -288,5 +276,18 @@ private[xml] object TypeCast {
       val data = value
       TypeCast.castTo(data, FloatType, options).asInstanceOf[Float]
     }
+  }
+
+  private[xml] def isParseableAsZonedDateTime(value: String,
+                                              formatter: DateTimeFormatter): Boolean = {
+    val pos = new ParsePosition(0)
+    val temporalAccessor = formatter.parseUnresolved(value, pos)
+    // Checks if there is error in parsing
+    val parseable = pos.getErrorIndex < 0 && pos.getIndex >= value.length
+    // Checks if has zone, offset or timezone information
+    val hasTemporalInformation = (temporalAccessor != null &&
+      temporalAccessor.query(TemporalQueries.zone()) != null) ||
+      formatter.getZone != null
+    parseable && hasTemporalInformation
   }
 }

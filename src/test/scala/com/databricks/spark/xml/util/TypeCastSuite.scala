@@ -18,12 +18,14 @@ package com.databricks.spark.xml.util
 import java.math.BigDecimal
 import java.sql.{Date, Timestamp}
 import java.time.{ZoneId, ZonedDateTime}
+import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import java.util.Locale
 
 import org.scalatest.funsuite.AnyFunSuite
 
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions
+import com.databricks.spark.xml.util.TypeCast.isParseableAsZonedDateTime
 
 final class TypeCastSuite extends AnyFunSuite {
 
@@ -161,5 +163,58 @@ final class TypeCastSuite extends AnyFunSuite {
     } finally {
       Locale.setDefault(defaultLocale)
     }
+  }
+
+  test("Test if string is parseable as a timestamp") {
+    val supportedXmlTimestampFormatters = Seq(
+      // 2002-05-30 21:46:54
+      new DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .append(DateTimeFormatter.ISO_LOCAL_DATE)
+        .appendLiteral(' ')
+        .append(DateTimeFormatter.ISO_LOCAL_TIME)
+        .toFormatter()
+        .withZone(ZoneId.of("UTC")),
+      // 2002-05-30T21:46:54
+      DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.of("UTC")),
+      // 2002-05-30T21:46:54+06:00
+      DateTimeFormatter.ISO_OFFSET_DATE_TIME,
+      // 2002-05-30T21:46:54.1234Z
+      DateTimeFormatter.ISO_INSTANT.withZone(ZoneId.of("UTC"))
+    )
+
+    val supportedXmlTimestamps = Seq(
+      "2002-05-30 21:46:54",
+      "2002-05-30T21:46:54",
+      "2002-05-30T21:46:54+06:00",
+      "2002-05-30T21:46:54.1234Z"
+    )
+
+    val checkBuiltInTimestamps = supportedXmlTimestampFormatters.zip(supportedXmlTimestamps)
+
+    checkBuiltInTimestamps.foreach { case(format, value) =>
+      assert(isParseableAsZonedDateTime(value, format))
+    }
+
+    assert(isParseableAsZonedDateTime(
+      "12-03-2011 10:15:30 PST",
+      DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss z")
+    ))
+    assert(isParseableAsZonedDateTime(
+      "2011/12/03 16:15:30 +1000",
+      DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss Z")
+    ))
+    assert(!isParseableAsZonedDateTime(
+      "2011/12/03 16:15:30",
+      DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")
+    ))
+    assert(!isParseableAsZonedDateTime(
+      "12-03-2011 10:15:30 PS",
+      DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss z")
+    ))
+    assert(!isParseableAsZonedDateTime(
+      "12-03-2011 10:15:30 PST",
+      DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss")
+    ))
   }
 }
