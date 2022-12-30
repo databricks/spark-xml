@@ -121,15 +121,12 @@ private[xml] object TypeCast {
       map(supportedXmlTimestampFormatters :+ _).getOrElse(supportedXmlTimestampFormatters)
     formatters.foreach { format =>
       try {
-        if (isParseableAsZonedDateTime(value, format)) {
-          return Timestamp.from(
-            ZonedDateTime.parse(value, format).toInstant
-          )
+        val extendedFormat = if (isParseableAsZonedDateTime(value, format)) {
+          format
         } else {
-          return Timestamp.from(
-            ZonedDateTime.parse(value, format.withZone(ZoneId.of(options.timezone.get))).toInstant
-          )
+          format.withZone(ZoneId.of(options.timezone.get))
         }
+        return Timestamp.from(ZonedDateTime.parse(value, extendedFormat).toInstant)
       } catch {
         case _: Exception => // continue
       }

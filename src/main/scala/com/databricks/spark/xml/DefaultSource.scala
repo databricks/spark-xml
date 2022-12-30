@@ -71,19 +71,12 @@ class DefaultSource
       "spark.sql.session.timeZone"
     )
 
-    if (sparkTimezone.isDefined) {
-      XmlRelation(
-        () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
-        Some(path),
-        parameters + ("timezone" -> sparkTimezone.get),
-        schema)(sqlContext)
-    } else {
-      XmlRelation(
-        () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
-        Some(path),
-        parameters,
-        schema)(sqlContext)
-    }
+    XmlRelation(
+      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
+      Some(path),
+      if (sparkTimezone.isDefined) parameters + ("timezone" -> sparkTimezone.get)
+      else parameters,
+      schema)(sqlContext)
   }
 
   override def createRelation(
