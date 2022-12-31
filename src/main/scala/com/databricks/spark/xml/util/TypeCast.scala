@@ -18,7 +18,7 @@ package com.databricks.spark.xml.util
 import java.math.BigDecimal
 import java.sql.{Date, Timestamp}
 import java.text.NumberFormat
-import java.time.{LocalDate, ZoneId, ZonedDateTime}
+import java.time.{Instant, LocalDate, ZoneId}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import java.util.Locale
 
@@ -115,11 +115,18 @@ private[xml] object TypeCast {
   )
 
   private def parseXmlTimestamp(value: String, options: XmlOptions): Timestamp = {
-    val formatters = options.timestampFormat.map(DateTimeFormatter.ofPattern).
-      map(supportedXmlTimestampFormatters :+ _).getOrElse(supportedXmlTimestampFormatters)
-    formatters.foreach { format =>
+    supportedXmlTimestampFormatters.foreach { format =>
       try {
-        return Timestamp.from(ZonedDateTime.parse(value, format).toInstant)
+        return Timestamp.from(Instant.from(format.parse(value)))
+      } catch {
+        case _: Exception => // continue
+      }
+    }
+    options.timestampFormat.foreach { formatString =>
+      val format = DateTimeFormatter.ofPattern(formatString).
+        withZone(options.timezone.map(ZoneId.of).orNull)
+      try {
+        return Timestamp.from(Instant.from(format.parse(value)))
       } catch {
         case _: Exception => // continue
       }

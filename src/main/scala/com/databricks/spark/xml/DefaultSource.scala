@@ -67,10 +67,14 @@ class DefaultSource
       (options.charset, options.rowTag)
     }
 
+    val paramsWithTZ = parameters ++
+      sqlContext.sparkContext.getConf.getOption("spark.sql.session.timeZone").
+        map { tz => "timezone" -> tz }
+
     XmlRelation(
       () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
       Some(path),
-      parameters,
+      paramsWithTZ,
       schema)(sqlContext)
   }
 

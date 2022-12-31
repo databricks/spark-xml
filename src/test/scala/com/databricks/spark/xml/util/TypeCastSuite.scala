@@ -133,6 +133,17 @@ final class TypeCastSuite extends AnyFunSuite {
     assert(TypeCast.castTo("2002-09-24+06:00", DateType, options) === Date.valueOf("2002-09-24"))
   }
 
+  test("Custom timestamp format is used to parse correctly") {
+    val options = XmlOptions(Map("timestampFormat" -> "MM-dd-yyyy HH:mm:ss", "timezone" -> "UTC"))
+    assert(
+      TypeCast.castTo("12-03-2011 10:15:30", TimestampType, options) ===
+        Timestamp.from(
+          ZonedDateTime.of(2011, 12, 3, 10, 15, 30, 0, ZoneId.of("UTC"))
+            .toInstant()
+        )
+    )
+  }
+
   test("Types with sign are cast correctly") {
     val options = new XmlOptions()
     assert(TypeCast.signSafeToInt("+10", options) === 10)
