@@ -130,7 +130,7 @@ private[xml] object TypeCast {
         formatString.indexOf("O") +
         formatString.indexOf("X") +
         formatString.indexOf("x") +
-        formatString.indexOf("Z") == (-6)
+        formatString.indexOf("Z") != (-6)
       val format = if (hasTemporalInformation) {
         DateTimeFormatter.ofPattern(formatString)
       } else {
