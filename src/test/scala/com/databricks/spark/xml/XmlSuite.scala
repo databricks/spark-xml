@@ -47,7 +47,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       master("local[2]").
       appName("XmlSuite").
       config("spark.ui.enabled", false).
-      //config("spark.sql.session.timeZone", "UTC").
+      config("spark.sql.session.timeZone", "UTC").
       getOrCreate()
   }
   private var tempDir: Path = _
