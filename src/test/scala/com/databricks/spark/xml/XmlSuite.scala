@@ -47,7 +47,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       master("local[2]").
       appName("XmlSuite").
       config("spark.ui.enabled", false).
-      config("spark.sql.session.timeZone", "UTC").
+      //config("spark.sql.session.timeZone", "UTC").
       getOrCreate()
   }
   private var tempDir: Path = _
@@ -1432,7 +1432,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   test("Test custom timestampFormat with offset") {
     val df = spark.read
       .option("rowTag", "book")
-      .option("timestampFormat", "yyyy/MM/dd HH:mm:ss Z")
+      .option("timestampFormat", "yyyy/MM/dd HH:mm:ss xx")
       .xml(resDir + "time.xml")
     val expectedSchema =
       buildSchema(
