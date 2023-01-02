@@ -173,6 +173,8 @@ private[xml] object StaxXmlParser extends Serializable {
             case _ => convertObject(parser, st, options)
           }
         }
+      case (_: Characters, _: StringType) =>
+        StaxXmlParserUtils.currentStructureAsString(parser)
       case (c: Characters, _: DataType) if c.isWhiteSpace =>
         // When `Characters` is found, we need to look further to decide
         // if this is really data or space between other elements.

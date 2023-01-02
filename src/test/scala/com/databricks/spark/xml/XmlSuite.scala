@@ -1239,8 +1239,7 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .schema(schema)
       .xml(resDir + "cars-attribute.xml")
       .collect()
-    assert(result.head.get(0) ===
-      "<year>2015</year><make>Chevy</make><model>Volt</model><comment foo=\"bar\">No</comment>")
+    assert(result.head.getString(0).contains("<comment foo=\"bar\">No</comment>"))
   }
 
   test("rootTag with simple attributes") {
@@ -1456,6 +1455,28 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     intercept[InvalidInputException] {
       spark.read.schema(buildSchema(field("dummy"))).xml("/this/file/does/not/exist")
     }
+  }
+
+  test("Issue 614: mixed content element parsed as string in schema") {
+    val textResults = spark.read
+      .schema(buildSchema(field("text")))
+      .option("rowTag", "book")
+      .xml(resDir + "mixed_children_as_string.xml")
+    val textHead = textResults.select("text").head().getString(0)
+    assert(textHead.contains(
+      "Lorem ipsum dolor sit amet. Ut <i>voluptas</i> distinctio et impedit deserunt"))
+    assert(textHead.contains(
+      "<i>numquam</i> incidunt cum autem temporibus."))
+
+    val bookResults = spark.read
+      .schema(buildSchema(field("book")))
+      .option("rowTag", "books")
+      .xml(resDir + "mixed_children_as_string.xml")
+    val bookHead = bookResults.select("book").head().getString(0)
+    assert(bookHead.contains(
+      "Lorem ipsum dolor sit amet. Ut <i>voluptas</i> distinctio et impedit deserunt"))
+    assert(bookHead.contains(
+      "<i>numquam</i> incidunt cum autem temporibus."))
   }
 
   private def getLines(path: Path): Seq[String] = {
