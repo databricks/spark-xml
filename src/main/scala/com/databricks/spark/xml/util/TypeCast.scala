@@ -125,6 +125,7 @@ private[xml] object TypeCast {
     }
     options.timestampFormat.foreach { formatString =>
       // Check if there is offset or timezone and apply Spark timeZone if not
+      // Useful to support Java 8 and Java 11+ as they prioritize zone and offset differently
       val hasTemporalInformation = formatString.indexOf("V") +
         formatString.indexOf("z") +
         formatString.indexOf("O") +
