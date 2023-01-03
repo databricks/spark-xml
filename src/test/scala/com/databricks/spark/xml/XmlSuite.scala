@@ -1370,7 +1370,13 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .option("rowTag", "book")
       .xml(resDir + "time.xml")
     val expectedSchema =
-      buildSchema(field("author"), field("time", TimestampType), field("time2", StringType))
+      buildSchema(
+        field("author"),
+        field("time", TimestampType),
+        field("time2", StringType),
+        field("time3", StringType),
+        field("time4", StringType)
+      )
     assert(df.schema === expectedSchema)
     assert(df.collect().head.getAs[Timestamp](1).getTime === 1322907330000L)
   }
@@ -1392,9 +1398,52 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       .option("timestampFormat", "MM-dd-yyyy HH:mm:ss z")
       .xml(resDir + "time.xml")
     val expectedSchema =
-      buildSchema(field("author"), field("time", TimestampType), field("time2", TimestampType))
+      buildSchema(
+        field("author"),
+        field("time", TimestampType),
+        field("time2", TimestampType),
+        field("time3", StringType),
+        field("time4", StringType),
+      )
     assert(df.schema === expectedSchema)
+    assert(df.collect().head.getAs[Timestamp](1).getTime === 1322907330000L)
     assert(df.collect().head.getAs[Timestamp](2).getTime === 1322936130000L)
+  }
+
+  test("Test custom timestampFormat without timezone") {
+    val df = spark.read
+      .option("rowTag", "book")
+      .option("timestampFormat", "yyyy/MM/dd HH:mm:ss")
+      .xml(resDir + "time.xml")
+    val expectedSchema =
+      buildSchema(
+        field("author"),
+        field("time", TimestampType),
+        field("time2", StringType),
+        field("time3", TimestampType),
+        field("time4", StringType)
+      )
+    assert(df.schema === expectedSchema)
+    assert(df.collect().head.getAs[Timestamp](1).getTime === 1322907330000L)
+    assert(df.collect().head.getAs[Timestamp](3).getTime === 1322892930000L)
+  }
+
+  test("Test custom timestampFormat with offset") {
+    val df = spark.read
+      .option("rowTag", "book")
+      .option("timestampFormat", "yyyy/MM/dd HH:mm:ss xx")
+      .xml(resDir + "time.xml")
+    val expectedSchema =
+      buildSchema(
+        field("author"),
+        field("time", TimestampType),
+        field("time2", StringType),
+        field("time3", StringType),
+        field("time4", TimestampType)
+      )
+    assert(df.schema === expectedSchema)
+    assert(df.collect().head.getAs[Timestamp](1).getTime === 1322907330000L)
+    assert(df.collect().head.getAs[Timestamp](4).getTime === 1322892930000L)
   }
 
   test("Test null number type is null not 0.0") {

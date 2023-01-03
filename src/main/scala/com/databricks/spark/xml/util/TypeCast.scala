@@ -17,16 +17,16 @@ package com.databricks.spark.xml.util
 
 import java.math.BigDecimal
 import java.sql.{Date, Timestamp}
-import java.text.NumberFormat
-import java.time.{LocalDate, ZoneId, ZonedDateTime}
+import java.text.{NumberFormat, ParsePosition}
+import java.time.{Instant, LocalDate, ZoneId}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import java.util.Locale
-
 import scala.util.Try
 import scala.util.control.Exception._
-
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions
+
+import java.time.temporal.TemporalQueries
 
 /**
  * Utility functions for type casting
@@ -116,11 +116,29 @@ private[xml] object TypeCast {
   )
 
   private def parseXmlTimestamp(value: String, options: XmlOptions): Timestamp = {
-    val formatters = options.timestampFormat.map(DateTimeFormatter.ofPattern).
-      map(supportedXmlTimestampFormatters :+ _).getOrElse(supportedXmlTimestampFormatters)
-    formatters.foreach { format =>
+    supportedXmlTimestampFormatters.foreach { format =>
       try {
-        return Timestamp.from(ZonedDateTime.parse(value, format).toInstant)
+        return Timestamp.from(Instant.from(format.parse(value)))
+      } catch {
+        case _: Exception => // continue
+      }
+    }
+    options.timestampFormat.foreach { formatString =>
+      // Check if there is offset or timezone and apply Spark timeZone if not
+      // Useful to support Java 8 and Java 11+ as they prioritize zone and offset differently
+      val hasTemporalInformation = formatString.indexOf("V") +
+        formatString.indexOf("z") +
+        formatString.indexOf("O") +
+        formatString.indexOf("X") +
+        formatString.indexOf("x") +
+        formatString.indexOf("Z") != (-6)
+      val format = if (hasTemporalInformation) {
+        DateTimeFormatter.ofPattern(formatString)
+      } else {
+        DateTimeFormatter.ofPattern(formatString).withZone(options.timezone.map(ZoneId.of).orNull)
+      }
+      try {
+        return Timestamp.from(Instant.from(format.parse(value)))
       } catch {
         case _: Exception => // continue
       }
