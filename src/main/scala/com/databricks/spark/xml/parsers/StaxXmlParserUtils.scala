@@ -123,52 +123,33 @@ private[xml] object StaxXmlParserUtils {
    * Convert the current structure of XML document to a XML string.
    */
   def currentStructureAsString(parser: XMLEventReader): String = {
-    // (Hyukjin) I could not find a proper method to produce the current document
-    // as a string. For Jackson, there is a method `copyCurrentStructure()`.
-    // So, it ended up with manually converting event by event to string.
-    def convertChildren(): String = {
-      var childrenXmlString = ""
-      parser.peek match {
-        case _: StartElement =>
-          childrenXmlString += currentStructureAsString(parser)
-        case c: Characters if c.isWhiteSpace =>
-          // There can be a `Characters` event between `StartElement`s.
-          // So, we need to check further to decide if this is a data or just
-          // a whitespace between them.
-          childrenXmlString += c.getData
-          parser.next
-          parser.peek match {
-            case _: StartElement =>
-              childrenXmlString += currentStructureAsString(parser)
-            case _: XMLEvent =>
-              // do nothing
-          }
-        case c: Characters =>
-          childrenXmlString += c.getData
-        case _: XMLEvent =>
-          // do nothing
-      }
-      childrenXmlString
-    }
-
-    var xmlString = ""
-    var shouldStop = false
-    while (!shouldStop) {
+    val xmlString = new StringBuilder()
+    var indent = 0
+    do {
       parser.nextEvent match {
         case e: StartElement =>
-          val attributes = e.getAttributes.asScala.map { a =>
+          xmlString.append('<').append(e.getName)
+          e.getAttributes.asScala.foreach { a =>
             val att = a.asInstanceOf[Attribute]
-            " " + att.getName + "=\"" + att.getValue + "\""
-          }.mkString("")
-          xmlString += "<" + e.getName + attributes + ">"
-          xmlString += convertChildren()
+            xmlString.append(' ').append(att.getName).append("=\"").
+              append(att.getValue).append('"')
+          }
+          xmlString.append('>')
+          indent += 1
         case e: EndElement =>
-          xmlString += "</" + e.getName + ">"
-          shouldStop = checkEndElement(parser)
+          xmlString.append("</").append(e.getName).append('>')
+          indent -= 1
+        case c: Characters =>
+          xmlString.append(c.getData)
         case _: XMLEvent => // do nothing
       }
-    }
-    xmlString
+    } while (parser.peek() match {
+      case _: EndElement =>
+        // until the unclosed end element for the whole parent is found
+        indent > 0
+      case _ => true
+    })
+    xmlString.toString()
   }
 
   /**
