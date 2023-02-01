@@ -28,7 +28,7 @@ import com.databricks.spark.xml.parsers.StaxXmlParser
 
 case class XmlRelation protected[spark] (
     baseRDD: () => RDD[String],
-    location: Option[String],
+    locations: Seq[String],
     parameters: Map[String, String],
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
   extends BaseRelation
@@ -59,11 +59,13 @@ case class XmlRelation protected[spark] (
 
   // The function below was borrowed from JSONRelation
   override def insert(data: DataFrame, overwrite: Boolean): Unit = {
-    val filesystemPath = location match {
-      case Some(p) => new Path(p)
-      case None =>
-        throw new IOException(s"Cannot INSERT into table with no path defined")
+    if (locations.isEmpty) {
+      throw new IOException(s"Cannot INSERT into table with no path defined")
     }
+    if (locations.length > 1) {
+      throw new IllegalArgumentException("Only one path may be specified for writing")
+    }
+    val filesystemPath = new Path(locations.head)
 
     val fs = filesystemPath.getFileSystem(sqlContext.sparkContext.hadoopConfiguration)
 

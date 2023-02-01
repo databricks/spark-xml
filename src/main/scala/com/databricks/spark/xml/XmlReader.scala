@@ -145,8 +145,8 @@ class XmlReader(private var schema: StructType,
       (options.charset, options.rowTag)
     }
     val relation = XmlRelation(
-      () => XmlFile.withCharset(spark.sparkContext, path, charset, rowTag),
-      Some(path),
+      () => XmlFile.withCharset(spark.sparkContext, Seq(path), charset, rowTag),
+      Seq(path),
       parameters.toMap,
       schema)(spark.sqlContext)
     spark.baseRelationToDataFrame(relation)
@@ -169,7 +169,7 @@ class XmlReader(private var schema: StructType,
   def xmlRdd(spark: SparkSession, xmlRDD: RDD[String]): DataFrame = {
     val relation = XmlRelation(
       () => xmlRDD,
-      None,
+      Seq.empty,
       parameters.toMap,
       schema)(spark.sqlContext)
     spark.baseRelationToDataFrame(relation)
@@ -184,8 +184,8 @@ class XmlReader(private var schema: StructType,
       (options.charset, options.rowTag)
     }
     val relation = XmlRelation(
-      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
-      Some(path),
+      () => XmlFile.withCharset(sqlContext.sparkContext, Seq(path), charset, rowTag),
+      Seq(path),
       parameters.toMap,
       schema)(sqlContext)
     sqlContext.baseRelationToDataFrame(relation)
@@ -195,7 +195,7 @@ class XmlReader(private var schema: StructType,
   def xmlRdd(sqlContext: SQLContext, xmlRDD: RDD[String]): DataFrame = {
     val relation = XmlRelation(
       () => xmlRDD,
-      None,
+      Seq.empty,
       parameters.toMap,
       schema)(sqlContext)
     sqlContext.baseRelationToDataFrame(relation)

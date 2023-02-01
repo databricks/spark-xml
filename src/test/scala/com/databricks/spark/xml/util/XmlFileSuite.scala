@@ -51,25 +51,25 @@ final class XmlFileSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("read utf-8 encoded file") {
-    val baseRDD = XmlFile.withCharset(sparkContext, booksFile, utf8, rowTag = booksFileTag)
+    val baseRDD = XmlFile.withCharset(sparkContext, Seq(booksFile), utf8, rowTag = booksFileTag)
     assert(baseRDD.count() === numBooks)
   }
 
   test("read file with unicode chars in row tag name") {
     val baseRDD = XmlFile.withCharset(
-      sparkContext, booksUnicodeInTagNameFile, utf8, rowTag = booksUnicodeFileTag)
+      sparkContext, Seq(booksUnicodeInTagNameFile), utf8, rowTag = booksUnicodeFileTag)
     assert(baseRDD.count() === numBooksUnicodeInTagName)
   }
 
   test("read utf-8 encoded file with empty tag") {
-    val baseRDD = XmlFile.withCharset(sparkContext, fiasHouse, utf8, rowTag = fiasRowTag)
+    val baseRDD = XmlFile.withCharset(sparkContext, Seq(fiasHouse), utf8, rowTag = fiasRowTag)
     assert(baseRDD.count() == numHouses)
     baseRDD.collect().foreach(x => assert(x.contains("/>")))
   }
 
   test("unsupported charset") {
     val exception = intercept[UnsupportedCharsetException] {
-      XmlFile.withCharset(sparkContext, booksFile, "frylock", rowTag = booksFileTag).count()
+      XmlFile.withCharset(sparkContext, Seq(booksFile), "frylock", rowTag = booksFileTag).count()
     }
     assert(exception.getMessage.contains("frylock"))
   }

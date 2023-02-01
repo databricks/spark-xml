@@ -25,7 +25,7 @@ import com.databricks.spark.xml.util.{InferSchema, XmlFile}
 
 package object xml {
   /**
-   * Adds a method, `xmlFile`, to [[SQLContext]] that allows reading XML data.
+   * Adds a method, `xmlFile`, to SQLContext that allows reading XML data.
    */
   implicit class XmlContext(sqlContext: SQLContext) extends Serializable {
     @deprecated("Use read.format(\"xml\") or read.xml", "0.4.0")
@@ -50,15 +50,15 @@ package object xml {
         "valueTag" -> valueTag,
         "charset" -> charset)
       val xmlRelation = XmlRelation(
-        () => XmlFile.withCharset(sqlContext.sparkContext, filePath, charset, rowTag),
-        location = Some(filePath),
+        () => XmlFile.withCharset(sqlContext.sparkContext, Seq(filePath), charset, rowTag),
+        locations = Seq(filePath),
         parameters = parameters)(sqlContext)
       sqlContext.baseRelationToDataFrame(xmlRelation)
     }
   }
 
   /**
-   * Adds a method, `saveAsXmlFile`, to [[DataFrame]] that allows writing XML data.
+   * Adds a method, `saveAsXmlFile`, to DataFrame that allows writing XML data.
    * If compressionCodec is not null the resulting output will be compressed.
    * Note that a codec entry in the parameters map will be ignored.
    */
@@ -148,8 +148,8 @@ package object xml {
   /**
    * @param xml XML document to parse, as string
    * @param schema the schema to use when parsing the XML string
-   * @param options key-value pairs that correspond to those supported by [[XmlOptions]]
-   * @return [[Row]] representing the parsed XML structure
+   * @param options key-value pairs that correspond to those supported by XmlOptions
+   * @return Row representing the parsed XML structure
    */
   def from_xml_string(xml: String, schema: StructType,
                       options: Map[String, String] = Map.empty): Row = {

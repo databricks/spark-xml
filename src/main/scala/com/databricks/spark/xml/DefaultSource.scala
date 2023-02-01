@@ -16,6 +16,8 @@
 package com.databricks.spark.xml
 
 import org.apache.hadoop.fs.Path
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
@@ -37,9 +39,17 @@ class DefaultSource
    */
   override def shortName(): String = "xml"
 
-  private def checkPath(parameters: Map[String, String]): String = {
-    parameters.getOrElse("path",
-      throw new IllegalArgumentException("'path' must be specified for XML data."))
+  // This handling of paths is copied from FileDataSourceV2
+  private lazy val objectMapper = new ObjectMapper().registerModule(DefaultScalaModule)
+  private def getPaths(parameters: Map[String, String]): Seq[String] = {
+    val paths: Seq[String] = parameters.get("paths").map { pathStr =>
+      objectMapper.readValue(pathStr, classOf[Seq[String]])
+    }.getOrElse(Seq.empty)
+    val allPaths = paths ++ parameters.get("path")
+    if (allPaths.isEmpty) {
+      throw new IllegalArgumentException("'path' or 'paths' must be specified for XML data.")
+    }
+    allPaths
   }
 
   /**
@@ -60,7 +70,7 @@ class DefaultSource
       sqlContext: SQLContext,
       parameters: Map[String, String],
       schema: StructType): XmlRelation = {
-    val path = checkPath(parameters)
+    val paths = getPaths(parameters)
     // We need the `charset` and `rowTag` before creating the relation.
     val (charset, rowTag) = {
       val options = XmlOptions(parameters)
@@ -74,8 +84,8 @@ class DefaultSource
       }
 
     XmlRelation(
-      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
-      Some(path),
+      () => XmlFile.withCharset(sqlContext.sparkContext, paths, charset, rowTag),
+      paths,
       paramsWithTZ,
       schema)(sqlContext)
   }
@@ -85,7 +95,11 @@ class DefaultSource
       mode: SaveMode,
       parameters: Map[String, String],
       data: DataFrame): BaseRelation = {
-    val path = checkPath(parameters)
+    val paths = getPaths(parameters)
+    if (paths.length > 1) {
+      throw new IllegalArgumentException("Only one path may be specified for writing")
+    }
+    val path = paths.head
     val filesystemPath = new Path(path)
     val fs = filesystemPath.getFileSystem(sqlContext.sparkContext.hadoopConfiguration)
     val doSave = if (fs.exists(filesystemPath)) {

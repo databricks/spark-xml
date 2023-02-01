@@ -38,7 +38,7 @@ private[xml] object XmlFile {
 
   def withCharset(
       context: SparkContext,
-      location: String,
+      locations: Seq[String],
       charset: String,
       rowTag: String): RDD[String] = {
     // This just checks the charset's validity early, to keep behavior
@@ -47,11 +47,20 @@ private[xml] object XmlFile {
     config.set(XmlInputFormat.START_TAG_KEY, s"<$rowTag>")
     config.set(XmlInputFormat.END_TAG_KEY, s"</$rowTag>")
     config.set(XmlInputFormat.ENCODING_KEY, charset)
-    context.newAPIHadoopFile(location,
-      classOf[XmlInputFormat],
-      classOf[LongWritable],
-      classOf[Text],
-      config).map { case (_, text) => text.toString }
+    val rdds = locations.map { location =>
+      context.newAPIHadoopFile(location,
+        classOf[XmlInputFormat],
+        classOf[LongWritable],
+        classOf[Text],
+        config)
+    }
+    val rdd =
+      if (rdds.length == 1) {
+        rdds.head
+      } else {
+        context.union(rdds)
+      }
+    rdd.map { case (_, text) => text.toString }
   }
 
   /**
