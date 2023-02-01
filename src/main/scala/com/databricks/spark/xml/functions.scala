@@ -31,7 +31,7 @@ object functions {
    * @param e a string column containing XML data
    * @param schema the schema to use when parsing the XML string. Must be a StructType if
    *   column is string-valued, or ArrayType[StructType] if column is an array of strings
-   * @param options key-value pairs that correspond to those supported by [[XmlOptions]]
+   * @param options key-value pairs that correspond to those supported by XmlOptions
    */
   def from_xml(e: Column, schema: DataType, options: Map[String, String] = Map.empty): Column = {
     val expr = CatalystSqlParser.parseExpression(e.toString())
