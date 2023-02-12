@@ -152,4 +152,23 @@ class XSDToSchemaSuite extends AnyFunSuite {
     )
     assert(parsedSchema === expectedSchema)
   }
+
+  test("Test complex content with extension element / Issue 554") {
+    val parsedSchema = XSDToSchema.read(Paths.get(s"$resDir/complex-content-extension.xsd"))
+
+    val expectedSchema = buildSchema(
+      field(
+        "employee",
+        struct(
+          field("firstname", StringType, false),
+          field("lastname", StringType, false),
+          field("address", StringType, false),
+          field("city", StringType, false),
+          field("country", StringType, false)
+        ),
+        false
+      )
+    )
+    assert(parsedSchema === expectedSchema)
+  }
 }
