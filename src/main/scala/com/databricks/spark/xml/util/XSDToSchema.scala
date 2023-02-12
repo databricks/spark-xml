@@ -145,7 +145,7 @@ object XSDToSchema {
                 val baseStructField = getStructField(xmlSchema,
                   xmlSchema.getParent.getTypeByQName(extension.getBaseTypeName))
                 val baseFields = baseStructField.dataType match {
-                  case structType @ StructType(_) => structType.fields
+                  case structType: StructType => structType.fields
                   case others =>
                     throw new IllegalArgumentException(
                       s"Non-StructType in ComplexContentExtension: $others"
