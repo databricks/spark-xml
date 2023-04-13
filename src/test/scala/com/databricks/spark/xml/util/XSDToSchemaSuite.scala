@@ -115,13 +115,16 @@ class XSDToSchemaSuite extends AnyFunSuite {
     val expectedSchema = buildSchema(
       field("test",
         struct(field("userId", LongType, nullable = false)), nullable = false))
-    assert(expectedSchema === parsedSchema)
+    assert(parsedSchema === expectedSchema)
   }
 
   test("Test xs:decimal type with restriction[fractionalDigits]") {
     val parsedSchema = XSDToSchema.read(Paths.get(s"$resDir/decimal-with-restriction.xsd"))
-    val expectedSchema = buildSchema(field("decimal_type_1", DecimalType(38, 18), nullable = false),
-      field("decimal_type_2", DecimalType(38, 2), nullable = false))
+    val expectedSchema = buildSchema(
+      field("decimal_type_3", DecimalType(12, 6), nullable = false),
+      field("decimal_type_1", DecimalType(38, 18), nullable = false),
+      field("decimal_type_2", DecimalType(38, 2), nullable = false)
+    )
     assert(parsedSchema === expectedSchema)
   }
 
