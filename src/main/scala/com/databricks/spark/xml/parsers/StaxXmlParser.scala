@@ -136,7 +136,8 @@ private[xml] object StaxXmlParser extends Serializable {
       case st: StructType => convertObject(parser, st, options)
       case MapType(StringType, vt, _) => convertMap(parser, vt, options, attributes)
       case ArrayType(st, _) => convertField(parser, st, options)
-      case _: StringType => StaxXmlParserUtils.currentStructureAsString(parser)
+      case _: StringType =>
+        convertTo(StaxXmlParserUtils.currentStructureAsString(parser), StringType, options)
     }
 
     (parser.peek, dataType) match {
@@ -174,7 +175,7 @@ private[xml] object StaxXmlParser extends Serializable {
           }
         }
       case (_: Characters, _: StringType) =>
-        StaxXmlParserUtils.currentStructureAsString(parser)
+        convertTo(StaxXmlParserUtils.currentStructureAsString(parser), StringType, options)
       case (c: Characters, _: DataType) if c.isWhiteSpace =>
         // When `Characters` is found, we need to look further to decide
         // if this is really data or space between other elements.
