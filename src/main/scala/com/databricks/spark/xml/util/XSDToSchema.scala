@@ -85,16 +85,25 @@ object XSDToSchema {
               case null => restriction.getBaseTypeName
               case n => n
             }
-            qName match {
+
+            // Hacky, is there a better way? see if the type is known as a custom
+            // type and use that if so, assuming along the way it's a simple restriction
+            val typeName = xmlSchema.getSchemaTypes.asScala.get(qName).map { s =>
+                s.asInstanceOf[XmlSchemaSimpleType].
+                  getContent.asInstanceOf[XmlSchemaSimpleTypeRestriction].getBaseTypeName
+              }.getOrElse(qName)
+
+            typeName match {
               case Constants.XSD_BOOLEAN => BooleanType
               case Constants.XSD_DECIMAL =>
-                val scale = restriction.getFacets.asScala.collectFirst {
-                  case facet: XmlSchemaFractionDigitsFacet => facet
-                }
-                scale match {
-                  case Some(scale) => DecimalType(38, scale.getValue.toString.toInt)
-                  case None => DecimalType(38, 18)
-                }
+                val facets = restriction.getFacets.asScala
+                val fracDigits = facets.collectFirst {
+                  case facet: XmlSchemaFractionDigitsFacet => facet.getValue.toString.toInt
+                }.getOrElse(18)
+                val totalDigits = facets.collectFirst {
+                  case facet: XmlSchemaTotalDigitsFacet => facet.getValue.toString.toInt
+                }.getOrElse(38)
+                DecimalType(totalDigits, math.min(totalDigits, fracDigits))
               case Constants.XSD_UNSIGNEDLONG => DecimalType(38, 0)
               case Constants.XSD_DOUBLE => DoubleType
               case Constants.XSD_FLOAT => FloatType
