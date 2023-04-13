@@ -903,7 +903,17 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(resultsTwo.collect().length === 2)
   }
 
-  test("ignoreSurroundingSpaces test") {
+  test("ignoreSurroundingSpace with string types") {
+    val df = spark.read
+      .option("inferSchema", true)
+      .option("rowTag", "entry")
+      .option("ignoreSurroundingSpaces", true)
+      .xml(resDir + "feed-with-spaces.xml")
+    val results = df.collect().map(_.getString(0))
+    assert(results === Array("A", "B", "C", "D"))
+  }
+
+  test("ignoreSurroundingSpaces with non-string types") {
     val results = new XmlReader(Map("ignoreSurroundingSpaces" -> true, "rowTag" -> "person"))
       .xmlFile(spark, resDir + "ages-with-spaces.xml")
       .collect()
