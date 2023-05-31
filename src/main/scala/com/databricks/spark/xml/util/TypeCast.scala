@@ -196,6 +196,13 @@ private[xml] object TypeCast {
     } else {
       value
     }
+    // Rule out strings ending in D or F, as they will parse as double but should be disallowed
+    if (value.nonEmpty && (value.last match {
+          case 'd' | 'D' | 'f' | 'F' => true
+          case _ => false
+        })) {
+      return false
+    }
     (allCatch opt signSafeValue.toDouble).isDefined
   }
 
