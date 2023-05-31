@@ -147,6 +147,8 @@ final class TypeCastSuite extends AnyFunSuite {
     assert(TypeCast.isInteger("10"))
     assert(TypeCast.isLong("10"))
     assert(TypeCast.isDouble("+10.1"))
+    assert(!TypeCast.isDouble("8E9D"))
+    assert(!TypeCast.isDouble("8E9F"))
     val timestamp = "2015-01-01 00:00:00"
     assert(TypeCast.isTimestamp(timestamp, new XmlOptions()))
   }
