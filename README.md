@@ -1,4 +1,4 @@
-# XML Data Source for Apache Spark
+# XML Data Source for Apache Spark 3.x
 
 - A library for parsing and querying XML data with [Apache Spark](https://spark.apache.org), for Spark SQL and DataFrames.
 The structure and test tools are mostly copied from [CSV Data Source for Spark](https://github.com/databricks/spark-csv).
@@ -6,6 +6,8 @@ The structure and test tools are mostly copied from [CSV Data Source for Spark](
 - This package supports to process format-free XML files in a distributed way, unlike JSON datasource in Spark restricts in-line JSON format.
 
 - Compatible with Spark 3.0 and later with Scala 2.12, and also Spark 3.2 and later with Scala 2.12 or 2.13. Scala 2.11 and Spark 2 support ended with version 0.13.0.
+
+- Currently, `spark-xml` is planned to [become a part of Apache Spark 4.0](https://github.com/apache/spark/pull/41832). This library will remain in maintenance mode for Spark 3.x versions.
 
 ## Linking
 
