@@ -1,4 +1,4 @@
-name: Spark 3.2 / Java 11 / Scala 2.13
+name: Spark 3.2 / Java 8 / Scala 2.12
 on:
   push:
     branches: [master]
