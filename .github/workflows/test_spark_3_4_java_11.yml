@@ -1,4 +1,4 @@
-name: Spark 3.4 / Java 17 / Scala 2.13
+name: Spark 3.4 / Java 11 / Scala 2.13
 on:
   push:
     branches: [master]
@@ -12,6 +12,6 @@ jobs:
       - name: Set up Java, SBT
         uses: olafurpg/setup-scala@v11
         with:
-          java-version: 'openjdk@1.17.0'
+          java-version: 'adopt@1.11'
       - name: Build and test
         run: sbt -Dspark.testVersion=3.4.1 ++2.13.8 clean scalastyle test:scalastyle mimaReportBinaryIssues test
