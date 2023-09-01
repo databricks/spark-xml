@@ -61,8 +61,14 @@ private[xml] object TypeCast {
         case _: BooleanType => parseXmlBoolean(datum)
         case dt: DecimalType =>
           Decimal(new BigDecimal(datum.replaceAll(",", "")), dt.precision, dt.scale)
-        case _: TimestampType => parseXmlTimestamp(datum, options)
-        case _: DateType => parseXmlDate(datum, options)
+        case _: TimestampType =>
+          parseXmlTimestamp(datum, options).getOrElse {
+            throw new IllegalArgumentException(s"cannot convert value $datum to Timestamp")
+          }
+        case _: DateType =>
+          parseXmlDate(datum, options).getOrElse {
+            throw new IllegalArgumentException(s"cannot convert value $datum to Date")
+          }
         case _: StringType => datum
         case _ => throw new IllegalArgumentException(s"Unsupported type: ${castType.typeName}")
       }
@@ -83,13 +89,13 @@ private[xml] object TypeCast {
     DateTimeFormatter.ISO_DATE
   )
 
-  private def parseXmlDate(value: String, options: XmlOptions): Date = {
+  private def parseXmlDate(value: String, options: XmlOptions): Option[Date] = {
     // A little shortcut to avoid trying many formatters in the common case that
     // the input isn't a date. All built-in formats will start with a digit.
     if (value.nonEmpty && Character.isDigit(value.head)) {
       supportedXmlDateFormatters.foreach { format =>
         try {
-          return Date.valueOf(LocalDate.parse(value, format))
+          return Some(Date.valueOf(LocalDate.parse(value, format)))
         } catch {
           case _: Exception => // continue
         }
@@ -97,12 +103,12 @@ private[xml] object TypeCast {
     }
     options.dateFormat.map(DateTimeFormatter.ofPattern).foreach { format =>
       try {
-        return Date.valueOf(LocalDate.parse(value, format))
+        return Some(Date.valueOf(LocalDate.parse(value, format)))
       } catch {
         case _: Exception => // continue
       }
     }
-    throw new IllegalArgumentException(s"cannot convert value $value to Date")
+    None
   }
 
   private val supportedXmlTimestampFormatters = Seq(
@@ -122,13 +128,13 @@ private[xml] object TypeCast {
     DateTimeFormatter.ISO_INSTANT
   )
 
-  private def parseXmlTimestamp(value: String, options: XmlOptions): Timestamp = {
+  private def parseXmlTimestamp(value: String, options: XmlOptions): Option[Timestamp] = {
     // A little shortcut to avoid trying many formatters in the common case that
     // the input isn't a timestamp. All built-in formats will start with a digit.
     if (value.nonEmpty && Character.isDigit(value.head)) {
       supportedXmlTimestampFormatters.foreach { format =>
         try {
-          return Timestamp.from(Instant.from(format.parse(value)))
+          return Some(Timestamp.from(Instant.from(format.parse(value))))
         } catch {
           case _: Exception => // continue
         }
@@ -149,12 +155,12 @@ private[xml] object TypeCast {
         DateTimeFormatter.ofPattern(formatString).withZone(options.timezone.map(ZoneId.of).orNull)
       }
       try {
-        return Timestamp.from(Instant.from(format.parse(value)))
+        return Some(Timestamp.from(Instant.from(format.parse(value))))
       } catch {
         case _: Exception => // continue
       }
     }
-    throw new IllegalArgumentException(s"cannot convert value $value to Timestamp")
+    None
   }
 
 
@@ -236,21 +242,11 @@ private[xml] object TypeCast {
   }
 
   private[xml] def isTimestamp(value: String, options: XmlOptions): Boolean = {
-    try {
-      parseXmlTimestamp(value, options)
-      true
-    } catch {
-      case _: IllegalArgumentException => false
-    }
+    parseXmlTimestamp(value, options).nonEmpty
   }
 
   private[xml] def isDate(value: String, options: XmlOptions): Boolean = {
-    try {
-      parseXmlDate(value, options)
-      true
-    } catch {
-      case _: IllegalArgumentException => false
-    }
+    parseXmlDate(value, options).nonEmpty
   }
 
   private[xml] def signSafeToLong(value: String, options: XmlOptions): Long = {
