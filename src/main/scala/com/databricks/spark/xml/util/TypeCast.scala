@@ -17,7 +17,7 @@ package com.databricks.spark.xml.util
 
 import java.math.BigDecimal
 import java.sql.{Date, Timestamp}
-import java.text.{NumberFormat, ParsePosition}
+import java.text.NumberFormat
 import java.time.{Instant, LocalDate, ZoneId}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import java.util.Locale
@@ -25,8 +25,6 @@ import scala.util.Try
 import scala.util.control.Exception._
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.XmlOptions
-
-import java.time.temporal.TemporalQueries
 
 /**
  * Utility functions for type casting
@@ -86,9 +84,18 @@ private[xml] object TypeCast {
   )
 
   private def parseXmlDate(value: String, options: XmlOptions): Date = {
-    val formatters = options.dateFormat.map(DateTimeFormatter.ofPattern).
-      map(supportedXmlDateFormatters :+ _).getOrElse(supportedXmlDateFormatters)
-    formatters.foreach { format =>
+    // A little shortcut to avoid trying many formatters in the common case that
+    // the input isn't a date. All built-in formats will start with a digit.
+    if (value.nonEmpty && Character.isDigit(value.head)) {
+      supportedXmlDateFormatters.foreach { format =>
+        try {
+          return Date.valueOf(LocalDate.parse(value, format))
+        } catch {
+          case _: Exception => // continue
+        }
+      }
+    }
+    options.dateFormat.map(DateTimeFormatter.ofPattern).foreach { format =>
       try {
         return Date.valueOf(LocalDate.parse(value, format))
       } catch {
@@ -116,11 +123,15 @@ private[xml] object TypeCast {
   )
 
   private def parseXmlTimestamp(value: String, options: XmlOptions): Timestamp = {
-    supportedXmlTimestampFormatters.foreach { format =>
-      try {
-        return Timestamp.from(Instant.from(format.parse(value)))
-      } catch {
-        case _: Exception => // continue
+    // A little shortcut to avoid trying many formatters in the common case that
+    // the input isn't a timestamp. All built-in formats will start with a digit.
+    if (value.nonEmpty && Character.isDigit(value.head)) {
+      supportedXmlTimestampFormatters.foreach { format =>
+        try {
+          return Timestamp.from(Instant.from(format.parse(value)))
+        } catch {
+          case _: Exception => // continue
+        }
       }
     }
     options.timestampFormat.foreach { formatString =>
