@@ -16,6 +16,7 @@
 package com.databricks.spark.xml.parsers
 
 import java.sql.{Date, Timestamp}
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 import javax.xml.stream.XMLStreamWriter
@@ -85,7 +86,8 @@ private[xml] object StaxXmlGenerator {
       case (StringType, v: String) => writer.writeCharacters(v)
       case (TimestampType, v: Timestamp) =>
         val formatter = options.timestampFormat.map(DateTimeFormatter.ofPattern).
-          getOrElse(DateTimeFormatter.ISO_INSTANT)
+          getOrElse(DateTimeFormatter.ISO_INSTANT).
+          withZone(options.timezone.map(ZoneId.of).orNull)
         writer.writeCharacters(formatter.format(v.toInstant()))
       case (DateType, v: Date) =>
         val formatter = options.dateFormat.map(DateTimeFormatter.ofPattern).

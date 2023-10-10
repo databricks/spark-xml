@@ -36,6 +36,7 @@ case class KnownData(
     stringDatum: String,
     timeDatum: String,
     timestampDatum: Timestamp,
+    noTZTimestampDatum: Timestamp,
     nullDatum: Null
 )
 
@@ -78,6 +79,7 @@ final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
         timeDatum = "12:34:56",
         timestampDatum = Timestamp.from(ZonedDateTime.of(2017, 12, 20, 21, 46, 54, 0,
           ZoneId.of("UTC")).toInstant),
+        noTZTimestampDatum = Timestamp.valueOf("2017-12-20 21:46:54"),
         nullDatum = null),
       KnownData(booleanDatum = false,
         dateDatum = Date.valueOf("2016-12-19"),
@@ -89,15 +91,19 @@ final class StaxXmlGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
         timeDatum = "23:45:16",
         timestampDatum = Timestamp.from(ZonedDateTime.of(2017, 12, 29, 17, 21, 49, 0,
           ZoneId.of("America/New_York")).toInstant),
+        noTZTimestampDatum = Timestamp.valueOf("2017-12-29 17:21:49"),
         nullDatum = null)
     )
     
     val df = dataset.toDF().orderBy("booleanDatum")
+    val timestampFormat = "yyyy-MM-dd HH:mm:ss.SSSXXX"
+    val timezone = "UTC"
     val targetFile =
       Files.createTempDirectory("StaxXmlGeneratorSuite").resolve("roundtrip.xml").toString
-    df.write.format("xml").save(targetFile)
-    val newDf =
-      spark.read.schema(df.schema).format("xml").load(targetFile).orderBy("booleanDatum")
+    df.write.option("timestampFormat", timestampFormat).option("timezone", timezone).
+      format("xml").save(targetFile)
+    val newDf = spark.read.schema(df.schema).option("timestampFormat", timestampFormat).
+      option("timezone", timezone).format("xml").load(targetFile).orderBy("booleanDatum")
     assert(df.collect().toSeq === newDf.collect().toSeq)
   }
 
