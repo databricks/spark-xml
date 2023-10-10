@@ -68,6 +68,7 @@ Defaults to `false`. New in 0.11.0.
 columns. The format is specified as described in [DateTimeFormatter](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html).
 Defaults to try several formats, including [ISO_INSTANT](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_INSTANT),
 including variations with offset timezones or no timezone (defaults to UTC). New in 0.12.0. As of 0.16.0, if a custom format pattern is used without a timezone, the default Spark timezone specified by `spark.sql.session.timeZone` will be used.
+* `timezone`: identifier of timezone to be used when reading timestamps without a timezone specified. New in 0.16.0.
 * `dateFormat`: Specifies an additional timestamp format that will be tried when parsing values as `DateType` 
 columns. The format is specified as described in [DateTimeFormatter](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html).
 Defaults to [ISO_DATE](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_DATE). New in 0.12.0.
@@ -86,6 +87,7 @@ When writing files the API accepts several options:
 * `timestampFormat`: Controls the format used to write `TimestampType` format columns.
 The format is specified as described in [DateTimeFormatter](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html).
 Defaults to [ISO_INSTANT](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_INSTANT). New in 0.12.0. As of 0.16.0, if a custom format pattern is used without a timezone, the default Spark timezone specified by `spark.sql.session.timeZone` will be used.
+* `timezone`: identifier of timezone to be used when writing timestamps without a timezone specified. New in 0.16.0.
 * `dateFormat`: Controls the format used to write `DateType` format columns.
 The format is specified as described in [DateTimeFormatter](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html).
 Defaults to [ISO_DATE](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_DATE). New in 0.12.0.
