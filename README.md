@@ -46,6 +46,13 @@ When reading files the API accepts several options:
   * `FAILFAST` : throws an exception when it meets corrupted records.
 * `inferSchema`: if `true`, attempts to infer an appropriate type for each resulting DataFrame column, like a boolean, numeric or date type. If `false`, all resulting columns are of string type. Default is `true`.
 * `columnNameOfCorruptRecord`: The name of new field where malformed strings are stored. Default is `_corrupt_record`.
+
+  Note: you should explicitly add `_corrupt_record` field to dataframe schema, like this:
+  ```python
+  schema = StructType([StructField("my_field", TimestampType()), StructField("_corrupt_record", StringType())])
+  spark.read.format("xml").options(rowTag='item').schema(schema).load("file.xml")
+  ```
+  Otherwise the corrupt record will lead to creating row with all `null` fields, and you cannot access the original xml string. 
 * `attributePrefix`: The prefix for attributes so that we can differentiate attributes and elements. This will be the prefix for field names. Default is `_`. Can be empty, but only for reading XML.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
 * `charset`: Defaults to 'UTF-8' but can be set to other valid charset names
@@ -93,6 +100,8 @@ The format is specified as described in [DateTimeFormatter](https://docs.oracle.
 Defaults to [ISO_DATE](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_DATE). New in 0.12.0.
 
 Currently it supports the shortened name usage. You can use just `xml` instead of `com.databricks.spark.xml`.
+
+NOTE: created files have no `.xml` extension.
 
 ### XSD Support
 
