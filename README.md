@@ -47,12 +47,12 @@ When reading files the API accepts several options:
 * `inferSchema`: if `true`, attempts to infer an appropriate type for each resulting DataFrame column, like a boolean, numeric or date type. If `false`, all resulting columns are of string type. Default is `true`.
 * `columnNameOfCorruptRecord`: The name of new field where malformed strings are stored. Default is `_corrupt_record`.
 
-  Note: if you pass `schema` explicitly, you should add `_corrupt_record` field to the schema, like this:
+  Note: this field should be present in the dataframe schema if it is passed explicitly, like this:
   ```python
   schema = StructType([StructField("my_field", TimestampType()), StructField("_corrupt_record", StringType())])
   spark.read.format("xml").options(rowTag='item').schema(schema).load("file.xml")
   ```
-  Otherwise the parsing corrupt record will lead to creating row with all `null` fields, and you cannot access the original xml string. 
+  If schema is infered, this field is added automatically.
 * `attributePrefix`: The prefix for attributes so that we can differentiate attributes and elements. This will be the prefix for field names. Default is `_`. Can be empty, but only for reading XML.
 * `valueTag`: The tag used for the value when there are attributes in the element having no child. Default is `_VALUE`.
 * `charset`: Defaults to 'UTF-8' but can be set to other valid charset names
