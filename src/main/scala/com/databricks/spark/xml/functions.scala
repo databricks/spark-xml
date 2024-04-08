@@ -17,7 +17,6 @@
 package com.databricks.spark.xml
 
 import org.apache.spark.sql.Column
-import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
 import org.apache.spark.sql.types.DataType
 
 /**
@@ -28,14 +27,13 @@ object functions {
   /**
    * Parses a column containing a XML string into a `StructType` with the specified schema.
    *
-   * @param e a string column containing XML data
+   * @param col a string column containing XML data
    * @param schema the schema to use when parsing the XML string. Must be a StructType if
    *   column is string-valued, or ArrayType[StructType] if column is an array of strings
    * @param options key-value pairs that correspond to those supported by [[XmlOptions]]
    */
-  def from_xml(e: Column, schema: DataType, options: Map[String, String] = Map.empty): Column = {
-    val expr = CatalystSqlParser.parseExpression(e.toString())
-    new Column(XmlDataToCatalyst(expr, schema, XmlOptions(options)))
+  def from_xml(col: Column, schema: DataType, options: Map[String, String] = Map.empty): Column = {
+    new Column(XmlDataToCatalyst(col.expr, schema, XmlOptions(options)))
   }
 
 }
