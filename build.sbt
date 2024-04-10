@@ -2,7 +2,7 @@ import com.typesafe.tools.mima.core.MissingClassProblem
 
 name := "spark-xml"
 
-version := "0.17.0"
+version := "0.18.0"
 
 organization := "com.databricks"
 
@@ -12,7 +12,7 @@ crossScalaVersions := Seq("2.12.15", "2.13.8")
 
 scalacOptions := Seq("-unchecked", "-deprecation")
 
-val sparkVersion = sys.props.get("spark.testVersion").getOrElse("3.4.1")
+val sparkVersion = sys.props.get("spark.testVersion").getOrElse("3.5.1")
 
 // To avoid packaging it, it's Provided below
 autoScalaLibrary := false
@@ -81,7 +81,7 @@ fork := true
 // Prints JUnit tests in output
 Test / testOptions := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
 
-mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.16.0")
+mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.17.0")
 
 mimaBinaryIssueFilters ++= {
   Seq()
